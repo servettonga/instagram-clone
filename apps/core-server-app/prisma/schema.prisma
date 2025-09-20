@@ -1,0 +1,264 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.VarChar(255)
+  username     String   @unique @db.VarChar(50)
+  passwordHash String?  @map("password_hash") @db.VarChar(255)
+  displayName  String?  @map("display_name") @db.VarChar(100)
+  bio          String?  @db.Text
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
+  isBlocked    Boolean  @default(false) @map("is_blocked")
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  oauthProviders        OauthProvider[]
+  posts                 Post[]
+  likes                 Like[]
+  comments              Comment[]
+  followers             Follow[]        @relation("UserFollowers")
+  following             Follow[]        @relation("UserFollowing")
+  sentNotifications     Notification[]  @relation("NotificationSender")
+  receivedNotifications Notification[]  @relation("NotificationReceiver")
+  reportsMade           Report[]        @relation("ReportsMade")
+  reportsReceived       Report[]        @relation("ReportsReceived")
+  reviewedReports       Report[]        @relation("ReviewedReports")
+  sessions              UserSession[]
+
+  @@map("users")
+}
+
+model OauthProvider {
+  id             Int               @id @default(autoincrement())
+  userId         Int               @map("user_id")
+  provider       OauthProviderType @map("provider")
+  providerUserId String            @map("provider_user_id") @db.VarChar(255)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@map("oauth_providers")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  content   String   @db.Text
+  imageUrls Json?    @map("image_urls")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         Like[]
+  comments      Comment[]
+  reports       Report[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@map("likes")
+}
+
+model Comment {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  postId          Int      @map("post_id")
+  content         String   @db.Text
+  parentCommentId Int?     @map("parent_comment_id")
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentComment Comment?       @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies       Comment[]      @relation("CommentReplies")
+  reports       Report[]
+  notifications Notification[]
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentCommentId])
+  @@map("comments")
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int      @map("follower_id")
+  followingId Int      @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Notification {
+  id               Int              @id @default(autoincrement())
+  userId           Int              @map("user_id")
+  type             NotificationType
+  message          String           @db.Text
+  relatedUserId    Int?             @map("related_user_id")
+  relatedPostId    Int?             @map("related_post_id")
+  relatedCommentId Int?             @map("related_comment_id")
+  isRead           Boolean          @default(false) @map("is_read")
+  isEmailSent      Boolean          @default(false) @map("is_email_sent")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user           User     @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  relatedUser    User?    @relation("NotificationSender", fields: [relatedUserId], references: [id])
+  relatedPost    Post?    @relation(fields: [relatedPostId], references: [id])
+  relatedComment Comment? @relation(fields: [relatedCommentId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([type])
+  @@map("notifications")
+}
+
+model Report {
+  id                Int          @id @default(autoincrement())
+  reporterId        Int          @map("reporter_id")
+  reportedUserId    Int?         @map("reported_user_id")
+  reportedPostId    Int?         @map("reported_post_id")
+  reportedCommentId Int?         @map("reported_comment_id")
+  reason            ReportReason
+  description       String?      @db.Text
+  status            ReportStatus @default(PENDING)
+  reviewedBy        Int?         @map("reviewed_by")
+  reviewedAt        DateTime?    @map("reviewed_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  reporter        User     @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser    User?    @relation("ReportsReceived", fields: [reportedUserId], references: [id])
+  reportedPost    Post?    @relation(fields: [reportedPostId], references: [id])
+  reportedComment Comment? @relation(fields: [reportedCommentId], references: [id])
+  reviewer        User?    @relation("ReviewedReports", fields: [reviewedBy], references: [id])
+
+  @@index([reporterId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reports")
+}
+
+model UserSession {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  sessionToken      String    @unique @map("session_token") @db.VarChar(500)
+  refreshTokenHash  String?   @map("refresh_token_hash") @db.VarChar(500)
+  expiresAt         DateTime  @map("expires_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  ipAddress         String?   @map("ip_address") @db.VarChar(45)
+  userAgent         String?   @map("user_agent") @db.Text
+  deviceFingerprint String?   @map("device_fingerprint") @db.VarChar(255)
+  lastActivity      DateTime? @map("last_activity")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("user_sessions")
+}
+
+model AppStatistic {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @unique @db.Date
+  activeUsers   Int      @default(0) @map("active_users")
+  totalPosts    Int      @default(0) @map("total_posts")
+  totalLikes    Int      @default(0) @map("total_likes")
+  totalComments Int      @default(0) @map("total_comments")
+  totalMessages Int      @default(0) @map("total_messages")
+  newUsers      Int      @default(0) @map("new_users")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("app_statistics")
+}
+
+enum UserRole {
+  USER  @map("user")
+  ADMIN @map("admin")
+
+  @@map("user_role")
+}
+
+enum OauthProviderType {
+  GOOGLE @map("google")
+  GITHUB @map("github")
+
+  @@map("oauth_provider")
+}
+
+enum NotificationType {
+  LIKE    @map("like")
+  COMMENT @map("comment")
+  FOLLOW  @map("follow")
+  MESSAGE @map("message")
+
+  @@map("notification_type")
+}
+
+enum ReportReason {
+  SPAM                  @map("spam")
+  HARASSMENT            @map("harassment")
+  INAPPROPRIATE_CONTENT @map("inappropriate_content")
+  FAKE_PROFILE          @map("fake_profile")
+  OTHER                 @map("other")
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  PENDING   @map("pending")
+  REVIEWED  @map("reviewed")
+  RESOLVED  @map("resolved")
+  DISMISSED @map("dismissed")
+
+  @@map("report_status")
+}

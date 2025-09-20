@@ -42,7 +42,7 @@ Preferable to use monorepos like NX or Turbo Monorepo (Turbo Monorepo is easily 
     3. Methods within authentication service from core microservice must manipulate response object to set up and clear cookies with access and refresh tokens.
 3. Also, authentication controller with methods for logging out, refreshing tokens and getting current authenticated user by client using identification data from JWT token (ID, email or username) must be created.
 
-    You can use Passport.js library for authentication strategy purposes. **Don’t forget ot use private key for access and refresh tokens generation.**
+    You can use Passport.js library for authentication strategy purposes. **Don’t forget to use private key for access and refresh tokens generation.**
 
 4. Create several Postman or Jest end-to-end tests to check whole authentication functionality.
 

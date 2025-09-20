@@ -1,29 +1,36 @@
-import { config as baseConfig } from '@repo/eslint-config/base';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// @ts-check
+import eslint from '@eslint/js';
+import { config } from "@repo/eslint-config/base";
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-/**
- * ESLint configuration for auth-service
- *
- * @type {import("eslint").Linter.Config[]}
- */
-export default [
-  ...baseConfig,
+export default tseslint.config(
   {
-    files: ["src/**/*.ts", "src/**/*.js"],
+    ignores: ['eslint.config.js'],
+  },
+  ...config,
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  eslintPluginPrettierRecommended,
+  {
     languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      sourceType: 'module',
       parserOptions: {
-        project: path.resolve(__dirname, './tsconfig.json'),
-        tsconfigRootDir: __dirname,
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
+  },
+  {
     rules: {
-      "no-console": "off",
-      // Security related rules for auth service
-      "no-eval": "error",
-      "no-implied-eval": "error",
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn'
     },
   },
-];
+);
