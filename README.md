@@ -1,18 +1,24 @@
-# 📸 Polaroid - Social Media Platform
+# 📸 Innogram - Social Media Platform
 
 Modern microservices-based social media platform built with Next.js, NestJS, and Node.js.
 
-## 🏗️ Architecture
+## 📂 Project Structure
 
 ```sh
-📁 polaroid/
+innogram/
 ├── apps/
-│   ├── auth-service/       # Node.js/Express
-│   ├── core-server-app/    # NestJS
-│   └── client-app/         # Next.js
-├── scripts/               # Setup scripts
-├── docker-compose.yml     # Production
-└── docker-compose.dev.yml # Development databases
+│   ├── auth-service/           # Authentication microservice (Express.js)
+│   ├── core-server-app/        # Main API server (NestJS + Prisma)
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma   # Database schema
+│   │   │   └── init-db.sql     # Database initialization
+│   │   └── scripts/
+│   │       └── startup.sh      # Server startup script
+│   └── client-app/             # Frontend application (Next.js)
+├── init-project.sh             # Interactive setup script
+├── docker-compose.yml          # Production services
+├── docker-compose.dev.yml      # Development databases
+└── README.md
 ```
 
 ## 🚀 Quick Start
@@ -21,59 +27,54 @@ Modern microservices-based social media platform built with Next.js, NestJS, and
 
 - Node.js 24+
 - Docker & Docker Compose
+- Git (for Git Bash on Windows)
 
-### Development
+### One-Command Setup
 
 ```bash
 git clone <repo>
-cd polaroid
-npm run setup:dev    # One-time setup
-npm run docker:dev   # Start databases
+cd <project-directory>
+chmod +x init-project.sh
+./init-project.sh
+```
+
+The interactive setup will guide you through:
+
+1. **Development Mode** - Apps locally + databases in Docker
+2. **Production Mode** - Everything in Docker containers
+
+## 🔧 Development Mode
+
+**What it does:**
+
+- Databases run in Docker (ports 5433, 27018, 6380)
+- Applications run locally with hot reload
+- Best for active development
+
+**After setup:**
+
+```bash
 npm run dev          # Start all apps locally
+# OR start individually:
+npm run auth:dev     # Terminal 1
+npm run core:dev     # Terminal 2
+npm run client:dev   # Terminal 3
 ```
 
-### Production
+## 🏭 Production Mode
+
+**What it does:**
+
+- Everything runs in Docker containers
+- Uses standard ports (5432, 27017, 6379)
+- Production-ready deployment
+
+**After setup:**
 
 ```bash
-npm run setup:prod   # One-time setup
-# Edit .env.production with secure values
-npm run docker:prod  # Everything in Docker
-```
-
-## 🔧 Environment
-
-### Development (.env)
-
-- Apps run **locally** with hot reload
-- Databases in **Docker** (ports 5433, 27018, 6380)
-
-### Production (.env.production)
-
-- Everything in **Docker** containers
-- Standard ports (5432, 27017, 6379)
-
-## 📋 Commands
-
-### Development
-
-```bash
-npm run docker:dev     # Start databases
-npm run auth:dev       # Auth service locally
-npm run core:dev       # Core server locally
-npm run client:dev     # Frontend locally
-npm run dev            # All services at once
-
-npm run db:studio      # Database UI
-npm run db:push        # Update schema
-```
-
-### Production
-
-```bash
+# Edit .env.production with secure values!
 npm run docker:prod         # Start everything
 npm run docker:prod:logs    # View logs
-npm run docker:prod:down    # Stop services
-npm run docker:prod:clean   # Clean volumes
 ```
 
 ## 🌐 URLs
@@ -84,9 +85,7 @@ npm run docker:prod:clean   # Clean volumes
 | Core API | <http://localhost:8000> | <http://localhost:8000> |
 | Auth API | <http://localhost:4000> | <http://localhost:4000> |
 
-## 🔧 Database
-
-### Ports
+## 🗄️ Database Ports
 
 | Database | Development | Production |
 |----------|-------------|------------|
@@ -94,63 +93,77 @@ npm run docker:prod:clean   # Clean volumes
 | MongoDB | 27018 | 27017 |
 | Redis | 6380 | 6379 |
 
-### Management
+## 📋 Available Commands
+
+### Development
 
 ```bash
-npm run db:studio    # Visual editor
-npm run db:generate  # Generate Prisma client
-npm run db:reset     # Reset database ⚠️
+npm run docker:dev     # Start databases only
+npm run dev            # Start all apps locally
+npm run db:studio      # Database management UI
+npm run db:push        # Update database schema
+```
+
+### Production
+
+```bash
+npm run docker:prod         # Start everything
+npm run docker:prod:logs    # View all logs
+npm run docker:prod:down    # Stop services
+npm run docker:prod:clean   # Clean volumes
+```
+
+### Database Management
+
+```bash
+npm run db:studio      # Visual database editor
+npm run db:generate    # Generate Prisma client
+npm run db:reset       # Reset database ⚠️
 ```
 
 ## 🚨 Troubleshooting
 
-### Port conflicts
+### Port Conflicts
 
 ```bash
-lsof -i :3000      # Check port usage
-kill -9 $(lsof -t -i :3000)  # Kill process
+lsof -i :3000                    # Check port usage
+kill -9 $(lsof -t -i :3000)     # Kill process
 ```
 
-### Database issues
+### Database Issues
 
 ```bash
-npm run docker:dev:clean   # Reset databases
-npm run docker:dev         # Restart
+npm run docker:dev:clean   # Reset dev databases
+npm run docker:dev         # Restart databases
 ```
 
-### Health checks
+### Fresh Start
 
 ```bash
+npm run clean:all          # Clean everything
+./init-project.sh          # Re-run setup
+```
+
+### Health Checks
+
+```bash
+npm run health:check       # Test all services
 curl http://localhost:3000        # Frontend
-curl http://localhost:4000/health # Auth
-curl http://localhost:8000/health # Core
-```
-
-## 📂 Project Structure
-
-```sh
-apps/
-├── auth-service/      # Authentication (Express)
-├── core-server-app/   # Main API (NestJS + Prisma)
-└── client-app/        # Frontend (Next.js)
+curl http://localhost:4000/health # Auth API
+curl http://localhost:8000/health # Core API
 ```
 
 ## 🔐 Security
 
-Generate secure secrets:
+Generate secure secrets for production:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Required in `.env`:
+Required in `.env.production`:
 
-- `JWT_ACCESS_SECRET` (32+ chars)
-- `JWT_REFRESH_SECRET` (32+ chars)
-- `NEXTAUTH_SECRET` (32+ chars)
-- Database passwords
-
----
-
-**Development**: Databases in Docker + Apps local
-**Production**: Everything in Docker
+- `JWT_ACCESS_SECRET` (32+ characters)
+- `JWT_REFRESH_SECRET` (32+ characters)
+- `NEXTAUTH_SECRET` (32+ characters)
+- Strong database passwords

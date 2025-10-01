@@ -10,11 +10,10 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-polaroid}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-innogram}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: apps/auth-service/Dockerfile
-    container_name: polaroid_auth_service
+    container_name: innogram_auth_service
     restart: unless-stopped
     env_file: .env.production
     ports:
@@ -86,12 +85,12 @@ services:
     build:
       context: .
       dockerfile: apps/core-server-app/Dockerfile
-    container_name: polaroid_core_server
+    container_name: innogram_core_server
     restart: unless-stopped
     env_file: .env.production
     environment:
-      - MONGODB_URL=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/polaroid_messages?authSource=admin
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-polaroid}?schema=public
+      - MONGODB_URL=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/innogram_messages?authSource=admin
+      - DATABASE_URL=postgresql://${APP_DB_USER:-innogram_user}:${APP_DB_PASSWORD:-innogram_app_password}@postgres:5432/${POSTGRES_DB:-innogram}?schema=public
       - AUTH_SERVICE_URL=http://auth-service:4000
     ports:
       - "${CORE_SERVER_PORT:-8000}:8000"
@@ -118,7 +117,7 @@ services:
     build:
       context: .
       dockerfile: apps/client-app/Dockerfile
-    container_name: polaroid_client_app
+    container_name: innogram_client_app
     restart: unless-stopped
     env_file: .env.production
     ports:

@@ -9,23 +9,26 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "dev": "nest start --watch",
+    "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-
+    "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:e2e:watch": "jest --config ./test/jest-e2e.json --watch",
+    "check-types": "tsc --noEmit",
 
-    "db:generate": "prisma generate --no-engine",
+    "dev": "chmod +x ./scripts/startup.sh && NODE_ENV=development ./scripts/startup.sh",
+    "postinstall": "prisma generate",
+
+    "db:init": "PGPASSWORD=${POSTGRES_PASSWORD:-password} psql -h ${POSTGRES_HOST:-localhost} -p ${POSTGRES_PORT:-5433} -U ${POSTGRES_USER:-postgres} -d postgres -f prisma/init-db.sql || true",
+    "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

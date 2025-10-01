@@ -5,16 +5,16 @@ export const getDatabaseConfig = () => {
     // PostgreSQL
     databaseUrl: isDevelopment
       ? process.env.DATABASE_URL ||
-        'postgresql://postgres:password@localhost:5433/polaroid?schema=public'
+        'postgresql://postgres:password@localhost:5433/innogram?schema=public'
       : process.env.DATABASE_URL ||
-        'postgresql://postgres:password@postgres:5432/polaroid?schema=public',
+        'postgresql://postgres:password@postgres:5432/innogram?schema=public',
 
     // MongoDB
     mongodbUrl: isDevelopment
       ? process.env.MONGODB_URL ||
-        'mongodb://admin:password@localhost:27018/polaroid_messages?authSource=admin'
+        'mongodb://admin:password@localhost:27018/innogram_messages?authSource=admin'
       : process.env.MONGODB_URL ||
-        'mongodb://admin:password@mongodb:27017/polaroid_messages?authSource=admin',
+        'mongodb://admin:password@mongodb:27017/innogram_messages?authSource=admin',
 
     // Redis
     redisUrl: isDevelopment

@@ -1,6 +1,6 @@
 # Core Server - Production Only Dockerfile
 FROM node:24-alpine AS base
-RUN apk add --no-cache libc6-compat curl openssl
+RUN apk add --no-cache libc6-compat curl openssl postgresql-client
 WORKDIR /app
 
 # Dependencies stage
@@ -41,9 +41,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nestjs:nodejs /app/apps/core-server-app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/apps/core-server-app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/apps/core-server-app/prisma ./prisma
+COPY --from=builder --chown=nestjs:nodejs /app/apps/core-server-app/scripts ./scripts
 
 # Copy production dependencies
 COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Make startup script executable
+RUN chmod +x ./scripts/startup.sh
 
 # Switch to nestjs user before generating Prisma client
 USER nestjs
@@ -51,13 +55,10 @@ USER nestjs
 # Generate Prisma client in the final stage for the correct platform
 RUN npx prisma generate
 
-# Verify Prisma client exists
-RUN ls -la node_modules/.prisma/client/ || echo "No Prisma client found"
-
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Database migration + start (production)
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/main.js"]
+# Use startup script for database initialization + start
+CMD ["./scripts/startup.sh"]

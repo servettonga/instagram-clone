@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersController } from './users.controller';
-import { UsersService, SafeUser } from './users.service';
+import { UsersService } from './users.service';
+import { UserWithProfileAndAccount } from './payloads'
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -9,15 +10,24 @@ describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
 
-  const mockUser: SafeUser = {
-    id: 1,
-    email: 'test@example.com',
-    username: 'testuser',
-    displayName: 'Test User',
-    bio: 'Test bio',
-    avatarUrl: 'https://example.com/avatar.jpg',
+  const mockUserWithProfileAndAccount: UserWithProfileAndAccount = {
+    id: 'test-user-id',
+    role: 'USER',
+    disabled: false,
     createdAt: new Date(),
     updatedAt: new Date(),
+    createdBy: null,
+    updatedBy: null,
+    username: 'testuser',
+    displayName: 'Test User',
+    birthday: new Date('2000-01-01'),
+    bio: 'Test bio',
+    avatarUrl: 'https://example.com/avatar.jpg',
+    isPublic: true,
+    deleted: false,
+    email: 'test@example.com',
+    primaryAccountId: 'test-account-id',
+    profileId: 'test-profile-id',
   };
 
   const mockUsersService = {
@@ -55,12 +65,12 @@ describe('UsersController', () => {
     };
 
     it('should create a user', async () => {
-      mockUsersService.create.mockResolvedValue(mockUser);
+      mockUsersService.create.mockResolvedValue(mockUserWithProfileAndAccount);
 
       const result = await controller.create(createUserDto);
 
       expect(service.create).toHaveBeenCalledWith(createUserDto);
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual(mockUserWithProfileAndAccount);
     });
 
     it('should handle service errors', async () => {
@@ -74,7 +84,7 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('should return an array of users', async () => {
-      const mockUsers = [mockUser];
+      const mockUsers = [mockUserWithProfileAndAccount];
       mockUsersService.findAll.mockResolvedValue(mockUsers);
 
       const result = await controller.findAll();
@@ -86,18 +96,20 @@ describe('UsersController', () => {
 
   describe('findOne', () => {
     it('should return a user', async () => {
-      mockUsersService.findOne.mockResolvedValue(mockUser);
+      mockUsersService.findOne.mockResolvedValue(mockUserWithProfileAndAccount);
 
-      const result = await controller.findOne(1);
+      const result = await controller.findOne('test-user-id');
 
-      expect(service.findOne).toHaveBeenCalledWith(1);
-      expect(result).toEqual(mockUser);
+      expect(service.findOne).toHaveBeenCalledWith('test-user-id');
+      expect(result).toEqual(mockUserWithProfileAndAccount);
     });
 
     it('should handle not found errors', async () => {
       mockUsersService.findOne.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -107,12 +119,15 @@ describe('UsersController', () => {
     };
 
     it('should update a user', async () => {
-      const updatedUser = { ...mockUser, ...updateUserDto };
+      const updatedUser = {
+        ...mockUserWithProfileAndAccount,
+        ...updateUserDto,
+      };
       mockUsersService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update(1, updateUserDto);
+      const result = await controller.update('test-user-id', updateUserDto);
 
-      expect(service.update).toHaveBeenCalledWith(1, updateUserDto);
+      expect(service.update).toHaveBeenCalledWith('test-user-id', updateUserDto);
       expect(result).toEqual(updatedUser);
     });
   });
@@ -121,9 +136,9 @@ describe('UsersController', () => {
     it('should remove a user', async () => {
       mockUsersService.remove.mockResolvedValue(undefined);
 
-      const result = await controller.remove(1);
+      const result = await controller.remove('test-user-id');
 
-      expect(service.remove).toHaveBeenCalledWith(1);
+      expect(service.remove).toHaveBeenCalledWith('test-user-id');
       expect(result).toBeUndefined();
     });
   });

@@ -1,7 +1,11 @@
 export const ERROR_MESSAGES = {
   // User-related errors
-  USER_NOT_FOUND: (id: number) => `User with ID ${id} not found`,
+  USER_NOT_FOUND: (id: string | number) => `User with ID ${id} not found`,
   EMAIL_OR_USERNAME_EXISTS: 'Email or username already exists',
+
+  // Auth errors
+  INVALID_CREDENTIALS: 'Invalid credentials',
+  UNAUTHORIZED: 'Unauthorized access',
 
   // Validation errors
   VALIDATION_FAILED: 'Validation failed',
@@ -9,17 +13,18 @@ export const ERROR_MESSAGES = {
   EMAIL_REQUIRED: 'email should not be empty',
   USERNAME_REQUIRED: 'username should not be empty',
   USERNAME_TOO_LONG: 'username must be shorter than or equal to 20 characters',
+  INVALID_UUID_FORMAT: 'Invalid UUID format',
 
   // Generic errors
   INTERNAL_SERVER_ERROR: 'Internal server error',
   RESOURCE_NOT_FOUND: 'Resource not found',
-  UNAUTHORIZED: 'Unauthorized access',
   FORBIDDEN: 'Access forbidden',
 } as const;
 
 export const HTTP_MESSAGES = {
   // Success messages
   USER_CREATED: 'User created successfully',
+  USER_RETRIEVED: 'Users retrieved successfully',
   USER_UPDATED: 'User updated successfully',
   USER_DELETED: 'User deleted successfully',
 

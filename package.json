@@ -1,5 +1,5 @@
 {
-  "name": "polaroid",
+  "name": "innogram",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -9,9 +9,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
 
-    "setup:dev": "bash scripts/dev-setup.sh",
-    "setup:prod": "bash scripts/prod-setup.sh",
-    "setup": "npm run setup:dev",
+    "// Project Setup": "",
+    "setup": "./init-project.sh",
+    "postinstall": "cd apps/core-server-app && npx prisma generate",
 
     "// Development - Apps run locally, databases in Docker": "",
     "docker:dev": "docker compose -f docker-compose.dev.yml up -d",

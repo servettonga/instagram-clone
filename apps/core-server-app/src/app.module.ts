@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { PrismaModule } from './prisma/prisma.module';
@@ -8,6 +8,11 @@ import { HealthModule } from './health/health.module';
 
 import { configValidationSchema } from './config/config.validation';
 import { getDatabaseConfig } from './config/database.config';
+import { AuthModule } from './auth/auth.module';
+import { PostsModule } from './posts/posts.module';
+import { CommentsModule } from './comments/comments.module';
+import { ChatsModule } from './chats/chats.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -15,7 +20,7 @@ import { getDatabaseConfig } from './config/database.config';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
-        process.env.NODE_ENV === 'production' ? undefined : '../../.env',
+        process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
       validationSchema: configValidationSchema,
       load: [getDatabaseConfig],
     }),
@@ -38,7 +43,12 @@ import { getDatabaseConfig } from './config/database.config';
     // RedisModule.forRootAsync({...}),
 
     // Feature modules
+    AuthModule,
     UsersModule,
+    PostsModule,
+    CommentsModule,
+    ChatsModule,
+    NotificationsModule,
     HealthModule,
   ],
   controllers: [],

@@ -4,19 +4,28 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ERROR_MESSAGES } from '../src/common/constants/messages';
+import { TestDatabase } from './helpers/test-database.helper';
 
 describe('Users (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;
+  let testDb: TestDatabase;
 
   beforeAll(async () => {
+    // Create isolated test database
+    testDb = new TestDatabase('users');
+    await testDb.setup();
+
+    // IMPORTANT: Set DATABASE_URL BEFORE creating the module
+    process.env.DATABASE_URL = testDb.databaseUrl;
+
+    // Create test module with isolated database
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
-
-    // Add the same validation pipe as the main app
+    app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -33,14 +42,15 @@ describe('Users (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+    await testDb.teardown();
   });
 
   beforeEach(async () => {
-    // Clean up database before each test
-    await prismaService.user.deleteMany({});
+    // Fast cleanup using truncate instead of deleteMany
+    await testDb.truncateAll();
   });
 
-  describe('POST /users', () => {
+  describe('POST /api/users', () => {
     const createUserDto = {
       email: 'test@example.com',
       username: 'testuser',
@@ -50,38 +60,42 @@ describe('Users (e2e)', () => {
 
     it('should create a user successfully', async () => {
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send(createUserDto)
         .expect(201);
 
       expect(response.body).toMatchObject({
-        id: expect.any(Number),
+        id: expect.any(String),
         email: createUserDto.email,
         username: createUserDto.username,
         displayName: createUserDto.displayName,
         bio: createUserDto.bio,
         avatarUrl: null,
+        role: 'USER',
+        disabled: false,
+        profileId: expect.any(String),
+        primaryAccountId: expect.any(String),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
 
-      // Verify user was created in database
       const userInDb = await prismaService.user.findUnique({
-        where: { email: createUserDto.email },
+        where: { id: response.body.id },
+        include: { profile: true, accounts: true },
       });
       expect(userInDb).toBeTruthy();
-      expect(userInDb?.email).toBe(createUserDto.email);
+      expect(userInDb?.profile?.username).toBe(createUserDto.username);
+      expect(userInDb?.accounts[0]?.email).toBe(createUserDto.email);
     });
 
     it('should return 409 when email already exists', async () => {
-      // Create user first
-      await prismaService.user.create({
-        data: createUserDto,
-      });
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .send(createUserDto)
+        .expect(201);
 
-      // Try to create user with same email
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send({
           ...createUserDto,
           username: 'differentusername',
@@ -94,14 +108,13 @@ describe('Users (e2e)', () => {
     });
 
     it('should return 409 when username already exists', async () => {
-      // Create user first
-      await prismaService.user.create({
-        data: createUserDto,
-      });
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .send(createUserDto)
+        .expect(201);
 
-      // Try to create user with same username
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send({
           ...createUserDto,
           email: 'different@example.com',
@@ -115,7 +128,7 @@ describe('Users (e2e)', () => {
 
     it('should return 400 for invalid email', async () => {
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send({
           ...createUserDto,
           email: 'invalid-email',
@@ -127,7 +140,7 @@ describe('Users (e2e)', () => {
 
     it('should return 400 for missing required fields', async () => {
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send({
           displayName: 'Test User',
         })
@@ -145,55 +158,57 @@ describe('Users (e2e)', () => {
 
     it('should return 400 for username too long', async () => {
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send({
           ...createUserDto,
-          username: 'a'.repeat(21), // Max length is 20
+          username: 'a'.repeat(51),
         })
         .expect(400);
 
-      expect(response.body.message).toContain(ERROR_MESSAGES.USERNAME_TOO_LONG);
+      expect(response.body.message).toContain(
+        'username must be shorter than or equal to 50 characters',
+      );
     });
 
-    it('should create user with only required fields', async () => {
+    it('should create user with only required fields and default displayName', async () => {
       const minimalUser = {
         email: 'minimal@example.com',
         username: 'minimal',
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post('/api/users')
         .send(minimalUser)
         .expect(201);
 
       expect(response.body).toMatchObject({
         email: minimalUser.email,
         username: minimalUser.username,
-        displayName: null,
+        displayName: minimalUser.username,
         bio: null,
         avatarUrl: null,
       });
     });
   });
 
-  describe('GET /users/:id', () => {
-    let userId: number;
+  describe('GET /api/users/:id', () => {
+    let userId: string;
 
     beforeEach(async () => {
-      const user = await prismaService.user.create({
-        data: {
+      const createResponse = await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
           email: 'getuser@example.com',
           username: 'getuser',
           displayName: 'Get User',
           bio: 'User for get tests',
-        },
-      });
-      userId = user.id;
+        });
+      userId = createResponse.body.id;
     });
 
     it('should return user by id', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/users/${userId}`)
+        .get(`/api/users/${userId}`)
         .expect(200);
 
       expect(response.body).toMatchObject({
@@ -202,35 +217,40 @@ describe('Users (e2e)', () => {
         username: 'getuser',
         displayName: 'Get User',
         bio: 'User for get tests',
+        role: 'USER',
+        disabled: false,
       });
     });
 
     it('should return 404 for non-existent user', async () => {
+      const fakeId = '550e8400-e29b-41d4-a716-446655440000';
       const response = await request(app.getHttpServer())
-        .get('/users/999999')
+        .get(`/api/users/${fakeId}`)
         .expect(404);
 
-      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(999999));
+      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(fakeId));
     });
 
     it('should return 400 for invalid id format', async () => {
-      await request(app.getHttpServer()).get('/users/invalid-id').expect(400);
+      await request(app.getHttpServer())
+        .get('/api/users/invalid-id')
+        .expect(400);
     });
   });
 
-  describe('PATCH /users/:id', () => {
-    let userId: number;
+  describe('PATCH /api/users/:id', () => {
+    let userId: string;
 
     beforeEach(async () => {
-      const user = await prismaService.user.create({
-        data: {
+      const createResponse = await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
           email: 'updateuser@example.com',
           username: 'updateuser',
           displayName: 'Update User',
           bio: 'User for update tests',
-        },
-      });
-      userId = user.id;
+        });
+      userId = createResponse.body.id;
     });
 
     it('should update user successfully', async () => {
@@ -240,7 +260,7 @@ describe('Users (e2e)', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
+        .patch(`/api/users/${userId}`)
         .send(updateData)
         .expect(200);
 
@@ -248,38 +268,38 @@ describe('Users (e2e)', () => {
         id: userId,
         displayName: updateData.displayName,
         bio: updateData.bio,
-        email: 'updateuser@example.com', // Unchanged
-        username: 'updateuser', // Unchanged
+        email: 'updateuser@example.com',
+        username: 'updateuser',
       });
 
-      // Verify update in database
       const userInDb = await prismaService.user.findUnique({
         where: { id: userId },
+        include: { profile: true },
       });
-      expect(userInDb?.displayName).toBe(updateData.displayName);
-      expect(userInDb?.bio).toBe(updateData.bio);
+      expect(userInDb?.profile?.displayName).toBe(updateData.displayName);
+      expect(userInDb?.profile?.bio).toBe(updateData.bio);
     });
 
     it('should return 404 for non-existent user', async () => {
+      const fakeId = '550e8400-e29b-41d4-a716-446655440000';
       const response = await request(app.getHttpServer())
-        .patch('/users/999999')
+        .patch(`/api/users/${fakeId}`)
         .send({ displayName: 'New Name' })
         .expect(404);
 
-      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(999999));
+      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(fakeId));
     });
 
     it('should return 409 when updating to existing email', async () => {
-      // Create another user
-      await prismaService.user.create({
-        data: {
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
           email: 'existing@example.com',
           username: 'existing',
-        },
-      });
+        });
 
       const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
+        .patch(`/api/users/${userId}`)
         .send({ email: 'existing@example.com' })
         .expect(409);
 
@@ -290,41 +310,43 @@ describe('Users (e2e)', () => {
 
     it('should allow partial updates', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
+        .patch(`/api/users/${userId}`)
         .send({ bio: 'Only bio updated' })
         .expect(200);
 
       expect(response.body.bio).toBe('Only bio updated');
-      expect(response.body.displayName).toBe('Update User'); // Unchanged
+      expect(response.body.displayName).toBe('Update User');
     });
   });
 
-  describe('DELETE /users/:id', () => {
-    let userId: number;
+  describe('DELETE /api/users/:id', () => {
+    let userId: string;
 
     beforeEach(async () => {
-      const user = await prismaService.user.create({
-        data: {
+      const createResponse = await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
           email: 'deleteuser@example.com',
           username: 'deleteuser',
           displayName: 'Delete User',
-        },
-      });
-      userId = user.id;
+        });
+      userId = createResponse.body.id;
     });
 
     it('should soft delete user successfully', async () => {
-      await request(app.getHttpServer()).delete(`/users/${userId}`).expect(204);
+      await request(app.getHttpServer())
+        .delete(`/api/users/${userId}`)
+        .expect(204);
 
-      // Verify user is soft deleted (isBlocked = true)
       const userInDb = await prismaService.user.findUnique({
         where: { id: userId },
+        include: { profile: true },
       });
-      expect(userInDb?.isBlocked).toBe(true);
+      expect(userInDb?.disabled).toBe(true);
+      expect(userInDb?.profile?.deleted).toBe(true);
 
-      // Verify user doesn't appear in findAll
       const response = await request(app.getHttpServer())
-        .get('/users')
+        .get('/api/users')
         .expect(200);
 
       const userIds = response.body.map((user: any) => user.id);
@@ -332,133 +354,51 @@ describe('Users (e2e)', () => {
     });
 
     it('should return 404 for non-existent user', async () => {
+      const fakeId = '550e8400-e29b-41d4-a716-446655440000';
       const response = await request(app.getHttpServer())
-        .delete('/users/999999')
+        .delete(`/api/users/${fakeId}`)
         .expect(404);
 
-      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(999999));
+      expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(fakeId));
     });
   });
 
-  describe('PATCH /users/:id', () => {
-    let userId: number;
+  describe('GET /api/users', () => {
+    it('should return array of users', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
+          email: 'user1@example.com',
+          username: 'user1',
+        });
 
-    beforeEach(async () => {
-      const user = await prismaService.user.create({
-        data: {
-          email: 'updateuser@example.com',
-          username: 'updateuser',
-          displayName: 'Update User',
-          bio: 'User for update tests',
-        },
-      });
-      userId = user.id;
-    });
-
-    it('should update user successfully', async () => {
-      const updateData = {
-        displayName: 'Updated Name',
-        bio: 'Updated bio',
-      };
+      await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
+          email: 'user2@example.com',
+          username: 'user2',
+        });
 
       const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
-        .send(updateData)
+        .get('/api/users')
         .expect(200);
 
-      expect(response.body).toMatchObject({
-        id: userId,
-        displayName: updateData.displayName,
-        bio: updateData.bio,
-        email: 'updateuser@example.com', // Unchanged
-        username: 'updateuser', // Unchanged
+      expect(response.body).toHaveLength(2);
+      expect(response.body[0]).toMatchObject({
+        id: expect.any(String),
+        email: expect.any(String),
+        username: expect.any(String),
+        role: 'USER',
+        disabled: false,
       });
-
-      // Verify update in database
-      const userInDb = await prismaService.user.findUnique({
-        where: { id: userId },
-      });
-      expect(userInDb?.displayName).toBe(updateData.displayName);
-      expect(userInDb?.bio).toBe(updateData.bio);
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should return empty array when no users exist', async () => {
       const response = await request(app.getHttpServer())
-        .patch('/users/999999')
-        .send({ displayName: 'New Name' })
-        .expect(404);
-
-      expect(response.body.message).toContain('User with ID 999999 not found');
-    });
-
-    it('should return 409 when updating to existing email', async () => {
-      // Create another user
-      await prismaService.user.create({
-        data: {
-          email: 'existing@example.com',
-          username: 'existing',
-        },
-      });
-
-      const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
-        .send({ email: 'existing@example.com' })
-        .expect(409);
-
-      expect(response.body.message).toContain(
-        'Email or username already exists',
-      );
-    });
-
-    it('should allow partial updates', async () => {
-      const response = await request(app.getHttpServer())
-        .patch(`/users/${userId}`)
-        .send({ bio: 'Only bio updated' })
+        .get('/api/users')
         .expect(200);
 
-      expect(response.body.bio).toBe('Only bio updated');
-      expect(response.body.displayName).toBe('Update User'); // Unchanged
-    });
-  });
-
-  describe('DELETE /users/:id', () => {
-    let userId: number;
-
-    beforeEach(async () => {
-      const user = await prismaService.user.create({
-        data: {
-          email: 'deleteuser@example.com',
-          username: 'deleteuser',
-          displayName: 'Delete User',
-        },
-      });
-      userId = user.id;
-    });
-
-    it('should soft delete user successfully', async () => {
-      await request(app.getHttpServer()).delete(`/users/${userId}`).expect(204);
-
-      // Verify user is soft deleted (isBlocked = true)
-      const userInDb = await prismaService.user.findUnique({
-        where: { id: userId },
-      });
-      expect(userInDb?.isBlocked).toBe(true);
-
-      // Verify user doesn't appear in findAll
-      const response = await request(app.getHttpServer())
-        .get('/users')
-        .expect(200);
-
-      const userIds = response.body.map((user: any) => user.id);
-      expect(userIds).not.toContain(userId);
-    });
-
-    it('should return 404 for non-existent user', async () => {
-      const response = await request(app.getHttpServer())
-        .delete('/users/999999')
-        .expect(404);
-
-      expect(response.body.message).toContain('User with ID 999999 not found');
+      expect(response.body).toEqual([]);
     });
   });
 });

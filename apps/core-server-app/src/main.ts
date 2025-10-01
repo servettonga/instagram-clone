@@ -6,6 +6,9 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  // Global API prefix
+  app.setGlobalPrefix('api');
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,7 +22,7 @@ async function bootstrap(): Promise<void> {
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Core Server API')
-    .setDescription('The core server API for the social media platform')
+    .setDescription('The core server API for Innogram social media platform')
     .setVersion('1.0')
     .addTag('Users', 'User management endpoints')
     .addTag('Health', 'Application health check endpoints')
@@ -33,7 +36,8 @@ async function bootstrap(): Promise<void> {
 
   console.log(`Core Server is running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api`);
-  console.log(`Health check: http://localhost:${port}/health`);
+  console.log(`Health check: http://localhost:${port}/api/health`);
+  console.log(`Users API: http://localhost:${port}/api/users`);
 }
 
 bootstrap().catch((error) => {
