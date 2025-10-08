@@ -2,18 +2,15 @@ import bcrypt from 'bcryptjs';
 import { JwtService } from '../utils/jwt.js';
 import { config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  passwordHash: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import {
+  coreServiceClient,
+  CoreUser,
+  CreateUserRequest,
+} from './coreServiceClient.js';
+import { redisService, SessionData } from './redisClient.js';
 
 export interface RegisterRequest {
-  name: string;
+  username: string;
   email: string;
   password: string;
 }
@@ -24,129 +21,247 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'passwordHash'>;
+  user: CoreUser;
   tokens: {
     accessToken: string;
     refreshToken: string;
   };
 }
 
-// Mock user storage (to be replaced with database later)
-const users: User[] = [];
-let userIdCounter = 1;
-
 export class AuthService {
+  /**
+   * Register new user
+   */
   static async register(userData: RegisterRequest): Promise<AuthResponse> {
-    // Check if user already exists
-    const existingUser = users.find((user) => user.email === userData.email);
-    if (existingUser) {
-      throw new Error(AUTH_MESSAGES.ERRORS.USER_EXISTS);
-    }
-
-    // Hash password
-    const saltRounds = config.password.saltRound;
-    const passwordHash = await bcrypt.hash(userData.password, saltRounds);
-
-    // Create user
-    const newUser: User = {
-      id: userIdCounter.toString(),
+    // Create user in Core Service
+    const createUserDto: CreateUserRequest = {
       email: userData.email,
-      name: userData.name,
-      passwordHash,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      username: userData.username,
+      password: userData.password,
     };
 
-    users.push(newUser);
-    userIdCounter++;
+    const user = await coreServiceClient.createUser(createUserDto);
 
     // Generate tokens
-    const tokens = JwtService.generateTokenPair({
-      userId: newUser.id,
-      email: newUser.email,
-    });
-
-    return {
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        createdAt: newUser.createdAt,
-        updatedAt: newUser.updatedAt,
-      },
-      tokens,
-    };
-  }
-
-  static async login(credentials: LoginRequest): Promise<AuthResponse> {
-    // Find user
-    const user = users.find((u) => u.email === credentials.email);
-    if (!user) {
-      throw new Error(AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS);
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(
-      credentials.password,
-      user.passwordHash,
-    );
-    if (!isValidPassword) {
-      throw new Error(AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS);
-    }
-
-    // Generate tokens
-    const tokens = JwtService.generateTokenPair({
+    const tokenPair = JwtService.generateTokenPair({
       userId: user.id,
       email: user.email,
     });
 
+    // Store session in Redis
+    const sessionData: SessionData = {
+      userId: user.id,
+      email: user.email,
+      refreshTokenId: tokenPair.refreshTokenId,
+      createdAt: Date.now(),
+      lastActivity: Date.now(),
+    };
+
+    await redisService.storeSession(
+      user.id,
+      tokenPair.refreshTokenId,
+      sessionData,
+      JwtService.getRefreshTokenTTL(),
+    );
+
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+      user,
+      tokens: {
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
       },
-      tokens,
     };
   }
 
-  static refreshToken(refreshToken: string): { accessToken: string } {
+  /**
+   * Login user
+   */
+  static async login(credentials: LoginRequest): Promise<AuthResponse> {
+    // Verify credentials via Core Service
+    const user = await coreServiceClient.verifyCredentials(credentials);
+
+    if (!user) {
+      throw new Error(AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS);
+    }
+
+    // Generate tokens
+    const tokenPair = JwtService.generateTokenPair({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // Store session in Redis
+    const sessionData: SessionData = {
+      userId: user.id,
+      email: user.email,
+      refreshTokenId: tokenPair.refreshTokenId,
+      createdAt: Date.now(),
+      lastActivity: Date.now(),
+    };
+
+    await redisService.storeSession(
+      user.id,
+      tokenPair.refreshTokenId,
+      sessionData,
+      JwtService.getRefreshTokenTTL(),
+    );
+
+    return {
+      user,
+      tokens: {
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
+      },
+    };
+  }
+
+  /**
+   * Refresh access token
+   */
+  static async refreshToken(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
     try {
+      // Verify refresh token
       const decoded = JwtService.verifyRefreshToken(refreshToken);
 
-      // Check if user still exists
-      const user = users.find((u) => u.id === decoded.userId);
+      // Check if token is blacklisted
+      const isBlacklisted = await redisService.isTokenBlacklisted(decoded.jti);
+      if (isBlacklisted) {
+        throw new Error(AUTH_MESSAGES.ERRORS.INVALID_REFRESH_TOKEN);
+      }
+
+      // Check if session exists in Redis
+      const session = await redisService.getSession(
+        decoded.userId,
+        decoded.jti,
+      );
+      if (!session) {
+        throw new Error(AUTH_MESSAGES.ERRORS.INVALID_REFRESH_TOKEN);
+      }
+
+      // Verify user still exists in Core Service
+      const user = await coreServiceClient.getUserById(decoded.userId);
       if (!user) {
         throw new Error(AUTH_MESSAGES.ERRORS.USER_NOT_FOUND);
       }
 
-      // Generate new access token
-      const { accessToken } = JwtService.generateTokenPair({
+      // Blacklist old refresh token
+      await redisService.blacklistToken(
+        decoded.jti,
+        JwtService.getRefreshTokenTTL(),
+      );
+
+      // Delete old session
+      await redisService.deleteSession(decoded.userId, decoded.jti);
+
+      // Generate new token pair
+      const tokenPair = JwtService.generateTokenPair({
         userId: user.id,
         email: user.email,
       });
 
-      return { accessToken };
+      // Store new session
+      const newSessionData: SessionData = {
+        userId: user.id,
+        email: user.email,
+        refreshTokenId: tokenPair.refreshTokenId,
+        createdAt: session.createdAt,
+        lastActivity: Date.now(),
+      };
+
+      await redisService.storeSession(
+        user.id,
+        tokenPair.refreshTokenId,
+        newSessionData,
+        JwtService.getRefreshTokenTTL(),
+      );
+
+      return {
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
+      };
     } catch (error) {
-      console.error('RefreshToken verification error:', error);
+      console.error('RefreshToken error:', error);
       throw new Error(AUTH_MESSAGES.ERRORS.INVALID_REFRESH_TOKEN);
     }
   }
 
-  static getUserById(userId: string): Omit<User, 'passwordHash'> | null {
-    const user = users.find((u) => u.id === userId);
-    if (!user) {
-      return null;
+  /**
+   * Validate access token
+   */
+  static async validateToken(accessToken: string): Promise<{
+    valid: boolean;
+    user?: CoreUser;
+  }> {
+    try {
+      const decoded = JwtService.verifyAccessToken(accessToken);
+
+      // Check if token is blacklisted
+      const isBlacklisted = await redisService.isTokenBlacklisted(decoded.jti);
+      if (isBlacklisted) {
+        return { valid: false };
+      }
+
+      // Get user from Core Service
+      const user = await coreServiceClient.getUserById(decoded.userId);
+      if (!user) {
+        return { valid: false };
+      }
+
+      return { valid: true, user };
+    } catch {
+      return { valid: false };
+    }
+  }
+
+  /**
+   * Logout user
+   */
+  static async logout(refreshToken: string): Promise<void> {
+    try {
+      const decoded = JwtService.decodeToken(refreshToken);
+      if (!decoded) {
+        return; // Invalid token, nothing to do
+      }
+
+      // Blacklist refresh token
+      await redisService.blacklistToken(
+        decoded.jti,
+        JwtService.getRefreshTokenTTL(),
+      );
+
+      // Delete session
+      await redisService.deleteSession(decoded.userId, decoded.jti);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Don't throw error, logout should always succeed
+    }
+  }
+
+  /**
+   * Get user by ID (internal use only)
+   * Used during token refresh to verify user still exists
+   */
+  static async getUserById(userId: string): Promise<CoreUser | null> {
+    return coreServiceClient.getUserById(userId);
+  }
+
+  /**
+   * Logout all sessions for a user
+   * For future use (admin panel, security features)
+   */
+  static async logoutAllSessions(userId: string): Promise<void> {
+    const sessions = await redisService.getUserSessions(userId);
+
+    for (const session of sessions) {
+      await redisService.blacklistToken(
+        session.refreshTokenId,
+        JwtService.getRefreshTokenTTL(),
+      );
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+    await redisService.deleteAllUserSessions(userId);
   }
 }

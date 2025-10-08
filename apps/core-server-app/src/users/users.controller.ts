@@ -9,7 +9,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiExcludeEndpoint,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,8 +27,18 @@ import { ERROR_MESSAGES, HTTP_MESSAGES } from '../common/constants/messages';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /**
+   * POST /api/users
+   * INTERNAL ONLY - Called by Auth Service
+   * NOT exposed in Swagger (hidden from public API)
+   */
   @Post()
-  @ApiOperation({ summary: 'Create a new user' })
+  @ApiExcludeEndpoint() // Hide from Swagger docs
+  @ApiOperation({
+    summary: '[INTERNAL] Create a new user',
+    description:
+      'This endpoint is for internal use only. Use POST /api/auth/signup for public registration.',
+  })
   @ApiResponse({ status: 201, description: HTTP_MESSAGES.USER_CREATED })
   @ApiResponse({
     status: 409,

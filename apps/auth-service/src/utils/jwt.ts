@@ -1,9 +1,11 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 import { config } from '../config/config.js';
 
 export interface TokenPayload {
   userId: string;
   email: string;
+  jti: string;
   iat?: number;
   exp?: number;
 }
@@ -11,21 +13,56 @@ export interface TokenPayload {
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+  accessTokenId: string;
+  refreshTokenId: string;
 }
 
 export class JwtService {
-  static generateTokenPair(
-    payload: Omit<TokenPayload, 'iat' | 'exp'>,
-  ): TokenPair {
-    const accessToken = jwt.sign(payload, config.jwt.accessSecret, {
-      expiresIn: config.jwt.accessExpiresIn as any,
-    });
+  private static generateTokenId(): string {
+    return randomBytes(16).toString('hex');
+  }
 
-    const refreshToken = jwt.sign(payload, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn as any,
-    });
+  static generateTokenPair(payload: {
+    userId: string;
+    email: string;
+  }): TokenPair {
+    const accessTokenId = this.generateTokenId();
+    const refreshTokenId = this.generateTokenId();
 
-    return { accessToken, refreshToken };
+    const accessTokenOptions: SignOptions = {
+      expiresIn: config.jwt.accessExpiresIn,
+    };
+
+    const refreshTokenOptions: SignOptions = {
+      expiresIn: config.jwt.refreshExpiresIn,
+    };
+
+    const accessToken = jwt.sign(
+      {
+        userId: payload.userId,
+        email: payload.email,
+        jti: accessTokenId,
+      },
+      config.jwt.accessSecret,
+      accessTokenOptions,
+    );
+
+    const refreshToken = jwt.sign(
+      {
+        userId: payload.userId,
+        email: payload.email,
+        jti: refreshTokenId,
+      },
+      config.jwt.refreshSecret,
+      refreshTokenOptions,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenId,
+      refreshTokenId,
+    };
   }
 
   static verifyAccessToken(token: string): TokenPayload {
@@ -42,5 +79,31 @@ export class JwtService {
     } catch {
       return null;
     }
+  }
+
+  static getTokenTTL(expiresIn: string): number {
+    const unit = expiresIn.slice(-1);
+    const value = parseInt(expiresIn.slice(0, -1));
+
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 24 * 60 * 60;
+      default:
+        return 900;
+    }
+  }
+
+  static getAccessTokenTTL(): number {
+    return this.getTokenTTL(config.jwt.accessExpiresIn);
+  }
+
+  static getRefreshTokenTTL(): number {
+    return this.getTokenTTL(config.jwt.refreshExpiresIn);
   }
 }

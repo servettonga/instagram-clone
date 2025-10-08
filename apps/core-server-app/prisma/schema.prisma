@@ -63,7 +63,7 @@ model User {
 model Account {
   id            String          @id @default(uuid())
   userId        String          @map("user_id")
-  email         String          @unique @db.VarChar(255)
+  email         String          @db.VarChar(255)
   passwordHash  String?         @map("password_hash") @db.VarChar(255)
   provider      AccountProvider @default(LOCAL)
   providerId    String?         @map("provider_id") @db.VarChar(255)
@@ -77,6 +77,8 @@ model Account {
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("accounts")
+  @@unique([userId, provider])
+  @@index([email])
 }
 
 model Profile {
@@ -86,7 +88,7 @@ model Profile {
   displayName           String                          @map("display_name") @db.VarChar(100)
   birthday              DateTime                        @db.Date
   bio                   String?
-  avatarUrl             String?                         @map("avatar_url") @db.VarChar(500)
+  avatarUrl             String?                         @map("avatar_url")
   isPublic              Boolean                         @default(true) @map("is_public")
   deleted               Boolean                         @default(false)
   createdAt             DateTime                        @default(now()) @map("created_at")

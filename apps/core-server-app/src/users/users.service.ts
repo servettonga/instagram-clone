@@ -8,6 +8,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Prisma, AccountProvider } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import {
   userSelectPayload,
@@ -103,45 +104,61 @@ export class UsersService {
     createUserDto: CreateUserDto,
   ): Promise<UserWithProfileAndAccount> {
     try {
-      // Create user first
-      const user = await this.prisma.user.create({
-        data: {
-          role: 'USER',
-          disabled: false,
-        },
-        select: userSelectPayload,
+      // Wrap in transaction to ensure atomic operations
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Only hash password if provided (for LOCAL accounts)
+        let passwordHash: string | null = null;
+        if (createUserDto.password) {
+          passwordHash = await bcrypt.hash(createUserDto.password, 6);
+        }
+
+        // Create user first
+        const user = await tx.user.create({
+          data: {
+            role: 'USER',
+            disabled: false,
+          },
+          select: userSelectPayload,
+        });
+
+        // Create primary account with hashed password (or null for OAuth)
+        const account = await tx.account.create({
+          data: {
+            userId: user.id,
+            email: createUserDto.email,
+            passwordHash,
+            provider: AccountProvider.LOCAL,
+            createdBy: user.id,
+            updatedBy: null,
+          },
+          select: accountSelectPayload,
+        });
+
+        // Create profile with minimal data
+        const profile = await tx.profile.create({
+          data: {
+            userId: user.id,
+            username: createUserDto.username,
+            displayName: createUserDto.displayName || createUserDto.username,
+            birthday: new Date('2000-01-01'),
+            bio: createUserDto.bio || null,
+            avatarUrl: createUserDto.avatarUrl || null,
+            isPublic: true,
+            deleted: false,
+            createdBy: user.id,
+            updatedBy: null,
+          },
+          select: profileSelectPayload,
+        });
+
+        return { user, account, profile };
       });
 
-      // Create primary account
-      const account = await this.prisma.account.create({
-        data: {
-          userId: user.id,
-          email: createUserDto.email,
-          provider: AccountProvider.LOCAL,
-          createdBy: user.id,
-          updatedBy: null,
-        },
-        select: accountSelectPayload,
-      });
-
-      // Create profile
-      const profile = await this.prisma.profile.create({
-        data: {
-          userId: user.id,
-          username: createUserDto.username,
-          displayName: createUserDto.displayName || createUserDto.username,
-          birthday: new Date('2000-01-01'),
-          bio: createUserDto.bio || null,
-          avatarUrl: createUserDto.avatarUrl || null,
-          isPublic: true,
-          deleted: false,
-          createdBy: user.id,
-          updatedBy: null,
-        },
-        select: profileSelectPayload,
-      });
-
-      return this.transformUserData(user, profile, account);
+      return this.transformUserData(
+        result.user,
+        result.profile,
+        result.account,
+      );
     } catch (error: unknown) {
       this.handlePrismaError(error);
     }
@@ -185,7 +202,10 @@ export class UsersService {
         },
         accounts: {
           select: accountSelectPayload,
-          where: { provider: AccountProvider.LOCAL },
+          // Prefer LOCAL first, then OAuth
+          orderBy: [
+            { provider: 'asc' }, // LOCAL comes before GOOGLE/FACEBOOK
+          ],
           take: 1,
         },
       },
@@ -198,15 +218,17 @@ export class UsersService {
       id,
     );
 
-    // Extract the nested data
     const { profile, accounts, ...userData } = userWithRelations!;
-    // Transform using only the extracted data
     return this.transformUserData(userData, profile!, accounts[0]!);
   }
 
   async findByEmail(email: string): Promise<UserWithProfileAndAccount | null> {
-    const accountWithRelations = await this.prisma.account.findUnique({
-      where: { email },
+    // Prefer LOCAL accounts for email/password login
+    const accountWithRelations = await this.prisma.account.findFirst({
+      where: {
+        email,
+        provider: AccountProvider.LOCAL, // ← Prefer LOCAL accounts
+      },
       select: {
         ...accountSelectPayload,
         user: {
@@ -229,10 +251,8 @@ export class UsersService {
       return null;
     }
 
-    // Extract the nested data
     const { user, ...accountData } = accountWithRelations;
     const { profile, ...userData } = user;
-    // Transform using only the extracted data
     return this.transformUserData(userData, profile!, accountData);
   }
 

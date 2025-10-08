@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { getConfig } from './config/config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -15,29 +16,38 @@ async function bootstrap(): Promise<void> {
       whitelist: true, // Strip unknown properties
       forbidNonWhitelisted: true, // Throw error for unknown properties
       transform: true, // Transform payloads to DTO instances
-      disableErrorMessages: false, // Keep error messages in production
     }),
   );
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('Core Server API')
-    .setDescription('The core server API for Innogram social media platform')
+    .setTitle('Innogram Core API')
+    .setDescription('Core microservice API documentation')
     .setVersion('1.0')
-    .addTag('Users', 'User management endpoints')
-    .addTag('Health', 'Application health check endpoints')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name is used in @ApiBearerAuth() decorator
+    )
+    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('Users', 'User management')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.CORE_SERVER_PORT || 8000;
+  const port = getConfig().coreServicePort;
   await app.listen(port);
 
-  console.log(`Core Server is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api`);
-  console.log(`Health check: http://localhost:${port}/api/health`);
-  console.log(`Users API: http://localhost:${port}/api/users`);
+  console.log(`✓ Core Server is running on: http://localhost:${port}`);
+  console.log(`✓ Swagger documentation: http://localhost:${port}/api/docs`);
+  console.log(`✓ Health check: http://localhost:${port}/api/health`);
 }
 
 bootstrap().catch((error) => {

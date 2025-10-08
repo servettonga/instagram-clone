@@ -1,7 +1,10 @@
-export const getDatabaseConfig = () => {
+export const getConfig = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
   return {
+    // Server
+    coreServicePort: process.env.CORE_SERVER_PORT || 8000,
+
     // PostgreSQL
     databaseUrl: isDevelopment
       ? process.env.DATABASE_URL ||
@@ -20,5 +23,10 @@ export const getDatabaseConfig = () => {
     redisUrl: isDevelopment
       ? `redis://:${process.env.REDIS_PASSWORD || 'password'}@localhost:${process.env.REDIS_PORT || 6380}`
       : `redis://:${process.env.REDIS_PASSWORD || 'password'}@redis:6379`,
+
+    // Auth Service
+    authServiceUrl: isDevelopment
+      ? process.env.AUTH_SERVICE_URL || 'http://localhost:4000'
+      : process.env.AUTH_SERVICE_URL || 'http://auth-service:4000',
   };
 };

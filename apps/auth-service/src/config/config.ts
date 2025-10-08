@@ -1,21 +1,19 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Determine which environment file to load based on NODE_ENV
-const isDevelopment = process.env.NODE_ENV === 'development';
-const envFile = isDevelopment ? '.env' : '.env.production';
+// Always load .env from project root
+const envPath = path.resolve(process.cwd(), '../../.env');
+dotenv.config({ path: envPath });
 
-const envPath = path.resolve(process.cwd(), envFile);
-
-// Load environment variables once
-dotenv.config({
-  path: envPath,
-});
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export const config = {
   port: process.env.AUTH_PORT || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  coreServiceUrl: isDevelopment
+    ? process.env.CORE_SERVICE_URL || 'http://localhost:8000'
+    : process.env.CORE_SERVICE_URL || 'http://core-service:8000',
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET!,
     refreshSecret: process.env.JWT_REFRESH_SECRET!,
@@ -30,18 +28,28 @@ export const config = {
   password: {
     saltRound: 12,
   },
+  oauth: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      // Passport OAuth callback (Google redirects here)
+      redirectUri: isDevelopment
+        ? 'http://localhost:4000/internal/auth/oauth/google/callback'
+        : `${process.env.AUTH_SERVICE_URL || 'http://auth-service:4000'}/internal/auth/oauth/google/callback`,
+    },
+  },
 };
 
 // Validation
 if (!config.jwt.accessSecret) {
   throw new Error(
-    `JWT_ACCESS_SECRET environment variable is required (NODE_ENV: ${process.env.NODE_ENV}, looking for: ${envFile})`,
+    `JWT_ACCESS_SECRET environment variable is required (NODE_ENV: ${process.env.NODE_ENV})`,
   );
 }
 
 if (!config.jwt.refreshSecret) {
   throw new Error(
-    `JWT_REFRESH_SECRET environment variable is required (NODE_ENV: ${process.env.NODE_ENV}, looking for: ${envFile})`,
+    `JWT_REFRESH_SECRET environment variable is required (NODE_ENV: ${process.env.NODE_ENV})`,
   );
 }
 

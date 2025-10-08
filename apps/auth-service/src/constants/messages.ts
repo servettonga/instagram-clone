@@ -7,6 +7,8 @@ export const AUTH_MESSAGES = {
     PROFILE_RETRIEVED: 'Profile retrieved successfully',
     LOGOUT: 'Logout successful',
     TOKEN_VALID: 'Token is valid',
+    OAUTH_INITIATED: 'OAuth flow initiated successfully',
+    OAUTH_CALLBACK_SUCCESS: 'OAuth authentication successful',
   },
 
   // Error messages
@@ -28,6 +30,21 @@ export const AUTH_MESSAGES = {
     USER_NOT_AUTHENTICATED: 'User not authenticated',
     USER_NOT_FOUND: 'User not found',
 
+    // OAuth errors
+    OAUTH_PROVIDER_REQUIRED: 'OAuth provider is required',
+    OAUTH_STATE_INVALID: 'Invalid OAuth state',
+    OAUTH_CODE_REQUIRED: 'OAuth code is required',
+    OAUTH_INITIATION_FAILED: 'Failed to initiate OAuth flow',
+    OAUTH_CALLBACK_FAILED: 'OAuth callback failed',
+    OAUTH_USER_CREATION_FAILED: 'Failed to create OAuth user',
+
+    // Core Service errors
+    CORE_SERVICE_UNAVAILABLE: 'Core service is unavailable',
+    CORE_SERVICE_CREATE_USER_FAILED: 'Failed to create user in Core Service',
+    CORE_SERVICE_VERIFY_CREDENTIALS_FAILED: 'Failed to verify credentials',
+    CORE_SERVICE_FETCH_USER_FAILED: 'Failed to fetch user from Core Service',
+    CORE_SERVICE_OAUTH_USER_FAILED: 'Failed to find or create OAuth user',
+
     // Server errors
     INTERNAL_SERVER_ERROR: 'Internal server error',
     ROUTE_NOT_FOUND: 'Route not found',
@@ -37,6 +54,10 @@ export const AUTH_MESSAGES = {
   HEALTH: {
     STATUS_OK: 'OK',
     SERVICE_RUNNING: 'Auth service is running',
+    REDIS_CONNECTED: 'Redis is connected',
+    REDIS_DISCONNECTED: 'Redis is disconnected',
+    CORE_SERVICE_HEALTHY: 'Core service is healthy',
+    CORE_SERVICE_UNHEALTHY: 'Core service is unhealthy',
   },
 
   // HTTP status codes with messages
@@ -47,6 +68,8 @@ export const AUTH_MESSAGES = {
     404: 'Not Found',
     409: 'Conflict',
     500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
   },
 } as const;
 

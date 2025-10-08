@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UsersService } from './users.service';
-import { UserWithProfileAndAccount } from './payloads'
+import { UserWithProfileAndAccount } from './payloads';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -41,6 +41,7 @@ describe('UsersService', () => {
     id: 'test-account-id',
     email: 'test@example.com',
     provider: AccountProvider.LOCAL,
+    passwordHash: '$2b$06$hashedpassword', // ← Add password hash
     lastLoginAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -108,6 +109,7 @@ describe('UsersService', () => {
       username: 'testuser',
       displayName: 'Test User',
       bio: 'Test bio',
+      password: 'SecurePass123!', // ← Add password
     };
 
     it('should create a user successfully', async () => {
@@ -129,6 +131,7 @@ describe('UsersService', () => {
         data: {
           userId: mockUser.id,
           email: createUserDto.email,
+          passwordHash: expect.any(String),
           provider: AccountProvider.LOCAL,
           createdBy: mockUser.id,
           updatedBy: null,

@@ -19,10 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "check-types": "tsc --noEmit",
-
     "dev": "chmod +x ./scripts/startup.sh && NODE_ENV=development ./scripts/startup.sh",
     "postinstall": "prisma generate",
-
     "db:init": "PGPASSWORD=${POSTGRES_PASSWORD:-password} psql -h ${POSTGRES_HOST:-localhost} -p ${POSTGRES_PORT:-5433} -U ${POSTGRES_USER:-postgres} -d postgres -f prisma/init-db.sql || true",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -31,6 +29,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -39,6 +38,8 @@
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/terminus": "^11.0.0",
     "@prisma/client": "^6.16.1",
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "joi": "^18.0.1",
@@ -55,6 +56,7 @@
     "@nestjs/testing": "^11.0.1",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",

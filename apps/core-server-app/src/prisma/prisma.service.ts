@@ -1,11 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { getDatabaseConfig } from '../config/database.config';
+import { getConfig } from '../config/config';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
-    const dbConfig = getDatabaseConfig();
+    const dbConfig = getConfig();
     console.log('🔗 Connecting to PostgreSQL:', dbConfig.databaseUrl);
 
     super({

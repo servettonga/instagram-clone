@@ -1,42 +1,64 @@
 import { Request, Response } from 'express';
-import {
-  AuthService,
-  RegisterRequest,
-  LoginRequest,
-} from '../services/authService.js';
-import { JwtService } from '../utils/jwt.js';
-import { AuthenticatedRequest } from '../middleware/auth.js';
+import { AuthService } from '../services/authService.js';
+import { VALIDATION_RULES, config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
+import { redisService, SessionData } from '../services/redisClient.js';
+import { JwtService } from '../utils/jwt.js';
+import { CoreUser } from '../services/coreServiceClient.js';
+
+interface RegisterRequestBody {
+  email: string;
+  username: string;
+  password: string;
+}
+
+interface LoginRequestBody {
+  email: string;
+  password: string;
+}
+
+interface RefreshTokenRequestBody {
+  refreshToken: string;
+}
+
+interface ValidateTokenRequestBody {
+  accessToken: string;
+}
 
 export class AuthController {
-  static async register(req: Request, res: Response): Promise<void> {
+  /**
+   * POST /internal/auth/register
+   */
+  static async register(
+    req: Request<object, object, RegisterRequestBody>,
+    res: Response,
+  ): Promise<void> {
     try {
-      const { name, email, password } = req.body as RegisterRequest;
+      const { email, username, password } = req.body;
 
-      // Basic validation
-      if (!name || !email || !password) {
-        res
-          .status(400)
-          .json({ error: AUTH_MESSAGES.ERRORS.ALL_FIELDS_REQUIRED });
+      if (!email || !username || !password) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.ALL_FIELDS_REQUIRED,
+          message: 'Email, username, and password are required',
+        });
         return;
       }
 
-      if (password.length < 6) {
-        res
-          .status(400)
-          .json({ error: AUTH_MESSAGES.ERRORS.PASSWORD_MIN_LENGTH });
+      if (!VALIDATION_RULES.EMAIL_REGEX.test(email)) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.INVALID_EMAIL_FORMAT,
+        });
         return;
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        res
-          .status(400)
-          .json({ error: AUTH_MESSAGES.ERRORS.INVALID_EMAIL_FORMAT });
+      if (password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.PASSWORD_MIN_LENGTH,
+        });
         return;
       }
 
-      const result = await AuthService.register({ name, email, password });
+      const result = await AuthService.register({ email, username, password });
 
       res.status(201).json({
         message: AUTH_MESSAGES.SUCCESS.REGISTRATION,
@@ -44,30 +66,38 @@ export class AuthController {
         tokens: result.tokens,
       });
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === AUTH_MESSAGES.ERRORS.USER_EXISTS
-      ) {
-        res.status(409).json({ error: error.message });
-        return;
+      if (error instanceof Error) {
+        if (error.message === AUTH_MESSAGES.ERRORS.USER_EXISTS) {
+          res.status(409).json({ error: error.message });
+          return;
+        }
+        if (error.message === AUTH_MESSAGES.ERRORS.CORE_SERVICE_UNAVAILABLE) {
+          res.status(503).json({ error: error.message });
+          return;
+        }
       }
 
       console.error('Registration error:', error);
-      res
-        .status(500)
-        .json({ error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR });
+      res.status(500).json({
+        error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+      });
     }
   }
 
-  static async login(req: Request, res: Response): Promise<void> {
+  /**
+   * POST /internal/auth/login
+   */
+  static async login(
+    req: Request<object, object, LoginRequestBody>,
+    res: Response,
+  ): Promise<void> {
     try {
-      const { email, password } = req.body as LoginRequest;
+      const { email, password } = req.body;
 
-      // Basic validation
       if (!email || !password) {
-        res
-          .status(400)
-          .json({ error: AUTH_MESSAGES.ERRORS.EMAIL_PASSWORD_REQUIRED });
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.EMAIL_PASSWORD_REQUIRED,
+        });
         return;
       }
 
@@ -79,117 +109,174 @@ export class AuthController {
         tokens: result.tokens,
       });
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS
-      ) {
-        res
-          .status(401)
-          .json({ error: AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS });
-        return;
+      if (error instanceof Error) {
+        if (error.message === AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS) {
+          res.status(401).json({ error: error.message });
+          return;
+        }
+        if (error.message === AUTH_MESSAGES.ERRORS.CORE_SERVICE_UNAVAILABLE) {
+          res.status(503).json({ error: error.message });
+          return;
+        }
       }
 
-      console.error('Login error', error);
-      res
-        .status(500)
-        .json({ error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR });
+      console.error('Login error:', error);
+      res.status(500).json({
+        error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+      });
     }
   }
 
-  static refreshToken(req: Request, res: Response): void {
+  /**
+   * POST /internal/auth/refresh
+   */
+  static async refreshToken(
+    req: Request<object, object, RefreshTokenRequestBody>,
+    res: Response,
+  ): Promise<void> {
     try {
-      const { refreshToken } = req.body as { refreshToken: string };
+      const { refreshToken } = req.body;
+
       if (!refreshToken) {
-        res
-          .status(400)
-          .json({ error: AUTH_MESSAGES.ERRORS.REFRESH_TOKEN_REQUIRED });
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.REFRESH_TOKEN_REQUIRED,
+        });
         return;
       }
 
-      const result = AuthService.refreshToken(refreshToken);
+      const tokens = await AuthService.refreshToken(refreshToken);
 
       res.status(200).json({
         message: AUTH_MESSAGES.SUCCESS.TOKEN_REFRESH,
-        accessToken: result.accessToken,
+        tokens,
       });
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === AUTH_MESSAGES.ERRORS.INVALID_REFRESH_TOKEN
-      ) {
-        res.status(401).json({ error: error.message });
-        return;
-      }
-
       console.error('Token refresh error:', error);
-      res
-        .status(500)
-        .json({ error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR });
-    }
-  }
-
-  static getProfile(req: AuthenticatedRequest, res: Response): void {
-    try {
-      if (!req.user) {
-        res
-          .status(401)
-          .json({ error: AUTH_MESSAGES.ERRORS.USER_NOT_AUTHENTICATED });
-        return;
-      }
-
-      const user = AuthService.getUserById(req.user.userId);
-      if (!user) {
-        res.status(404).json({ error: AUTH_MESSAGES.ERRORS.USER_NOT_FOUND });
-        return;
-      }
-
-      res.status(200).json({
-        message: AUTH_MESSAGES.SUCCESS.PROFILE_RETRIEVED,
-        user,
-      });
-    } catch (error) {
-      console.error('Get profile error', error);
-      res
-        .status(500)
-        .json({ error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR });
-    }
-  }
-
-  static logout(req: Request, res: Response): void {
-    // For now, tokens will be removed by client
-    // Removed token will be blacklisted
-    res.status(200).json({
-      message: AUTH_MESSAGES.SUCCESS.LOGOUT,
-    });
-  }
-
-  static validateToken(req: AuthenticatedRequest, res: Response): void {
-    try {
-      const authHeader = req.headers.authorization;
-      const token = authHeader && authHeader.split(' ')[1];
-
-      if (!token) {
-        res.status(400).json({ error: AUTH_MESSAGES.ERRORS.TOKEN_REQUIRED });
-        return;
-      }
-
-      const decoded = JwtService.verifyAccessToken(token);
-      const user = AuthService.getUserById(decoded.userId);
-
-      if (!user) {
-        res.status(404).json({ error: AUTH_MESSAGES.ERRORS.USER_NOT_FOUND });
-        return;
-      }
-
-      res.status(200).json({
-        valid: true,
-        user,
-      });
-    } catch (error) {
       res.status(401).json({
-        valid: false,
+        error: AUTH_MESSAGES.ERRORS.INVALID_REFRESH_TOKEN,
+      });
+    }
+  }
+
+  /**
+   * POST /internal/auth/validate
+   */
+  static async validateToken(
+    req: Request<object, object, ValidateTokenRequestBody>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { accessToken } = req.body;
+
+      if (!accessToken) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.ACCESS_TOKEN_REQUIRED,
+        });
+        return;
+      }
+
+      const result = await AuthService.validateToken(accessToken);
+
+      if (!result.valid) {
+        res.status(401).json({
+          valid: false,
+          error: AUTH_MESSAGES.ERRORS.INVALID_TOKEN,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.TOKEN_VALID,
+        valid: true,
+        user: result.user,
+      });
+    } catch (error) {
+      console.error('Token validation error:', error);
+      res.status(401).json({
         error: AUTH_MESSAGES.ERRORS.INVALID_TOKEN,
       });
+    }
+  }
+
+  /**
+   * POST /internal/auth/logout
+   */
+  static async logout(
+    req: Request<object, object, RefreshTokenRequestBody>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.REFRESH_TOKEN_REQUIRED,
+        });
+        return;
+      }
+
+      await AuthService.logout(refreshToken);
+
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.LOGOUT,
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.LOGOUT,
+      });
+    }
+  }
+
+  /**
+   * GET /internal/auth/oauth/google/callback
+   * Handle OAuth callback from Google (via Passport)
+   * Redirects to Core Service with tokens
+   */
+  static async handleOAuthCallback(req: Request, res: Response): Promise<void> {
+    try {
+      const user = req.user as CoreUser;
+
+      if (!user) {
+        res.redirect(
+          `${config.coreServiceUrl}/api/auth/google/callback?error=auth_failed`,
+        );
+        return;
+      }
+
+      // Generate JWT tokens
+      const tokenPair = JwtService.generateTokenPair({
+        userId: user.id,
+        email: user.email,
+      });
+
+      // Store session in Redis
+      const sessionData: SessionData = {
+        userId: user.id,
+        email: user.email,
+        refreshTokenId: tokenPair.refreshTokenId,
+        createdAt: Date.now(),
+        lastActivity: Date.now(),
+      };
+
+      await redisService.storeSession(
+        user.id,
+        tokenPair.refreshTokenId,
+        sessionData,
+        JwtService.getRefreshTokenTTL(),
+      );
+
+      // Redirect to Core Service callback with tokens
+      res.redirect(
+        `${config.coreServiceUrl}/api/auth/google/callback?` +
+          `accessToken=${tokenPair.accessToken}&` +
+          `refreshToken=${tokenPair.refreshToken}`,
+      );
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      res.redirect(
+        `${config.coreServiceUrl}/api/auth/google/callback?error=internal_error`,
+      );
     }
   }
 }

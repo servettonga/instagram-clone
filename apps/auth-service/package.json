@@ -9,9 +9,9 @@
   "scripts": {
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "node dist/app.js",
-    "dev": "tsx watch src/app.ts",
-    "start:prod": "node dist/app.js",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "start:prod": "node dist/server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
@@ -21,14 +21,20 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.16",
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "redis": "^5.8.2"
   },
   "devDependencies": {
@@ -36,6 +42,7 @@
     "@repo/typescript-config": "*",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.3.3",

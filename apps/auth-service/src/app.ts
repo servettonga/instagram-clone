@@ -3,14 +3,19 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import passport from 'passport';
 
 import { config } from './config/config.js';
 import authRoutes from './routes/authRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 import { AUTH_MESSAGES } from './constants/messages.js';
+import { setupGoogleStrategy } from './strategies/googleStrategy.js';
 
 const app = express();
 const PORT = config.port || 4000;
+
+app.use(passport.initialize());
+setupGoogleStrategy();
 
 app.use(helmet()); // Security middleware
 
@@ -36,7 +41,7 @@ app.use(limiter);
 
 // Routes
 app.use('/health', healthRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/internal/auth', authRoutes);
 
 // Error handling middleware
 app.use(
@@ -58,8 +63,8 @@ app.use(
 );
 
 // 404 handler
-app.use('/{*any}', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+app.use((req, res) => {
+  res.status(404).json({ error: AUTH_MESSAGES.ERRORS.ROUTE_NOT_FOUND });
 });
 
 app.listen(PORT, () => {

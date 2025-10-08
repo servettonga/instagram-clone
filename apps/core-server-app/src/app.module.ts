@@ -7,7 +7,7 @@ import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 
 import { configValidationSchema } from './config/config.validation';
-import { getDatabaseConfig } from './config/database.config';
+import { getConfig } from './config/config';
 import { AuthModule } from './auth/auth.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
@@ -22,7 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       envFilePath:
         process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
       validationSchema: configValidationSchema,
-      load: [getDatabaseConfig],
+      load: [getConfig],
     }),
 
     // PostgreSQL via Prisma
@@ -31,7 +31,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     // MongoDB for messages (silence for now)
     MongooseModule.forRootAsync({
       useFactory: () => {
-        const dbConfig = getDatabaseConfig();
+        const dbConfig = getConfig();
         console.log('Connecting to MongoDB:', dbConfig.mongodbUrl);
         return {
           uri: dbConfig.mongodbUrl,
