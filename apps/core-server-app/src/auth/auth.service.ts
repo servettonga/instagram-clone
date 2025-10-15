@@ -12,14 +12,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AccountProvider } from '@prisma/client';
 import { getConfig } from '../config/config';
-import { ERROR_MESSAGES } from '../common/constants/messages';
-import {
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../common/constants/messages';
+import type {
   AuthResponse,
   TokenValidationResponse,
   RefreshTokenResponse,
   LogoutResponse,
   ErrorResponse,
-} from './types';
+  LoginCredentials,
+  SignupData,
+} from '@repo/shared-types';
 
 @Injectable()
 export class AuthService {
@@ -50,20 +52,12 @@ export class AuthService {
   /**
    * Forward signup request to Auth Service
    */
-  async handleSignUp(signUpDto: {
-    email: string;
-    username: string;
-    password: string;
-  }) {
+  async handleSignUp(signUpDto: SignupData): Promise<AuthResponse> {
     try {
       const response = await firstValueFrom(
         this.httpService.post<AuthResponse>(
           `${this.authServiceUrl}/internal/auth/register`,
-          {
-            email: signUpDto.email,
-            username: signUpDto.username,
-            password: signUpDto.password,
-          },
+          signUpDto,
         ),
       );
       return response.data;
@@ -77,7 +71,7 @@ export class AuthService {
   /**
    * Forward login request to Auth Service
    */
-  async handleLogin(credentials: { email: string; password: string }) {
+  async handleLogin(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const response = await firstValueFrom(
         this.httpService.post<AuthResponse>(
@@ -96,14 +90,12 @@ export class AuthService {
   /**
    * Forward token refresh request to Auth Service
    */
-  async handleRefresh(refreshToken: string) {
+  async handleRefresh(refreshToken: string): Promise<RefreshTokenResponse> {
     try {
       const response = await firstValueFrom(
         this.httpService.post<RefreshTokenResponse>(
           `${this.authServiceUrl}/internal/auth/refresh`,
-          {
-            refreshToken,
-          },
+          { refreshToken },
         ),
       );
       return response.data;
@@ -117,14 +109,12 @@ export class AuthService {
   /**
    * Forward logout request to Auth Service
    */
-  async handleLogout(refreshToken: string) {
+  async handleLogout(refreshToken: string): Promise<LogoutResponse> {
     try {
       const response = await firstValueFrom(
         this.httpService.post<LogoutResponse>(
           `${this.authServiceUrl}/internal/auth/logout`,
-          {
-            refreshToken,
-          },
+          { refreshToken },
         ),
       );
       return response.data;
@@ -138,14 +128,12 @@ export class AuthService {
   /**
    * Validate access token via Auth Service
    */
-  async validateToken(accessToken: string) {
+  async validateToken(accessToken: string): Promise<TokenValidationResponse> {
     try {
       const response = await firstValueFrom(
         this.httpService.post<TokenValidationResponse>(
           `${this.authServiceUrl}/internal/auth/validate`,
-          {
-            accessToken,
-          },
+          { accessToken },
         ),
       );
       return response.data;
@@ -155,20 +143,96 @@ export class AuthService {
   }
 
   /**
+   * Validate and return user by ID
+   */
+  async validateUser(userId: string) {
+    const user = await this.usersService.findOne(userId);
+
+    if (!user || user.disabled) {
+      throw new UnauthorizedException('User not found or disabled');
+    }
+
+    return user;
+  }
+
+  /**
    * Verify user credentials (called by Auth Service)
    * This is an internal endpoint
+   * Supports login with email or username
    */
-  async verifyCredentials(credentials: { email: string; password: string }) {
-    const account = await this.prisma.account.findFirst({
-      where: { email: credentials.email },
-      include: {
-        user: {
-          include: {
-            profile: true,
+  async verifyCredentials(credentials: {
+    identifier: string;
+    password: string;
+  }) {
+    // Determine if identifier is email or username
+    const isEmail = credentials.identifier.includes('@');
+
+    type AccountWithUser = NonNullable<
+      Awaited<
+        ReturnType<
+          typeof this.prisma.account.findFirst<{
+            include: {
+              user: {
+                include: {
+                  profile: true;
+                };
+              };
+            };
+          }>
+        >
+      >
+    >;
+
+    let account: AccountWithUser | null = null;
+
+    if (isEmail) {
+      // Find LOCAL account by email (skip OAuth accounts that don't have passwords)
+      account = await this.prisma.account.findFirst({
+        where: {
+          email: credentials.identifier,
+          provider: AccountProvider.LOCAL,
+        },
+        include: {
+          user: {
+            include: {
+              profile: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else {
+      // Find by username
+      const profile = await this.prisma.profile.findUnique({
+        where: { username: credentials.identifier },
+        include: {
+          user: {
+            include: {
+              accounts: true,
+            },
+          },
+        },
+      });
+
+      if (profile && profile.user.accounts.length > 0) {
+        // Get the LOCAL account for password verification
+        const localAccount = profile.user.accounts.find(
+          (acc) => acc.provider === 'LOCAL',
+        );
+
+        if (localAccount) {
+          account = await this.prisma.account.findUnique({
+            where: { id: localAccount.id },
+            include: {
+              user: {
+                include: {
+                  profile: true,
+                },
+              },
+            },
+          });
+        }
+      }
+    }
 
     if (!account || !account.passwordHash) {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
@@ -338,9 +402,67 @@ export class AuthService {
       },
     });
 
-    return user;
+    // Refetch user with updated account information
+    return this.usersService.findOne(user.id);
   }
 
+  /**
+   * Change password for users with LOCAL account (requires old password)
+   */
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ) {
+    // Find LOCAL account
+    const localAccount = await this.prisma.account.findFirst({
+      where: {
+        userId,
+        provider: AccountProvider.LOCAL,
+      },
+    });
+
+    if (!localAccount) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.NO_LOCAL_ACCOUNT_FOR_PASSWORD_CHANGE,
+      );
+    }
+
+    if (!localAccount.passwordHash) {
+      throw new BadRequestException(ERROR_MESSAGES.NO_PASSWORD_SET);
+    }
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(
+      oldPassword,
+      localAccount.passwordHash,
+    );
+
+    if (!isOldPasswordValid) {
+      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_OLD_PASSWORD);
+    }
+
+    // Validate new password is different
+    if (oldPassword === newPassword) {
+      throw new BadRequestException(ERROR_MESSAGES.NEW_PASSWORD_SAME_AS_OLD);
+    }
+
+    // Hash and update password
+    const passwordHash = await bcrypt.hash(newPassword, 6);
+    await this.prisma.account.update({
+      where: { id: localAccount.id },
+      data: {
+        passwordHash,
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return { message: SUCCESS_MESSAGES.PASSWORD_CHANGED };
+  }
+
+  /**
+   * Set password for OAuth-only users (no old password required)
+   */
   async setPassword(userId: string, password: string) {
     // Check if user already has LOCAL account
     const existingLocalAccount = await this.prisma.account.findFirst({
@@ -358,7 +480,7 @@ export class AuthService {
         data: { passwordHash },
       });
 
-      return { message: 'Password updated successfully' };
+      return { message: SUCCESS_MESSAGES.PASSWORD_UPDATED };
     }
 
     // Get user's email from any existing account
@@ -382,10 +504,7 @@ export class AuthService {
       },
     });
 
-    return {
-      message:
-        'Password set successfully. You can now login with email/password.',
-    };
+    return { message: SUCCESS_MESSAGES.PASSWORD_SET };
   }
 
   async unlinkProvider(userId: string, provider: string) {
@@ -430,7 +549,7 @@ export class AuthService {
     });
 
     return {
-      accounts: accounts.map(account => ({
+      accounts: accounts.map((account) => ({
         provider: account.provider,
         email: account.email,
         lastUsed: account.lastLoginAt,

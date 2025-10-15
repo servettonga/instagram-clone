@@ -6,6 +6,8 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsBoolean,
+  IsDateString,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -47,4 +49,14 @@ export class CreateUserDto {
   @IsString({ message: 'avatarUrl must be a string' })
   @IsOptional()
   avatarUrl?: string;
+
+  @ApiProperty({ example: '2000-01-01T00:00:00.000Z', required: false })
+  @IsDateString({}, { message: 'birthday must be a valid date string' })
+  @IsOptional()
+  birthday?: string;
+
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean({ message: 'isPublic must be a boolean' })
+  @IsOptional()
+  isPublic?: boolean;
 }

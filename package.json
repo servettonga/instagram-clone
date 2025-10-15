@@ -11,7 +11,8 @@
 
     "// Project Setup": "",
     "setup": "./init-project.sh",
-    "postinstall": "cd apps/core-server-app && npx prisma generate",
+    "postinstall": "npm run build:shared-types && cd apps/core-server-app && npx prisma generate",
+    "build:shared-types": "cd packages/shared-types && npm run build",
 
     "// Development - Apps run locally, databases in Docker": "",
     "docker:dev": "docker compose -f docker-compose.dev.yml up -d",
@@ -22,6 +23,7 @@
     "auth:dev": "cd apps/auth-service && NODE_ENV=development npm run dev",
     "core:dev": "cd apps/core-server-app && NODE_ENV=development npm run dev",
     "client:dev": "cd apps/client-app && NODE_ENV=development npm run dev",
+    "shared-types:dev": "cd packages/shared-types && npm run dev",
 
     "// Production - Everything in Docker": "",
     "docker:prod": "docker compose --env-file .env.production up --build -d",
@@ -50,7 +52,7 @@
   "devDependencies": {
     "prettier": "^3.6.2",
     "turbo": "^2.5.6",
-    "typescript": "5.9.2"
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=24.0.0"

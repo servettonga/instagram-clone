@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from '../auth.service';
-import { AuthenticatedRequest } from '../types/auth-request.types';
+import { AuthenticatedRequest } from '@repo/shared-types';
 import { ERROR_MESSAGES } from '../../common/constants/messages';
 
 @Injectable()
@@ -30,6 +30,10 @@ export class AccessGuard implements CanActivate {
 
     try {
       const validationResult = await this.authService.validateToken(token);
+
+      if (!validationResult.valid || !validationResult.user) {
+        throw new UnauthorizedException(ERROR_MESSAGES.INVALID_TOKEN);
+      }
       request.user = validationResult.user;
       return true;
     } catch {

@@ -59,7 +59,12 @@ npm run dev          # Start all apps locally
 npm run auth:dev     # Terminal 1
 npm run core:dev     # Terminal 2
 npm run client:dev   # Terminal 3
+
+# Optional: Watch mode for shared types (if actively editing them)
+npm run shared-types:dev  # Terminal 4 (auto-rebuild on changes)
 ```
+
+> **Note:** Shared types are automatically built during `npm install` (postinstall hook).
 
 ## 🏭 Production Mode
 

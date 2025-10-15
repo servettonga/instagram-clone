@@ -1,13 +1,8 @@
-import bcrypt from 'bcryptjs';
 import { JwtService } from '../utils/jwt.js';
-import { config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
-import {
-  coreServiceClient,
-  CoreUser,
-  CreateUserRequest,
-} from './coreServiceClient.js';
+import { coreServiceClient, CreateUserRequest } from './coreServiceClient.js';
 import { redisService, SessionData } from './redisClient.js';
+import type { UserWithProfileAndAccount } from '@repo/shared-types';
 
 export interface RegisterRequest {
   username: string;
@@ -16,12 +11,12 @@ export interface RegisterRequest {
 }
 
 export interface LoginRequest {
-  email: string;
+  identifier: string; // Email or username
   password: string;
 }
 
 export interface AuthResponse {
-  user: CoreUser;
+  user: UserWithProfileAndAccount;
   tokens: {
     accessToken: string;
     refreshToken: string;
@@ -42,16 +37,19 @@ export class AuthService {
 
     const user = await coreServiceClient.createUser(createUserDto);
 
+    // Get email from accounts
+    const email = user.accounts?.[0]?.email || userData.email;
+
     // Generate tokens
     const tokenPair = JwtService.generateTokenPair({
       userId: user.id,
-      email: user.email,
+      email,
     });
 
     // Store session in Redis
     const sessionData: SessionData = {
       userId: user.id,
-      email: user.email,
+      email,
       refreshTokenId: tokenPair.refreshTokenId,
       createdAt: Date.now(),
       lastActivity: Date.now(),
@@ -84,16 +82,19 @@ export class AuthService {
       throw new Error(AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS);
     }
 
+    // Get email from accounts
+    const email = user.accounts?.[0]?.email || '';
+
     // Generate tokens
     const tokenPair = JwtService.generateTokenPair({
       userId: user.id,
-      email: user.email,
+      email,
     });
 
     // Store session in Redis
     const sessionData: SessionData = {
       userId: user.id,
-      email: user.email,
+      email,
       refreshTokenId: tokenPair.refreshTokenId,
       createdAt: Date.now(),
       lastActivity: Date.now(),
@@ -156,16 +157,19 @@ export class AuthService {
       // Delete old session
       await redisService.deleteSession(decoded.userId, decoded.jti);
 
+      // Get email from accounts
+      const email = user.accounts?.[0]?.email || '';
+
       // Generate new token pair
       const tokenPair = JwtService.generateTokenPair({
         userId: user.id,
-        email: user.email,
+        email,
       });
 
       // Store new session
       const newSessionData: SessionData = {
         userId: user.id,
-        email: user.email,
+        email,
         refreshTokenId: tokenPair.refreshTokenId,
         createdAt: session.createdAt,
         lastActivity: Date.now(),
@@ -193,7 +197,7 @@ export class AuthService {
    */
   static async validateToken(accessToken: string): Promise<{
     valid: boolean;
-    user?: CoreUser;
+    user?: UserWithProfileAndAccount;
   }> {
     try {
       const decoded = JwtService.verifyAccessToken(accessToken);
@@ -244,7 +248,9 @@ export class AuthService {
    * Get user by ID (internal use only)
    * Used during token refresh to verify user still exists
    */
-  static async getUserById(userId: string): Promise<CoreUser | null> {
+  static async getUserById(
+    userId: string,
+  ): Promise<UserWithProfileAndAccount | null> {
     return coreServiceClient.getUserById(userId);
   }
 

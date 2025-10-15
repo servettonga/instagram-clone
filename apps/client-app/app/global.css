@@ -1,0 +1,71 @@
+/* Instagram Sans Font Family */
+@font-face {
+  font-family: 'Instagram Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/Instagram Sans Light.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Instagram Sans.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Instagram Sans Medium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Instagram Sans Bold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Instagram Sans Headline';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Instagram Sans Headline.woff') format('woff');
+}
+
+:root {
+  /* Instagram colors */
+  --ig-blue: #0095F6;
+  --ig-blue-hover: #1877F2;
+  --ig-background: #FAFAFA;
+  --ig-border: #DBDBDB;
+  --ig-text-primary: #262626;
+  --ig-text-secondary: #8E8E8E;
+  --ig-text-placeholder: #8E8E8E;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Instagram Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

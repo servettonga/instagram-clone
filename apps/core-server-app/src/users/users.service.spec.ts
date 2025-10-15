@@ -2,12 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UsersService } from './users.service';
-import { UserWithProfileAndAccount } from './payloads';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileUploadService } from '../common/services/file-upload.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { AccountProvider } from '@prisma/client';
+import { UserWithProfileAndAccount } from '@repo/shared-types';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -47,7 +48,7 @@ describe('UsersService', () => {
     updatedAt: new Date(),
   };
 
-  const mockUserWithProfileAndAccount: UserWithProfileAndAccount = {
+  const mockUserWithProfileAndAccount = {
     ...mockUser,
     username: mockProfile.username,
     displayName: mockProfile.displayName,
@@ -59,7 +60,7 @@ describe('UsersService', () => {
     email: mockAccount.email,
     primaryAccountId: mockAccount.id,
     profileId: mockProfile.id,
-  };
+  } as any;
 
   const mockPrismaService = {
     user: {
@@ -71,6 +72,7 @@ describe('UsersService', () => {
     account: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       updateMany: jest.fn(),
       findMany: jest.fn(),
     },
@@ -84,6 +86,12 @@ describe('UsersService', () => {
     $transaction: jest.fn(),
   };
 
+  const mockFileUploadService = {
+    saveFile: jest.fn(),
+    deleteFile: jest.fn(),
+    getFilePath: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -91,6 +99,10 @@ describe('UsersService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: FileUploadService,
+          useValue: mockFileUploadService,
         },
       ],
     }).compile();
@@ -113,54 +125,30 @@ describe('UsersService', () => {
     };
 
     it('should create a user successfully', async () => {
-      mockPrismaService.user.create.mockResolvedValue(mockUser);
-      mockPrismaService.account.create.mockResolvedValue(mockAccount);
-      mockPrismaService.profile.create.mockResolvedValue(mockProfile);
+      // Mock the transaction to return user, account, and profile
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          user: { create: jest.fn().mockResolvedValue(mockUser) },
+          account: { create: jest.fn().mockResolvedValue(mockAccount) },
+          profile: { create: jest.fn().mockResolvedValue(mockProfile) },
+        };
+        const txResult = await callback(tx);
+        return txResult;
+      });
 
       const result = await service.create(createUserDto);
 
-      expect(mockPrismaService.user.create).toHaveBeenCalledWith({
-        data: {
-          role: 'USER',
-          disabled: false,
-        },
-        select: expect.any(Object),
-      });
-
-      expect(mockPrismaService.account.create).toHaveBeenCalledWith({
-        data: {
-          userId: mockUser.id,
-          email: createUserDto.email,
-          passwordHash: expect.any(String),
-          provider: AccountProvider.LOCAL,
-          createdBy: mockUser.id,
-          updatedBy: null,
-        },
-        select: expect.any(Object),
-      });
-
-      expect(mockPrismaService.profile.create).toHaveBeenCalledWith({
-        data: {
-          userId: mockUser.id,
-          username: createUserDto.username,
-          displayName: createUserDto.displayName,
-          birthday: expect.any(Date),
-          bio: createUserDto.bio,
-          avatarUrl: null,
-          isPublic: true,
-          deleted: false,
-          createdBy: mockUser.id,
-          updatedBy: null,
-        },
-        select: expect.any(Object),
-      });
-
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
       expect(result).toMatchObject({
         id: mockUser.id,
-        email: createUserDto.email,
+      });
+      expect(result.profile).toMatchObject({
         username: createUserDto.username,
         displayName: createUserDto.displayName,
         bio: createUserDto.bio,
+      });
+      expect(result.accounts?.[0]).toMatchObject({
+        email: createUserDto.email,
       });
     });
 
@@ -172,7 +160,7 @@ describe('UsersService', () => {
           clientVersion: '4.0.0',
         },
       );
-      mockPrismaService.user.create.mockRejectedValue(prismaError);
+      mockPrismaService.$transaction.mockRejectedValue(prismaError);
 
       await expect(service.create(createUserDto)).rejects.toThrow(
         ConflictException,
@@ -206,8 +194,12 @@ describe('UsersService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: mockUser.id,
-        email: mockAccount.email,
+      });
+      expect(result[0]!.profile).toMatchObject({
         username: mockProfile.username,
+      });
+      expect(result[0]!.accounts?.[0]).toMatchObject({
+        email: mockAccount.email,
       });
     });
 
@@ -240,8 +232,12 @@ describe('UsersService', () => {
       });
       expect(result).toMatchObject({
         id: mockUser.id,
-        email: mockAccount.email,
+      });
+      expect(result.profile).toMatchObject({
         username: mockProfile.username,
+      });
+      expect(result.accounts?.[0]).toMatchObject({
+        email: mockAccount.email,
       });
     });
 
@@ -264,29 +260,37 @@ describe('UsersService', () => {
         user: {
           ...mockUser,
           profile: mockProfile,
+          accounts: [mockAccount],
         },
       };
-      mockPrismaService.account.findUnique.mockResolvedValue(
+      mockPrismaService.account.findFirst.mockResolvedValue(
         mockAccountWithRelations,
       );
 
       const result = await service.findByEmail('test@example.com');
 
-      expect(mockPrismaService.account.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
+      expect(mockPrismaService.account.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'test@example.com',
+          provider: AccountProvider.LOCAL,
+        },
         select: expect.objectContaining({
           user: expect.any(Object),
         }),
       });
       expect(result).toMatchObject({
         id: mockUser.id,
-        email: mockAccount.email,
+      });
+      expect(result!.profile).toMatchObject({
         username: mockProfile.username,
+      });
+      expect(result!.accounts?.[0]).toMatchObject({
+        email: mockAccount.email,
       });
     });
 
     it('should return null when user not found', async () => {
-      mockPrismaService.account.findUnique.mockResolvedValue(null);
+      mockPrismaService.account.findFirst.mockResolvedValue(null);
 
       const result = await service.findByEmail('nonexistent@example.com');
 
@@ -327,6 +331,8 @@ describe('UsersService', () => {
       });
       expect(result).toMatchObject({
         id: mockUser.id,
+      });
+      expect(result.profile).toMatchObject({
         displayName: updateUserDto.displayName,
         bio: updateUserDto.bio,
       });

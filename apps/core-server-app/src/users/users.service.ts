@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -10,54 +11,23 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Prisma, AccountProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ERROR_MESSAGES } from '../common/constants/messages';
+import { FileUploadService } from '../common/services/file-upload.service';
 import {
-  userSelectPayload,
-  profileSelectPayload,
-  accountSelectPayload,
   SafeUser,
   SafeProfile,
   SafeAccount,
-  UserWithProfileAndAccount,
+  userWithProfileAndAccountSelect,
+  toUserWithProfileAndAccount,
 } from './payloads';
+
+import type { UserWithProfileAndAccount } from '@repo/shared-types';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
-
-  /**
-   * Helper method to transform raw user data into clean response format
-   */
-  private transformUserData(
-    userData: SafeUser,
-    profileData: SafeProfile,
-    accountData: SafeAccount,
-  ): UserWithProfileAndAccount {
-    // Explicitly destructure to remove any nested objects
-    const { ...userFields } = userData;
-
-    return {
-      // User fields (with User ID as primary)
-      ...userFields,
-
-      // Profile fields (flattened, excluding id conflicts)
-      username: profileData.username,
-      displayName: profileData.displayName,
-      birthday: profileData.birthday,
-      bio: profileData.bio,
-      avatarUrl: profileData.avatarUrl,
-      isPublic: profileData.isPublic,
-      deleted: profileData.deleted,
-      createdAt: profileData.createdAt,
-      updatedAt: profileData.updatedAt,
-
-      // Account fields
-      email: accountData.email,
-      primaryAccountId: accountData.id,
-
-      // Reference IDs
-      profileId: profileData.id,
-    };
-  }
+  constructor(
+    private prisma: PrismaService,
+    private fileUploadService: FileUploadService,
+  ) {}
 
   /**
    * Helper method to validate user existence and active status
@@ -104,7 +74,6 @@ export class UsersService {
     createUserDto: CreateUserDto,
   ): Promise<UserWithProfileAndAccount> {
     try {
-      // Wrap in transaction to ensure atomic operations
       const result = await this.prisma.$transaction(async (tx) => {
         // Only hash password if provided (for LOCAL accounts)
         let passwordHash: string | null = null;
@@ -118,7 +87,6 @@ export class UsersService {
             role: 'USER',
             disabled: false,
           },
-          select: userSelectPayload,
         });
 
         // Create primary account with hashed password (or null for OAuth)
@@ -129,12 +97,9 @@ export class UsersService {
             passwordHash,
             provider: AccountProvider.LOCAL,
             createdBy: user.id,
-            updatedBy: null,
           },
-          select: accountSelectPayload,
         });
 
-        // Create profile with minimal data
         const profile = await tx.profile.create({
           data: {
             userId: user.id,
@@ -146,150 +111,95 @@ export class UsersService {
             isPublic: true,
             deleted: false,
             createdBy: user.id,
-            updatedBy: null,
           },
-          select: profileSelectPayload,
         });
 
         return { user, account, profile };
       });
 
-      return this.transformUserData(
-        result.user,
-        result.profile,
-        result.account,
-      );
+      // Transform to API format
+      return toUserWithProfileAndAccount({
+        ...result.user,
+        profile: result.profile,
+        accounts: [result.account],
+      });
     } catch (error: unknown) {
       this.handlePrismaError(error);
     }
   }
 
   async findAll(): Promise<UserWithProfileAndAccount[]> {
-    const usersWithRelations = await this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: { disabled: false },
-      select: {
-        ...userSelectPayload,
-        profile: {
-          select: profileSelectPayload,
-          where: { deleted: false },
-        },
-        accounts: {
-          select: accountSelectPayload,
-          where: { provider: AccountProvider.LOCAL },
-          take: 1,
-        },
-      },
+      select: userWithProfileAndAccountSelect,
     });
 
-    // Filter and transform, ensuring to return clean data
-    return usersWithRelations
-      .filter((user) => user.profile && user.accounts.length > 0)
-      .map((user) => {
-        // Extract the nested data
-        const { profile, accounts, ...userData } = user;
-        // Transform using only the extracted data
-        return this.transformUserData(userData, profile!, accounts[0]!);
-      });
+    return users
+      .filter((user) => user.profile && !user.profile.deleted)
+      .map(toUserWithProfileAndAccount);
   }
 
   async findOne(id: string): Promise<UserWithProfileAndAccount> {
-    const userWithRelations = await this.prisma.user.findUnique({
+    const prismaUser = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        ...userSelectPayload,
-        profile: {
-          select: profileSelectPayload,
-        },
-        accounts: {
-          select: accountSelectPayload,
-          // Prefer LOCAL first, then OAuth
-          orderBy: [
-            { provider: 'asc' }, // LOCAL comes before GOOGLE/FACEBOOK
-          ],
-          take: 1,
-        },
-      },
+      select: userWithProfileAndAccountSelect,
     });
 
-    this.validateUserData(
-      userWithRelations,
-      userWithRelations?.profile,
-      userWithRelations?.accounts || [],
-      id,
-    );
+    if (
+      !prismaUser ||
+      !prismaUser.profile ||
+      prismaUser.profile.deleted ||
+      prismaUser.disabled
+    ) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(id));
+    }
 
-    const { profile, accounts, ...userData } = userWithRelations!;
-    return this.transformUserData(userData, profile!, accounts[0]!);
+    // Transform with type safety
+    return toUserWithProfileAndAccount(prismaUser);
   }
 
   async findByEmail(email: string): Promise<UserWithProfileAndAccount | null> {
-    // Prefer LOCAL accounts for email/password login
-    const accountWithRelations = await this.prisma.account.findFirst({
+    const account = await this.prisma.account.findFirst({
       where: {
         email,
-        provider: AccountProvider.LOCAL, // ← Prefer LOCAL accounts
+        provider: AccountProvider.LOCAL,
       },
       select: {
-        ...accountSelectPayload,
         user: {
-          select: {
-            ...userSelectPayload,
-            profile: {
-              select: profileSelectPayload,
-            },
-          },
+          select: userWithProfileAndAccountSelect,
         },
       },
     });
 
     if (
-      !accountWithRelations ||
-      !accountWithRelations.user.profile ||
-      accountWithRelations.user.profile.deleted ||
-      accountWithRelations.user.disabled
+      !account ||
+      !account.user.profile ||
+      account.user.profile.deleted ||
+      account.user.disabled
     ) {
       return null;
     }
 
-    const { user, ...accountData } = accountWithRelations;
-    const { profile, ...userData } = user;
-    return this.transformUserData(userData, profile!, accountData);
+    return toUserWithProfileAndAccount(account.user);
   }
 
   async findByUsername(
     username: string,
   ): Promise<UserWithProfileAndAccount | null> {
-    const profileWithRelations = await this.prisma.profile.findUnique({
+    const profile = await this.prisma.profile.findUnique({
       where: { username },
       select: {
-        ...profileSelectPayload,
         user: {
-          select: {
-            ...userSelectPayload,
-            accounts: {
-              select: accountSelectPayload,
-              where: { provider: AccountProvider.LOCAL },
-              take: 1,
-            },
-          },
+          select: userWithProfileAndAccountSelect,
         },
       },
     });
 
-    if (
-      !profileWithRelations ||
-      profileWithRelations.deleted ||
-      profileWithRelations.user.disabled ||
-      profileWithRelations.user.accounts.length === 0
-    ) {
+    if (!profile || profile.user.profile?.deleted || profile.user.disabled) {
       return null;
     }
 
-    // Extract the nested data
-    const { user, ...profileData } = profileWithRelations;
-    const { accounts, ...userData } = user;
-    // Transform using only the extracted data
-    return this.transformUserData(userData, profileData, accounts[0]!);
+    return toUserWithProfileAndAccount(profile.user);
   }
 
   async update(
@@ -329,6 +239,18 @@ export class UsersService {
         }
       });
 
+      // Handle birthday separately (needs date conversion)
+      if (updateUserDto.birthday !== undefined) {
+        profileUpdateData.birthday = updateUserDto.birthday
+          ? new Date(updateUserDto.birthday)
+          : undefined;
+      }
+
+      // Handle isPublic separately (boolean field)
+      if (updateUserDto.isPublic !== undefined) {
+        profileUpdateData.isPublic = updateUserDto.isPublic;
+      }
+
       if (Object.keys(profileUpdateData).length > 0) {
         profileUpdateData.updatedBy = id;
         await this.prisma.profile.update({
@@ -360,11 +282,30 @@ export class UsersService {
     }
   }
 
-  async getUserAccounts(userId: string): Promise<SafeAccount[]> {
-    return this.prisma.account.findMany({
+  async getUserAccounts(userId: string) {
+    const accounts = await this.prisma.account.findMany({
       where: { userId },
-      select: accountSelectPayload,
+      select: {
+        id: true,
+        email: true,
+        provider: true,
+        providerId: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
+
+    return accounts.map((account) => ({
+      id: account.id,
+      userId,
+      email: account.email,
+      provider: account.provider as 'LOCAL' | 'GOOGLE' | 'FACEBOOK',
+      providerId: account.providerId,
+      lastLoginAt: account.lastLoginAt?.toISOString() ?? null,
+      createdAt: account.createdAt.toISOString(),
+      updatedAt: account.updatedAt.toISOString(),
+    }));
   }
 
   async addAccount(
@@ -374,8 +315,8 @@ export class UsersService {
       provider: AccountProvider;
       providerId?: string;
     },
-  ): Promise<SafeAccount> {
-    return this.prisma.account.create({
+  ) {
+    const account = await this.prisma.account.create({
       data: {
         userId,
         email: accountData.email || '',
@@ -383,7 +324,37 @@ export class UsersService {
         providerId: accountData.providerId,
         createdBy: userId,
       },
-      select: accountSelectPayload,
     });
+
+    return {
+      id: account.id,
+      userId,
+      email: account.email,
+      provider: account.provider as 'LOCAL' | 'GOOGLE' | 'FACEBOOK',
+      providerId: account.providerId,
+      lastLoginAt: account.lastLoginAt?.toISOString() ?? null,
+      createdAt: account.createdAt.toISOString(),
+      updatedAt: account.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * Upload and update user avatar
+   */
+  async uploadAvatar(
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<{ avatarUrl: string }> {
+    if (!file) {
+      throw new BadRequestException(ERROR_MESSAGES.NO_FILE_UPLOADED);
+    }
+
+    // Get the file URL
+    const avatarUrl = this.fileUploadService.getFileUrl(file.filename);
+
+    // Update user's avatar URL in database
+    await this.update(userId, { avatarUrl });
+
+    return { avatarUrl };
   }
 }

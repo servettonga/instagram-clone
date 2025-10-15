@@ -1,0 +1,201 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 244px;
+  width: 397px;
+  height: 100vh;
+  background: white;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  border-right: 1px solid var(--ig-border);
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+  transition: left 0.3s ease;
+}
+
+.modalOverlayCollapsed {
+  left: 72px;
+}
+
+.searchPanel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.searchHeader {
+  padding: 24px;
+  border-bottom: 1px solid var(--ig-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ig-text-primary);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--ig-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.searchInputWrapper {
+  position: relative;
+  padding: 24px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #EFEFEF;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--ig-text-primary);
+}
+
+.searchInput:focus {
+  outline: none;
+}
+
+.clearInputButton {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--ig-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearInputButton:hover {
+  color: var(--ig-text-primary);
+}
+
+.searchContent {
+  padding: 24px 0;
+  border-top: 1px solid var(--ig-border);
+}
+
+.recentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px 16px;
+}
+
+.recentTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ig-text-primary);
+}
+
+.clearAll {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-blue);
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  color: var(--ig-text-primary);
+}
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.userItem:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.userAvatar {
+  flex-shrink: 0;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-text-primary);
+}
+
+.displayName {
+  font-size: 14px;
+  color: var(--ig-text-secondary);
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--ig-text-secondary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeButton:hover {
+  color: var(--ig-text-primary);
+}
+
+@media (max-width: 1024px) {
+  .modalOverlay {
+    left: 72px;
+  }
+
+  .modalOverlayCollapsed {
+    left: 72px;
+  }
+}

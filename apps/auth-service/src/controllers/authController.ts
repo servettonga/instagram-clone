@@ -4,39 +4,27 @@ import { VALIDATION_RULES, config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
 import { redisService, SessionData } from '../services/redisClient.js';
 import { JwtService } from '../utils/jwt.js';
-import { CoreUser } from '../services/coreServiceClient.js';
-
-interface RegisterRequestBody {
-  email: string;
-  username: string;
-  password: string;
-}
-
-interface LoginRequestBody {
-  email: string;
-  password: string;
-}
-
-interface RefreshTokenRequestBody {
-  refreshToken: string;
-}
-
-interface ValidateTokenRequestBody {
-  accessToken: string;
-}
+import type {
+  AuthResponse,
+  LoginCredentials,
+  SignupData,
+  UserWithProfileAndAccount,
+  RefreshTokenResponse,
+  TokenValidationResponse,
+} from '@repo/shared-types';
 
 export class AuthController {
   /**
    * POST /internal/auth/register
    */
   static async register(
-    req: Request<object, object, RegisterRequestBody>,
+    req: Request<object, object, SignupData>,
     res: Response,
   ): Promise<void> {
     try {
-      const { email, username, password } = req.body;
+      const signupData: SignupData = req.body;
 
-      if (!email || !username || !password) {
+      if (!signupData.email || !signupData.username || !signupData.password) {
         res.status(400).json({
           error: AUTH_MESSAGES.ERRORS.ALL_FIELDS_REQUIRED,
           message: 'Email, username, and password are required',
@@ -44,27 +32,28 @@ export class AuthController {
         return;
       }
 
-      if (!VALIDATION_RULES.EMAIL_REGEX.test(email)) {
+      if (!VALIDATION_RULES.EMAIL_REGEX.test(signupData.email)) {
         res.status(400).json({
           error: AUTH_MESSAGES.ERRORS.INVALID_EMAIL_FORMAT,
         });
         return;
       }
 
-      if (password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
+      if (signupData.password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
         res.status(400).json({
           error: AUTH_MESSAGES.ERRORS.PASSWORD_MIN_LENGTH,
         });
         return;
       }
 
-      const result = await AuthService.register({ email, username, password });
+      const result = await AuthService.register(signupData);
 
-      res.status(201).json({
-        message: AUTH_MESSAGES.SUCCESS.REGISTRATION,
+      const response: AuthResponse = {
         user: result.user,
         tokens: result.tokens,
-      });
+      };
+
+      res.status(201).json(response);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === AUTH_MESSAGES.ERRORS.USER_EXISTS) {
@@ -88,26 +77,27 @@ export class AuthController {
    * POST /internal/auth/login
    */
   static async login(
-    req: Request<object, object, LoginRequestBody>,
+    req: Request<object, object, LoginCredentials>,
     res: Response,
   ): Promise<void> {
     try {
-      const { email, password } = req.body;
+      const credentials: LoginCredentials = req.body;
 
-      if (!email || !password) {
+      if (!credentials.identifier || !credentials.password) {
         res.status(400).json({
-          error: AUTH_MESSAGES.ERRORS.EMAIL_PASSWORD_REQUIRED,
+          error: AUTH_MESSAGES.ERRORS.IDENTIFIER_PASSWORD_REQUIRED,
         });
         return;
       }
 
-      const result = await AuthService.login({ email, password });
+      const result = await AuthService.login(credentials);
 
-      res.status(200).json({
-        message: AUTH_MESSAGES.SUCCESS.LOGIN,
+      const response: AuthResponse = {
         user: result.user,
         tokens: result.tokens,
-      });
+      };
+
+      res.status(200).json(response);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === AUTH_MESSAGES.ERRORS.INVALID_CREDENTIALS) {
@@ -131,7 +121,7 @@ export class AuthController {
    * POST /internal/auth/refresh
    */
   static async refreshToken(
-    req: Request<object, object, RefreshTokenRequestBody>,
+    req: Request<object, object, { refreshToken: string }>,
     res: Response,
   ): Promise<void> {
     try {
@@ -146,10 +136,12 @@ export class AuthController {
 
       const tokens = await AuthService.refreshToken(refreshToken);
 
-      res.status(200).json({
-        message: AUTH_MESSAGES.SUCCESS.TOKEN_REFRESH,
-        tokens,
-      });
+      const response: RefreshTokenResponse = {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      };
+
+      res.status(200).json(response);
     } catch (error) {
       console.error('Token refresh error:', error);
       res.status(401).json({
@@ -162,7 +154,7 @@ export class AuthController {
    * POST /internal/auth/validate
    */
   static async validateToken(
-    req: Request<object, object, ValidateTokenRequestBody>,
+    req: Request<object, object, { accessToken: string }>,
     res: Response,
   ): Promise<void> {
     try {
@@ -177,7 +169,7 @@ export class AuthController {
 
       const result = await AuthService.validateToken(accessToken);
 
-      if (!result.valid) {
+      if (!result.valid || !result.user) {
         res.status(401).json({
           valid: false,
           error: AUTH_MESSAGES.ERRORS.INVALID_TOKEN,
@@ -185,11 +177,12 @@ export class AuthController {
         return;
       }
 
-      res.status(200).json({
-        message: AUTH_MESSAGES.SUCCESS.TOKEN_VALID,
+      const response: TokenValidationResponse = {
         valid: true,
         user: result.user,
-      });
+      };
+
+      res.status(200).json(response);
     } catch (error) {
       console.error('Token validation error:', error);
       res.status(401).json({
@@ -202,7 +195,7 @@ export class AuthController {
    * POST /internal/auth/logout
    */
   static async logout(
-    req: Request<object, object, RefreshTokenRequestBody>,
+    req: Request<object, object, { refreshToken: string }>,
     res: Response,
   ): Promise<void> {
     try {
@@ -235,7 +228,7 @@ export class AuthController {
    */
   static async handleOAuthCallback(req: Request, res: Response): Promise<void> {
     try {
-      const user = req.user as CoreUser;
+      const user = req.user as UserWithProfileAndAccount;
 
       if (!user) {
         res.redirect(
@@ -244,16 +237,19 @@ export class AuthController {
         return;
       }
 
+      // Get email from accounts
+      const email = user.accounts?.[0]?.email || '';
+
       // Generate JWT tokens
       const tokenPair = JwtService.generateTokenPair({
         userId: user.id,
-        email: user.email,
+        email,
       });
 
       // Store session in Redis
       const sessionData: SessionData = {
         userId: user.id,
-        email: user.email,
+        email,
         refreshTokenId: tokenPair.refreshTokenId,
         createdAt: Date.now(),
         lastActivity: Date.now(),

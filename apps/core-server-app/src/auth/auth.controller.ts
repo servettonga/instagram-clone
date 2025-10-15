@@ -24,6 +24,12 @@ import { AuthService } from './auth.service';
 import { AccessGuard } from './guards';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { getConfig } from '../config/config';
+import type {
+  LoginCredentials,
+  SignupData,
+  AuthResponse,
+  AuthenticatedRequest,
+} from '@repo/shared-types';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,27 +52,25 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 409, description: 'Email or username already exists' })
-  async signup(
-    @Body() signUpDto: { email: string; username: string; password: string },
-  ) {
+  async signup(@Body() signUpDto: SignupData): Promise<AuthResponse> {
     return this.authService.handleSignUp(signUpDto);
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiOperation({ summary: 'Login with email/username and password' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        email: { type: 'string', example: 'john@example.com' },
+        identifier: { type: 'string', example: 'john@example.com or johndoe' },
         password: { type: 'string', example: 'SecurePass123!' },
       },
-      required: ['email', 'password'],
+      required: ['identifier', 'password'],
     },
   })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() credentials: { email: string; password: string }) {
+  async login(@Body() credentials: LoginCredentials): Promise<AuthResponse> {
     return this.authService.handleLogin(credentials);
   }
 
@@ -110,7 +114,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Initiate OAuth login (e.g., Google)' })
   @ApiResponse({ status: 302, description: 'Redirects to OAuth provider' })
   @ApiResponse({ status: 400, description: 'Invalid provider' })
-  async oauthLogin(@Param('provider') provider: string, @Res() res: Response) {
+  oauthLogin(@Param('provider') provider: string, @Res() res: Response) {
     if (!provider || provider.toLowerCase() !== 'google') {
       throw new BadRequestException(ERROR_MESSAGES.PROVIDER_REQUIRED);
     }
@@ -121,10 +125,7 @@ export class AuthController {
 
   @Get('google/callback')
   @ApiExcludeEndpoint()
-  async googleCallback(
-    @Res() res: Response,
-    @Query() query: Record<string, string>,
-  ) {
+  googleCallback(@Res() res: Response, @Query() query: Record<string, string>) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const { accessToken, refreshToken, error } = query;
 
@@ -148,7 +149,7 @@ export class AuthController {
   @Post('verify-credentials')
   @ApiExcludeEndpoint()
   async verifyCredentials(
-    @Body() credentials: { email: string; password: string },
+    @Body() credentials: { identifier: string; password: string },
   ) {
     return this.authService.verifyCredentials(credentials);
   }
@@ -168,15 +169,58 @@ export class AuthController {
     return this.authService.findOrCreateOAuthUser(oauthData);
   }
 
+  @Post('change-password')
+  @UseGuards(AccessGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Change password (requires current password)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        oldPassword: { type: 'string', example: 'CurrentPass123!' },
+        newPassword: { type: 'string', example: 'NewPass123!' },
+      },
+      required: ['oldPassword', 'newPassword'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid old password or validation error',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async changePassword(
+    @Body() body: { oldPassword: string; newPassword: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.authService.changePassword(
+      req.user!.id,
+      body.oldPassword,
+      body.newPassword,
+    );
+  }
+
   @Post('set-password')
   @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Set password for OAuth-only account' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        password: { type: 'string', example: 'SecurePass123!' },
+      },
+      required: ['password'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Password set successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async setPassword(
     @Body() body: { password: string },
-    @Req() req: Request & { user: any },
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.authService.setPassword(req.user.userId, body.password);
+    return this.authService.setPassword(req.user!.id, body.password);
   }
 
   @Delete('unlink/:provider')
@@ -185,16 +229,30 @@ export class AuthController {
   @ApiOperation({ summary: 'Unlink OAuth provider' })
   async unlinkProvider(
     @Param('provider') provider: string,
-    @Req() req: Request & { user: any },
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.authService.unlinkProvider(req.user.userId, provider);
+    return this.authService.unlinkProvider(req.user!.id, provider);
   }
 
   @Get('linked-accounts')
   @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all linked accounts' })
-  async getLinkedAccounts(@Req() req: Request & { user: any }) {
-    return this.authService.getLinkedAccounts(req.user.userId);
+  async getLinkedAccounts(@Req() req: AuthenticatedRequest) {
+    return this.authService.getLinkedAccounts(req.user!.id);
+  }
+
+  /**
+   * Used by: AuthProvider on app initialization
+   */
+  @Get('me')
+  @UseGuards(AccessGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user' })
+  @ApiResponse({ status: 200, description: 'Current user data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getCUrrentUser(@Req() req: AuthenticatedRequest) {
+    // AccessGuard already validates token and attaches user to request
+    return this.authService.validateUser(req.user!.id);
   }
 }

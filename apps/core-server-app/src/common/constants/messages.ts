@@ -17,6 +17,14 @@ export const ERROR_MESSAGES = {
   OAUTH_CALLBACK_FAILED: 'OAuth callback failed',
   ACCOUNT_DISABLED: 'Account is disabled',
 
+  // Password errors
+  INVALID_OLD_PASSWORD: 'Current password is incorrect',
+  NEW_PASSWORD_SAME_AS_OLD:
+    'New password must be different from current password',
+  NO_LOCAL_ACCOUNT_FOR_PASSWORD_CHANGE:
+    'You cannot change password for OAuth-only accounts. Set a password first.',
+  NO_PASSWORD_SET: 'No password set for this account',
+
   // OAuth errors
   PROVIDER_REQUIRED: 'Provider is required',
   INVALID_OAUTH_PARAMETERS: 'Invalid OAuth callback parameters',
@@ -33,6 +41,15 @@ export const ERROR_MESSAGES = {
   PASSWORD_MIN_LENGTH: 'password must be at least 6 characters',
   INVALID_UUID_FORMAT: 'Invalid UUID format',
 
+  // File upload errors
+  NO_FILE_UPLOADED: 'No file uploaded',
+  INVALID_FILE_TYPE: 'Only image files (jpg, jpeg, png, gif, webp) are allowed',
+  FILE_TOO_LARGE: (maxSize: string) => `File size must be less than ${maxSize}`,
+
+  // Authorization errors
+  INSUFFICIENT_PERMISSIONS: 'You do not have permission to perform this action',
+  NOT_RESOURCE_OWNER: 'You do not have permission to modify this resource',
+
   // Generic errors
   INTERNAL_SERVER_ERROR: 'Internal server error',
   RESOURCE_NOT_FOUND: 'Resource not found',
@@ -47,6 +64,7 @@ export const SUCCESS_MESSAGES = {
   USERS_RETRIEVED: 'Users retrieved successfully',
   USER_UPDATED: 'User updated successfully',
   USER_DELETED: 'User deleted successfully',
+  AVATAR_UPLOADED: 'Avatar uploaded successfully',
 
   // Auth messages
   REGISTRATION_SUCCESS: 'User registered successfully',
@@ -54,6 +72,12 @@ export const SUCCESS_MESSAGES = {
   TOKEN_REFRESH_SUCCESS: 'Token refreshed successfully',
   LOGOUT_SUCCESS: 'Logout successful',
   TOKEN_VALID: 'Token is valid',
+
+  // Password messages
+  PASSWORD_CHANGED: 'Password changed successfully',
+  PASSWORD_UPDATED: 'Password updated successfully',
+  PASSWORD_SET:
+    'Password set successfully. You can now login with email/password.',
 
   // Info messages
   NO_USERS_FOUND: 'No users found',

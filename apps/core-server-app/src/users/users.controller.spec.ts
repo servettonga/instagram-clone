@@ -2,9 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { UserWithProfileAndAccount } from './payloads'
+import { UserWithProfileAndAccount, UserRole } from '@repo/shared-types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AccessGuard } from '../auth/guards';
+import { OwnershipGuard } from '../common/guards';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -12,22 +14,33 @@ describe('UsersController', () => {
 
   const mockUserWithProfileAndAccount: UserWithProfileAndAccount = {
     id: 'test-user-id',
-    role: 'USER',
+    role: UserRole.USER,
     disabled: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    createdBy: null,
-    updatedBy: null,
-    username: 'testuser',
-    displayName: 'Test User',
-    birthday: new Date('2000-01-01'),
-    bio: 'Test bio',
-    avatarUrl: 'https://example.com/avatar.jpg',
-    isPublic: true,
-    deleted: false,
-    email: 'test@example.com',
-    primaryAccountId: 'test-account-id',
-    profileId: 'test-profile-id',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    profile: {
+      id: 'test-profile-id',
+      userId: 'test-user-id',
+      username: 'testuser',
+      displayName: 'Test User',
+      birthday: new Date('2000-01-01').toISOString(),
+      bio: 'Test bio',
+      avatarUrl: 'https://example.com/avatar.jpg',
+      isPublic: true,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    accounts: [{
+      id: 'test-account-id',
+      userId: 'test-user-id',
+      provider: 'LOCAL',
+      providerId: null,
+      email: 'test@example.com',
+      lastLoginAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }],
   };
 
   const mockUsersService = {
@@ -36,6 +49,7 @@ describe('UsersController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    uploadAvatar: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -47,7 +61,12 @@ describe('UsersController', () => {
           useValue: mockUsersService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AccessGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(OwnershipGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<UsersController>(UsersController);
     service = module.get<UsersService>(UsersService);

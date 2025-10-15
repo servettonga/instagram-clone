@@ -1,20 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
-
-export interface CoreUser {
-  id: string;
-  email: string;
-  role: string;
-  disabled: boolean;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-  profileId: string;
-  primaryAccountId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { UserWithProfileAndAccount } from '@repo/shared-types';
 
 export interface CreateUserRequest {
   email: string;
@@ -26,7 +13,7 @@ export interface CreateUserRequest {
 }
 
 export interface VerifyCredentialsRequest {
-  email: string;
+  identifier: string; // Email or username
   password: string;
 }
 
@@ -74,9 +61,14 @@ class CoreServiceClient {
   /**
    * Create a new user in Core Service
    */
-  async createUser(userData: CreateUserRequest): Promise<CoreUser> {
+  async createUser(
+    userData: CreateUserRequest,
+  ): Promise<UserWithProfileAndAccount> {
     try {
-      const response = await this.client.post<CoreUser>('/api/users', userData);
+      const response = await this.client.post<UserWithProfileAndAccount>(
+        '/api/users',
+        userData,
+      );
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -96,9 +88,9 @@ class CoreServiceClient {
    */
   async verifyCredentials(
     credentials: VerifyCredentialsRequest,
-  ): Promise<CoreUser | null> {
+  ): Promise<UserWithProfileAndAccount | null> {
     try {
-      const response = await this.client.post<CoreUser>(
+      const response = await this.client.post<UserWithProfileAndAccount>(
         '/api/auth/verify-credentials',
         credentials,
       );
@@ -121,9 +113,11 @@ class CoreServiceClient {
   /**
    * Get user by ID from Core Service
    */
-  async getUserById(userId: string): Promise<CoreUser | null> {
+  async getUserById(userId: string): Promise<UserWithProfileAndAccount | null> {
     try {
-      const response = await this.client.get<CoreUser>(`/api/users/${userId}`);
+      const response = await this.client.get<UserWithProfileAndAccount>(
+        `/api/users/${userId}`,
+      );
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -141,9 +135,11 @@ class CoreServiceClient {
   /**
    * Find or create OAuth user in Core Service
    */
-  async findOrCreateOAuthUser(oauthData: OAuthUserRequest): Promise<CoreUser> {
+  async findOrCreateOAuthUser(
+    oauthData: OAuthUserRequest,
+  ): Promise<UserWithProfileAndAccount> {
     try {
-      const response = await this.client.post<CoreUser>(
+      const response = await this.client.post<UserWithProfileAndAccount>(
         '/api/auth/oauth',
         oauthData,
       );

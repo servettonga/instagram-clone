@@ -16,6 +16,7 @@ export const AUTH_MESSAGES = {
     // Validation errors
     ALL_FIELDS_REQUIRED: 'All fields are required',
     EMAIL_PASSWORD_REQUIRED: 'Email and password are required',
+    IDENTIFIER_PASSWORD_REQUIRED: 'Email/username and password are required',
     PASSWORD_MIN_LENGTH: 'Password must be at least 6 characters long',
     INVALID_EMAIL_FORMAT: 'Invalid email format',
     REFRESH_TOKEN_REQUIRED: 'Refresh token is required',

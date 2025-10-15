@@ -10,19 +10,7 @@ const nextConfig = {
   output: 'standalone',
 
   // For monorepo setup
-  experimental: {
-    outputFileTracingRoot: path.join(__dirname, '../../'),
-  },
-
-  // API configuration
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/:path*`,
-      },
-    ];
-  },
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 
   eslint: {
     ignoreDuringBuilds: true,
@@ -30,6 +18,34 @@ const nextConfig = {
 
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
+      // Actual image hosting domains here when ready
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      // Local development backend
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/uploads/**',
+      },
+    ],
   },
 };
 

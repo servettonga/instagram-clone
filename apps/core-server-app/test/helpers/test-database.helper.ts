@@ -29,7 +29,7 @@ export class TestDatabase {
    * Create and configure the test database
    */
   async setup(): Promise<void> {
-    console.log(`📦 Setting up test database: ${this.databaseName}`);
+    console.log(`Setting up test database: ${this.databaseName}`);
 
     try {
       // Step 1: Create the database

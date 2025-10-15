@@ -1,10 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, ExecutionContext } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ERROR_MESSAGES } from '../src/common/constants/messages';
 import { TestDatabase } from './helpers/test-database.helper';
+import { AccessGuard } from '../src/auth/guards';
+import { OwnershipGuard } from '../src/common/guards';
+
+// Store current user for guard mock
+let currentUserId: string | null = null;
 
 describe('Users (e2e)', () => {
   let app: INestApplication;
@@ -19,10 +24,25 @@ describe('Users (e2e)', () => {
     // IMPORTANT: Set DATABASE_URL BEFORE creating the module
     process.env.DATABASE_URL = testDb.databaseUrl;
 
-    // Create test module with isolated database
+    // Create test module with isolated database and override guards
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(AccessGuard)
+      .useValue({
+        canActivate: (context: ExecutionContext) => {
+          if (currentUserId) {
+            const request = context.switchToHttp().getRequest();
+            request.user = { id: currentUserId };
+          }
+          return true;
+        },
+      })
+      .overrideGuard(OwnershipGuard)
+      .useValue({
+        canActivate: () => true, // Allow all ownership checks in tests
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -56,6 +76,7 @@ describe('Users (e2e)', () => {
       username: 'testuser',
       displayName: 'Test User',
       bio: 'Test bio',
+      password: 'Test123!',
     };
 
     it('should create a user successfully', async () => {
@@ -64,19 +85,28 @@ describe('Users (e2e)', () => {
         .send(createUserDto)
         .expect(201);
 
+      // Response now has nested profile and accounts structure
       expect(response.body).toMatchObject({
         id: expect.any(String),
-        email: createUserDto.email,
-        username: createUserDto.username,
-        displayName: createUserDto.displayName,
-        bio: createUserDto.bio,
-        avatarUrl: null,
         role: 'USER',
         disabled: false,
-        profileId: expect.any(String),
-        primaryAccountId: expect.any(String),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
+        profile: {
+          id: expect.any(String),
+          username: createUserDto.username,
+          displayName: createUserDto.displayName,
+          bio: createUserDto.bio,
+          avatarUrl: null,
+          isPublic: true,
+          deleted: false,
+        },
+        accounts: expect.arrayContaining([
+          expect.objectContaining({
+            email: createUserDto.email,
+            provider: 'LOCAL',
+          }),
+        ]),
       });
 
       const userInDb = await prismaService.user.findUnique({
@@ -88,23 +118,24 @@ describe('Users (e2e)', () => {
       expect(userInDb?.accounts[0]?.email).toBe(createUserDto.email);
     });
 
-    it('should return 409 when email already exists', async () => {
+    it('should allow same email with different username (different users)', async () => {
+      // First user
       await request(app.getHttpServer())
         .post('/api/users')
         .send(createUserDto)
         .expect(201);
 
+      // Second user with same email but different username should succeed
       const response = await request(app.getHttpServer())
         .post('/api/users')
         .send({
           ...createUserDto,
           username: 'differentusername',
         })
-        .expect(409);
+        .expect(201);
 
-      expect(response.body.message).toBe(
-        ERROR_MESSAGES.EMAIL_OR_USERNAME_EXISTS,
-      );
+      expect(response.body.profile.username).toBe('differentusername');
+      expect(response.body.accounts[0].email).toBe(createUserDto.email);
     });
 
     it('should return 409 when username already exists', async () => {
@@ -181,8 +212,7 @@ describe('Users (e2e)', () => {
         .send(minimalUser)
         .expect(201);
 
-      expect(response.body).toMatchObject({
-        email: minimalUser.email,
+      expect(response.body.profile).toMatchObject({
         username: minimalUser.username,
         displayName: minimalUser.username,
         bio: null,
@@ -213,12 +243,18 @@ describe('Users (e2e)', () => {
 
       expect(response.body).toMatchObject({
         id: userId,
-        email: 'getuser@example.com',
-        username: 'getuser',
-        displayName: 'Get User',
-        bio: 'User for get tests',
         role: 'USER',
         disabled: false,
+        profile: {
+          username: 'getuser',
+          displayName: 'Get User',
+          bio: 'User for get tests',
+        },
+        accounts: expect.arrayContaining([
+          expect.objectContaining({
+            email: 'getuser@example.com',
+          }),
+        ]),
       });
     });
 
@@ -251,6 +287,7 @@ describe('Users (e2e)', () => {
           bio: 'User for update tests',
         });
       userId = createResponse.body.id;
+      currentUserId = userId; // Set for guard mock
     });
 
     it('should update user successfully', async () => {
@@ -266,10 +303,11 @@ describe('Users (e2e)', () => {
 
       expect(response.body).toMatchObject({
         id: userId,
-        displayName: updateData.displayName,
-        bio: updateData.bio,
-        email: 'updateuser@example.com',
-        username: 'updateuser',
+        profile: {
+          displayName: updateData.displayName,
+          bio: updateData.bio,
+          username: 'updateuser',
+        },
       });
 
       const userInDb = await prismaService.user.findUnique({
@@ -290,7 +328,7 @@ describe('Users (e2e)', () => {
       expect(response.body.message).toBe(ERROR_MESSAGES.USER_NOT_FOUND(fakeId));
     });
 
-    it('should return 409 when updating to existing email', async () => {
+    it('should return 409 when updating to existing username', async () => {
       await request(app.getHttpServer())
         .post('/api/users')
         .send({
@@ -300,12 +338,10 @@ describe('Users (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`/api/users/${userId}`)
-        .send({ email: 'existing@example.com' })
+        .send({ username: 'existing' })
         .expect(409);
 
-      expect(response.body.message).toBe(
-        ERROR_MESSAGES.EMAIL_OR_USERNAME_EXISTS,
-      );
+      expect(response.body.message).toContain('already exists');
     });
 
     it('should allow partial updates', async () => {
@@ -314,8 +350,8 @@ describe('Users (e2e)', () => {
         .send({ bio: 'Only bio updated' })
         .expect(200);
 
-      expect(response.body.bio).toBe('Only bio updated');
-      expect(response.body.displayName).toBe('Update User');
+      expect(response.body.profile.bio).toBe('Only bio updated');
+      expect(response.body.profile.displayName).toBe('Update User');
     });
   });
 
@@ -331,6 +367,7 @@ describe('Users (e2e)', () => {
           displayName: 'Delete User',
         });
       userId = createResponse.body.id;
+      currentUserId = userId; // Set for guard mock
     });
 
     it('should soft delete user successfully', async () => {
@@ -386,10 +423,16 @@ describe('Users (e2e)', () => {
       expect(response.body).toHaveLength(2);
       expect(response.body[0]).toMatchObject({
         id: expect.any(String),
-        email: expect.any(String),
-        username: expect.any(String),
         role: 'USER',
         disabled: false,
+        profile: {
+          username: expect.any(String),
+        },
+        accounts: expect.arrayContaining([
+          expect.objectContaining({
+            email: expect.any(String),
+          }),
+        ]),
       });
     });
 

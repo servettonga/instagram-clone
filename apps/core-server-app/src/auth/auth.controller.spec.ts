@@ -66,7 +66,7 @@ describe('AuthController', () => {
 
   describe('login', () => {
     it('should call handleLogin', async () => {
-      const credentials = { email: 'test@example.com', password: 'password123' };
+      const credentials = { identifier: 'test@example.com', password: 'password123' };
 
       const mockResponse = {
         user: { id: 'user-id', email: 'test@example.com' },
@@ -100,30 +100,37 @@ describe('AuthController', () => {
   });
 
   describe('oauthLogin', () => {
-    it('should redirect to OAuth provider', async () => {
+    it('should redirect to auth service for Google', () => {
       const provider = 'google';
-      const authUrl = 'https://accounts.google.com/oauth/authorize';
-
-      mockAuthService.handleOAuthInit.mockResolvedValue(authUrl);
-
       const mockResponse = {
         redirect: jest.fn(),
       } as unknown as Response;
 
-      await controller.oauthLogin(provider, mockResponse);
+      controller.oauthLogin(provider, mockResponse);
 
-      expect(service.handleOAuthInit).toHaveBeenCalledWith(provider, undefined);
-      expect(mockResponse.redirect).toHaveBeenCalledWith(authUrl);
+      expect(mockResponse.redirect).toHaveBeenCalledWith(
+        expect.stringContaining('/internal/auth/oauth/google'),
+      );
     });
 
-    it('should throw BadRequestException if provider is missing', async () => {
+    it('should throw BadRequestException if provider is not google', () => {
       const mockResponse = {
         redirect: jest.fn(),
       } as unknown as Response;
 
-      await expect(
-        controller.oauthLogin('', mockResponse),
-      ).rejects.toThrow(BadRequestException);
+      expect(() => controller.oauthLogin('facebook', mockResponse)).toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException if provider is missing', () => {
+      const mockResponse = {
+        redirect: jest.fn(),
+      } as unknown as Response;
+
+      expect(() => controller.oauthLogin('', mockResponse)).toThrow(
+        BadRequestException,
+      );
     });
   });
 });

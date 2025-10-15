@@ -1,0 +1,276 @@
+/* App container - full height */
+.appContainer {
+  display: flex;
+  min-height: 100vh;
+  background-color: #FAFAFA;
+}
+
+/* Left Sidebar */
+.sidebar {
+  width: 244px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: white;
+  border-right: 1px solid var(--ig-border);
+  display: flex;
+  flex-direction: column;
+  padding: 40px 12px 24px;
+  z-index: 100;
+}
+
+.sidebarCollapsed {
+  width: 72px;
+  border-right: none;
+}
+
+.sidebarCollapsed .logo {
+  justify-content: center;
+}
+
+.sidebarCollapsed .navLink span {
+  display: none;
+}
+
+.sidebarCollapsed .moreSection span {
+  display: none;
+}
+
+/* Logo */
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ig-text-primary);
+  margin: 0 12px 60px;
+  text-decoration: none;
+  letter-spacing: -0.5px;
+  height: 29px;
+  display: flex;
+  align-items: center;
+}
+
+/* Navigation Links */
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  color: var(--ig-text-primary);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 400;
+  border-radius: 24px;
+  transition: background-color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.navLink:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navLink svg,
+.navLink [data-svg-wrapper] {
+  flex-shrink: 0;
+}
+
+.svgWrapper {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.svgWrapperInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.navLinkActive {
+  font-weight: 700;
+}
+
+.navLinkActive svg {
+  stroke-width: 2.5;
+}
+
+/* Profile Icon */
+.profileIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profileIconActive {
+  border: 2px solid #262626;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* More Section */
+.moreSection {
+  position: relative;
+  margin-top: auto;
+}
+
+.moreMenu {
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  background: white;
+  border: 1px solid var(--ig-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 230px;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--ig-text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  transition: background-color 0.2s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreMenuItem:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.moreMenuItem svg {
+  flex-shrink: 0;
+}
+
+.menuDivider {
+  height: 1px;
+  background-color: var(--ig-border);
+  margin: 8px 0;
+}
+
+/* Logout Button */
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  color: var(--ig-text-primary);
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 400;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.logoutButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.logoutButton svg {
+  flex-shrink: 0;
+}
+
+/* Main Content */
+.mainContent {
+  margin-left: 244px;
+  width: calc(100% - 244px);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.mainContentCollapsed {
+  margin-left: 72px;
+}
+
+/* Loading */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #FAFAFA;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--ig-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 72px;
+  }
+
+  .logo,
+  .navLink span,
+  .logoutButton span {
+    display: none;
+  }
+
+  .mainContent {
+    margin-left: 72px;
+    width: calc(100% - 72px);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+
+  .mainContent {
+    margin-left: 0;
+    width: 100%;
+  }
+}
