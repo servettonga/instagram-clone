@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/authStore';
 import type { LoginCredentials, AuthResponse } from '@repo/shared-types';
-import styles from './login.module.css';
+import styles from './login.module.scss';
 
 export default function LoginPage() {
   const router = useRouter();

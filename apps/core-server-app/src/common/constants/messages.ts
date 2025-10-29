@@ -55,6 +55,25 @@ export const ERROR_MESSAGES = {
   RESOURCE_NOT_FOUND: 'Resource not found',
   FORBIDDEN: 'Access forbidden',
   BAD_REQUEST: 'Bad request',
+
+  // Profile errors
+  PROFILE_NOT_FOUND: 'Profile not found',
+
+  // Post errors
+  POST_NOT_FOUND: (id: string) => `Post with ID ${id} not found`,
+  POST_ALREADY_ARCHIVED: 'Post is already archived',
+  POST_NOT_ARCHIVED: 'Post is not archived',
+
+  // Asset errors
+  ASSET_NOT_FOUND: (id: string) => `Asset with ID ${id} not found`,
+  ASSETS_NOT_FOUND: 'One or more assets not found',
+  ASSET_IN_USE: 'Asset is still in use and cannot be deleted',
+  INVALID_ASSET_OWNER: 'You can only attach assets that you uploaded',
+  MAX_ASSETS_EXCEEDED: (max: number) =>
+    `You can attach a maximum of ${max} assets`,
+  SEARCH_QUERY_EMPTY: 'Search query cannot be empty',
+  PROFILE_USERNAME_NOT_FOUND: (username: string) =>
+    `Profile with username ${username} not found`,
 } as const;
 
 export const SUCCESS_MESSAGES = {
@@ -81,6 +100,20 @@ export const SUCCESS_MESSAGES = {
 
   // Info messages
   NO_USERS_FOUND: 'No users found',
+
+  // Post messages
+  POST_CREATED: 'Post created successfully',
+  POST_UPDATED: 'Post updated successfully',
+  POST_DELETED: 'Post deleted successfully',
+  POST_ARCHIVED: 'Post archived successfully',
+  POST_UNARCHIVED: 'Post unarchived successfully',
+  POST_RETRIEVED: 'Post retrieved successfully',
+  POSTS_RETRIEVED: 'Posts retrieved successfully',
+  FEED_RETRIEVED: 'Feed retrieved successfully',
+
+  // Asset messages
+  ASSET_UPLOADED: 'Asset uploaded successfully',
+  ASSET_DELETED: 'Asset deleted successfully',
 } as const;
 
 export const HTTP_MESSAGES = SUCCESS_MESSAGES; // Alias for backward compatibility

@@ -1,0 +1,30 @@
+// Feed tabs styles
+@use '@/styles/index.scss' as *;
+
+.feedTabs {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  padding: 0;
+  overflow: hidden;
+}
+
+.feedTab {
+  background: none;
+  border: none;
+  padding: $spacing-sm;
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $ig-text-secondary;
+  cursor: pointer;
+  transition: all $transition-normal;
+  position: relative;
+
+  &:hover {
+    color: $ig-text-primary;
+  }
+
+  &Active {
+    color: $ig-text-primary;
+  }
+}

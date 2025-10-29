@@ -5,7 +5,7 @@
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import styles from './page.module.css'
+import styles from './page.module.scss'
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthStore();

@@ -4,7 +4,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import styles from './settings.module.css';
+import styles from './settings.module.scss';
 
 export default function SettingsLayout({
   children,

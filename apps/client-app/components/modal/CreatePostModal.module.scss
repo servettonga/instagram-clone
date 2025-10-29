@@ -1,0 +1,355 @@
+// Converted to SCSS
+@use '@/styles/index.scss' as *;
+
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.modalContent {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.createPanel {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 442px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  max-width: 100%;
+}
+
+.header {
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid var(--ig-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.backButton {
+  position: absolute;
+  left: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-sm;
+  color: var(--ig-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.title {
+  font-size: $font-md;
+  font-weight: $font-bold;
+  color: var(--ig-text-primary);
+}
+
+.shareButton {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  color: var(--ig-blue);
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  transition: opacity $transition-fast;
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+// Upload Step
+.uploadArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 112px 0;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+}
+
+.uploadText {
+  font-size: $font-xl;
+  color: var(--ig-text-primary);
+  margin: 16px 0 24px;
+}
+
+.selectButton {
+  padding: 7px 16px;
+  background: var(--ig-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: var(--ig-blue-hover);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+// Details Step
+.detailsContainer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  gap: 0;
+}
+
+.imagePreview {
+  position: relative;
+  width: 442px;
+  background: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+  max-height: 60vh;
+  overflow: hidden;
+  /* Height is determined by aspect ratio via inline style */
+}
+
+.previewImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  z-index: 10;
+
+  svg {
+    stroke: white;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.imageIndicators {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: $spacing-xs;
+  z-index: 10;
+}
+
+.indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: background-color $transition-fast;
+
+  &.active {
+    background: white;
+  }
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: white;
+  font-size: $font-lg;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color $transition-fast;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.addMoreButton {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: white;
+  font-size: $font-xxl;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color $transition-fast;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.captionForm {
+  padding: $spacing-md;
+  border-top: 1px solid var(--ig-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.captionInput {
+  width: 100%;
+  min-height: 60px;
+  max-height: 200px;
+  border: none;
+  outline: none;
+  resize: vertical; // Allow manual resizing
+  font-size: $font-sm;
+  line-height: 1.5;
+  color: var(--ig-text-primary);
+  font-family: inherit;
+
+  &::placeholder {
+    color: var(--ig-text-secondary);
+  }
+}
+
+.characterCount {
+  text-align: right;
+  font-size: 12px;
+  color: var(--ig-text-secondary);
+  margin-top: 8px;
+}
+
+.aspectRatioSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ig-border);
+}
+
+.aspectRatioLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: $font-bold;
+  color: var(--ig-text-primary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.aspectRatioButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aspectRatioButton {
+  padding: $spacing-sm 16px;
+  background: var(--ig-border);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ig-text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--ig-bg-secondary);
+  }
+
+  &.active {
+    background: var(--ig-blue);
+    color: white;
+    border-color: var(--ig-blue);
+  }
+}
+
+.error {
+  color: var(--ig-error, #ed4956);
+  font-size: $font-sm;
+  text-align: center;
+  margin-top: 12px;
+}

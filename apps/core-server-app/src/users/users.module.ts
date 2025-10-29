@@ -3,7 +3,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { FileUploadService } from '../common/services/file-upload.service';
-import { GuardsModule } from '../common/guards/guards.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { GuardsModule } from '../common/guards/guards.module';
         return fileUploadService.getMulterOptions();
       },
     }),
-    GuardsModule, // Import guards from common module instead of AuthModule
+    PrismaModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, FileUploadService],

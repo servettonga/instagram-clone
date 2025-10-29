@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -27,13 +28,16 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SearchUsersDto } from './dto/search-users.dto';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { ERROR_MESSAGES, HTTP_MESSAGES } from '../common/constants/messages';
-import { AccessGuard } from '../auth/guards';
-import { OwnershipGuard } from '../common/guards';
+import { AccessGuard } from '../auth/guards/access.guard';
+import { OwnershipGuard } from '../common/guards/ownership.guard';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Users')
 @Controller('users')
+@UseGuards(AccessGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -43,30 +47,46 @@ export class UsersController {
    * NOT exposed in Swagger (hidden from public API)
    */
   @Post()
+  @Public() // Skip AccessGuard for this internal endpoint
   @ApiExcludeEndpoint() // Hide from Swagger docs
-  @ApiOperation({
-    summary: '[INTERNAL] Create a new user',
-    description:
-      'This endpoint is for internal use only. Use POST /api/auth/signup for public registration.',
-  })
-  @ApiResponse({ status: 201, description: HTTP_MESSAGES.USER_CREATED })
-  @ApiResponse({
-    status: 409,
-    description: ERROR_MESSAGES.EMAIL_OR_USERNAME_EXISTS,
-  })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all users' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all users',
+    description: 'Retrieve all users (requires authentication)',
+  })
   @ApiResponse({ status: 200, description: HTTP_MESSAGES.USER_RETRIEVED })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
   findAll() {
     return this.usersService.findAll();
   }
 
+  @Get('search')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Search users',
+    description:
+      'Search users by username or display name (requires authentication)',
+  })
+  @ApiResponse({ status: 200, description: 'Returns search results' })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  async searchUsers(@Query() searchDto: SearchUsersDto) {
+    return this.usersService.search(searchDto.q, {
+      page: searchDto.page,
+      limit: searchDto.limit,
+    });
+  }
+
   @Get('check-username/:username')
-  @ApiOperation({ summary: 'Check username availability' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Check username availability',
+    description: 'Check if a username is available (requires authentication)',
+  })
   @ApiParam({ name: 'username', type: 'string' })
   @ApiResponse({
     status: 200,
@@ -79,6 +99,7 @@ export class UsersController {
       },
     },
   })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
   async checkUsernameAvailability(@Param('username') username: string) {
     const user = await this.usersService.findByUsername(username);
     return {
@@ -88,6 +109,7 @@ export class UsersController {
   }
 
   @Get('internal/:id')
+  @Public() // Skip AccessGuard for this internal endpoint
   @ApiExcludeEndpoint()
   findOneInternal(@Param('id', UuidValidationPipe) id: string) {
     // Internal endpoint for Auth Service - bypasses authentication
@@ -95,13 +117,18 @@ export class UsersController {
   }
 
   @Get('by-username/:username')
-  @ApiOperation({ summary: 'Get user by username' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get user by username',
+    description: 'Retrieve user profile by username (requires authentication)',
+  })
   @ApiParam({ name: 'username', type: 'string' })
   @ApiResponse({ status: 200, description: HTTP_MESSAGES.USER_RETRIEVED })
   @ApiResponse({
     status: 404,
     description: ERROR_MESSAGES.USER_NOT_FOUND(':username'),
   })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
   async findByUsername(@Param('username') username: string) {
     const user = await this.usersService.findByUsername(username);
     if (!user) {
@@ -111,7 +138,11 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get user by ID',
+    description: 'Retrieve user profile by ID (requires authentication)',
+  })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiResponse({ status: 200, description: HTTP_MESSAGES.USER_RETRIEVED })
   @ApiResponse({
@@ -119,12 +150,13 @@ export class UsersController {
     description: ERROR_MESSAGES.USER_NOT_FOUND(':id'),
   })
   @ApiResponse({ status: 400, description: ERROR_MESSAGES.INVALID_UUID_FORMAT })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
   findOne(@Param('id', UuidValidationPipe) id: string) {
     return this.usersService.findOne(id);
   }
 
   @Post(':id/avatar')
-  @UseGuards(AccessGuard, OwnershipGuard)
+  @UseGuards(OwnershipGuard)
   @ApiBearerAuth('JWT-auth')
   @UseInterceptors(FileInterceptor('avatar'))
   @ApiOperation({ summary: 'Upload user avatar' })
@@ -172,7 +204,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(AccessGuard, OwnershipGuard)
+  @UseGuards(OwnershipGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user' })
   @ApiParam({ name: 'id', type: 'string' })
@@ -198,7 +230,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(AccessGuard, OwnershipGuard)
+  @UseGuards(OwnershipGuard)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user (soft delete)' })

@@ -1,0 +1,521 @@
+// Post page styles - matching PostViewModal
+@use '@/styles/index.scss' as *;
+
+.pageContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-md;
+  background: $ig-background;
+}
+
+.postView {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  height: calc(100vh - 40px);
+  max-height: 800px;
+  background: $ig-white;
+  overflow: hidden;
+  border: 1px solid $ig-border;
+}
+
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid $ig-text-primary;
+  border-radius: $radius-round;
+  animation: spin 1s linear infinite;
+  margin-bottom: $spacing-md;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.backLink {
+  margin-top: $spacing-md;
+  color: $ig-blue;
+  text-decoration: none;
+  font-weight: $font-bold;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Image Section */
+.imageSection {
+  position: relative;
+  flex: 1;
+  background: #000000; /* Dark background for the entire section */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  max-height: calc(100vh - 80px);
+  aspect-ratio: 1/1; /* Default to square */
+}
+
+/* No background for 4:5 images */
+.imageSectionNoBackground {
+  background: transparent;
+  aspect-ratio: 4/5; /* Tall aspect ratio for 4:5 images */
+}
+
+.imageSectionWide {
+  aspect-ratio: 16/9;
+}
+
+/* Outer container that fills the image section */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right-aligned container for 4:5 images */
+.imageContainerRightAlign {
+  justify-content: flex-end;
+}
+
+/* Inner container with aspect ratio constraint - like feed page */
+.imageWrapper {
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Square wrapper for 1:1 images */
+.imageWrapperSquare {
+  width: 100%;
+  aspect-ratio: 1/1;
+  background: #EFEFEF;
+}
+
+/* Wide wrapper for 16:9 images (with top/bottom bars in square container) */
+.imageWrapperWide {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #EFEFEF;
+}
+
+/* Tall wrapper for 4:5 images */
+.imageWrapperTall {
+  height: 100%;
+  aspect-ratio: 4/5;
+  background: #EFEFEF;
+}
+
+.postImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carouselIndicators {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: $spacing-xs;
+  z-index: 2;
+}
+
+.indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: $ig-white;
+  opacity: 0.4;
+}
+
+.indicatorActive {
+  opacity: 1;
+}
+
+.navNext {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navPrev {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navNext:hover,
+.navPrev:hover {
+  opacity: 0.8;
+}
+
+/* Info Section */
+.infoSection {
+  background: $ig-white;
+  min-width: 360px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid $ig-border;
+  flex-shrink: 0;
+}
+
+.postHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid $ig-border;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatarStack {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.avatar {
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.usernameRow {
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $ig-text-primary;
+  line-height: 18px;
+}
+
+.usernameLink {
+  font-weight: $font-bold;
+  color: $ig-text-primary;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.usernameLink:hover {
+  text-decoration: underline;
+}
+
+.moreButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.moreMenu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: $ig-white;
+  border: 1px solid $ig-border;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: $font-sm;
+  color: $ig-text-primary;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+}
+
+.menuItem:hover {
+  background-color: $ig-background;
+}
+
+.menuItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.svgWrapper {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.svgWrapperInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* Comments Section */
+.commentsSection {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-md;
+  border-left: 1px solid $ig-border;
+}
+
+.comment {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.commentAvatar {
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.commentUsernameLink {
+  font-weight: $font-bold;
+  color: $ig-text-primary;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.commentUsernameLink:hover {
+  text-decoration: underline;
+}
+
+.commentContent {
+  flex: 1;
+}
+
+.commentText {
+  font-size: $font-sm;
+  color: $ig-text-primary;
+  line-height: 18px;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Post Actions */
+.postActions {
+  padding: 0 16px;
+  border-top: 1px solid #EFEFEF;
+  border-left: 1px solid $ig-border;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 6px 0;
+  height: 55px;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionButton:hover {
+  opacity: 0.7;
+}
+
+.likesSection {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 8px 0;
+}
+
+.likesText {
+  font-size: $font-sm;
+  color: $ig-text-primary;
+}
+
+.likesText a {
+  color: $ig-text-primary;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.likesText a:hover {
+  text-decoration: underline;
+}
+
+.bold {
+  font-weight: $font-bold;
+}
+
+.postTime {
+  font-size: 10px;
+  color: $ig-text-secondary;
+  text-transform: uppercase;
+  line-height: 12px;
+  letter-spacing: 0.2px;
+  padding-bottom: 8px;
+}
+
+/* Add Comment */
+.addCommentSection {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 7px 16px 6px;
+  border-top: 1px solid #EFEFEF;
+  height: 53px;
+}
+
+.emojiButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.commentInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: $font-sm;
+  color: $ig-text-primary;
+  line-height: 18px;
+}
+
+.commentInput::placeholder {
+  color: $ig-text-primary;
+}
+
+.postButton {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: $font-bold;
+  color: #B3DBFF;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.postButton:hover {
+  color: $ig-blue;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .pageContainer {
+    padding: 12px;
+  }
+
+  .postView {
+    max-width: 100%;
+  }
+
+  .infoSection {
+    width: 400px;
+    min-width: 350px;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pageContainer {
+    padding: 0;
+  }
+
+  .postView {
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    border: none;
+  }
+
+  .imageSection {
+    width: 100%;
+    flex: 0 0 auto;
+    height: 60vh;
+    max-width: 100%;
+  }
+
+  .imageWrapper {
+    width: 100%;
+    height: 100%;
+  }
+
+  .infoSection {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    height: 40vh;
+  }
+}

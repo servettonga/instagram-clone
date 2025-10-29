@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
-import styles from './account.module.css';
+import styles from './account.module.scss';
 
 export default function AccountSettingsPage() {
   const { user, setUser } = useAuthStore();

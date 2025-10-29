@@ -1,0 +1,78 @@
+// Example: Instagram Story Circle with SCSS
+@use '@/styles/index.scss' as *;
+
+.storyCircle {
+  @include avatar-border; // Gradient border mixin
+  cursor: pointer;
+  transition: transform $transition-fast;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  .avatar {
+    @include avatar(56px);
+  }
+
+  .username {
+    margin-top: $spacing-xs;
+    font-size: $font-xs;
+    color: $ig-text-primary;
+    text-align: center;
+    @include text-ellipsis;
+    max-width: 64px;
+  }
+
+  // Viewed state (gray border instead of gradient)
+  &.viewed {
+    background: $ig-border;
+
+    .avatar {
+      opacity: 0.6;
+    }
+  }
+
+  // New story indicator
+  &.hasNew::after {
+    content: '';
+    @include absolute-center;
+    width: 8px;
+    height: 8px;
+    background: $ig-blue;
+    border: 2px solid white;
+    border-radius: $radius-round;
+    bottom: 0;
+    right: 0;
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+}
+
+// Example: Responsive Grid
+.storiesContainer {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  overflow-x: auto;
+  @include custom-scrollbar;
+
+  @include mobile {
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+  }
+
+  @include desktop {
+    gap: $spacing-lg;
+  }
+}
+
+// Example: Loading State
+.storyLoading {
+  @include avatar-border;
+
+  .avatar,
+  .username {
+    @include skeleton; // Animated loading state
+  }
+}

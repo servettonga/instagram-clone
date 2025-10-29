@@ -1,0 +1,351 @@
+// Converted to SCSS
+@use '@/styles/index.scss' as *;
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 244px;
+  width: 397px;
+  height: 100vh;
+  background: white;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  border-right: 1px solid $ig-border;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+  transition: left $transition-normal ease;
+}
+
+.modalOverlayCollapsed {
+  left: 72px;
+}
+
+.searchPanel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.searchHeader {
+  padding: $spacing-lg;
+  border-bottom: 1px solid $ig-border;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: $font-xxl;
+  font-weight: $font-medium;
+  color: $ig-text-primary;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  padding: $spacing-sm;
+  cursor: pointer;
+  color: $ig-text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color $transition-fast;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.searchInputWrapper {
+  position: relative;
+  padding: $spacing-lg;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  background: #EFEFEF;
+  border: none;
+  border-radius: 8px;
+  font-size: $font-md;
+  color: $ig-text-primary;
+}
+
+.searchInput:focus {
+  outline: none;
+}
+
+.clearInputButton {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: $spacing-xs;
+  cursor: pointer;
+  color: $ig-text-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearInputButton:hover {
+  color: $ig-text-primary;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid $ig-border;
+  padding: 0 24px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-text-secondary;
+  cursor: pointer;
+  position: relative;
+  transition: color $transition-fast;
+}
+
+.tab:hover {
+  color: $ig-text-primary;
+}
+
+.tabActive {
+  color: $ig-text-primary;
+}
+
+.tabActive::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: $ig-text-primary;
+}
+
+.searchContent {
+  padding: $spacing-lg 0;
+  border-top: 1px solid $ig-border;
+}
+
+.recentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px 16px;
+}
+
+.recentTitle {
+  font-size: $font-md;
+  font-weight: $font-bold;
+  color: $ig-text-primary;
+}
+
+.clearAll {
+  background: none;
+  border: none;
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $ig-blue;
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  color: $ig-text-primary;
+}
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm 24px;
+  transition: background-color $transition-fast;
+  cursor: pointer;
+}
+
+.userItem:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.userAvatar {
+  flex-shrink: 0;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.username {
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $ig-text-primary;
+}
+
+.displayName {
+  font-size: $font-sm;
+  color: $ig-text-secondary;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  padding: $spacing-xs;
+  cursor: pointer;
+  color: $ig-text-secondary;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeButton:hover {
+  color: $ig-text-primary;
+}
+
+/* Results and States */
+.resultsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.loadingState,
+.noResults {
+  padding: 40px 24px;
+  text-align: center;
+  color: $ig-text-secondary;
+  font-size: $font-sm;
+}
+
+/* Post Results */
+.postItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm 24px;
+  transition: background-color $transition-fast;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.postItem:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.postThumbnail {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.postImage {
+  object-fit: cover;
+}
+
+.postInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.postUsername {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-text-primary;
+}
+
+.postCaption {
+  font-size: $font-sm;
+  color: $ig-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postStats {
+  font-size: $font-xs;
+  color: $ig-text-secondary;
+}
+
+/* Show more button */
+.showMoreContainer {
+  padding: 16px 24px;
+  text-align: center;
+}
+
+.showMoreButton {
+  background: none;
+  border: none;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-blue;
+  cursor: pointer;
+  padding: 8px 16px;
+  transition: opacity $transition-fast;
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    color: $ig-text-secondary;
+    cursor: not-allowed;
+  }
+}
+
+.seeAllLink {
+  display: inline-block;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-blue;
+  text-decoration: none;
+  padding: 8px 16px;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modalOverlay {
+    left: 72px;
+  }
+
+  .modalOverlayCollapsed {
+    left: 72px;
+  }
+}

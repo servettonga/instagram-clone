@@ -5,11 +5,11 @@ import {
   Body,
   Res,
   Query,
-  UseGuards,
   Param,
   BadRequestException,
   Req,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,9 +21,10 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import { AccessGuard } from './guards';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { getConfig } from '../config/config';
+import { AccessGuard } from './guards/access.guard';
+import { Public } from './decorators/public.decorator';
 import type {
   LoginCredentials,
   SignupData,
@@ -33,10 +34,12 @@ import type {
 
 @ApiTags('Authentication')
 @Controller('auth')
+@UseGuards(AccessGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
+  @Public()
   @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({
     schema: {
@@ -57,7 +60,8 @@ export class AuthController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Login with email/username and password' })
+  @Public()
+  @ApiOperation({ summary: 'Login user' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -75,7 +79,8 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @Public()
+  @ApiOperation({ summary: 'Refresh access token' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -92,7 +97,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Logout user (requires valid access token)' })
   @ApiBody({
@@ -111,7 +115,8 @@ export class AuthController {
   }
 
   @Get('login/:provider')
-  @ApiOperation({ summary: 'Initiate OAuth login (e.g., Google)' })
+  @Public()
+  @ApiOperation({ summary: 'Initiate OAuth login' })
   @ApiResponse({ status: 302, description: 'Redirects to OAuth provider' })
   @ApiResponse({ status: 400, description: 'Invalid provider' })
   oauthLogin(@Param('provider') provider: string, @Res() res: Response) {
@@ -124,7 +129,8 @@ export class AuthController {
   }
 
   @Get('google/callback')
-  @ApiExcludeEndpoint()
+  @Public()
+  @ApiOperation({ summary: 'OAuth callback handler' })
   googleCallback(@Res() res: Response, @Query() query: Record<string, string>) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const { accessToken, refreshToken, error } = query;
@@ -147,14 +153,14 @@ export class AuthController {
   }
 
   @Post('verify-credentials')
+  @Public()
   @ApiExcludeEndpoint()
-  async verifyCredentials(
-    @Body() credentials: { identifier: string; password: string },
-  ) {
+  async verifyCredentials(@Body() credentials: LoginCredentials) {
     return this.authService.verifyCredentials(credentials);
   }
 
   @Post('oauth')
+  @Public()
   @ApiExcludeEndpoint()
   async handleOAuth(
     @Body()
@@ -170,7 +176,6 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Change password (requires current password)' })
   @ApiBody({
@@ -201,7 +206,6 @@ export class AuthController {
   }
 
   @Post('set-password')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Set password for OAuth-only account' })
   @ApiBody({
@@ -224,7 +228,6 @@ export class AuthController {
   }
 
   @Delete('unlink/:provider')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Unlink OAuth provider' })
   async unlinkProvider(
@@ -235,7 +238,6 @@ export class AuthController {
   }
 
   @Get('linked-accounts')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all linked accounts' })
   async getLinkedAccounts(@Req() req: AuthenticatedRequest) {
@@ -246,7 +248,6 @@ export class AuthController {
    * Used by: AuthProvider on app initialization
    */
   @Get('me')
-  @UseGuards(AccessGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user data' })

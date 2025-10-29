@@ -357,4 +357,57 @@ export class UsersService {
 
     return { avatarUrl };
   }
+
+  /**
+   * Search users by username or display name
+   */
+  async search(
+    query: string,
+    options: { page?: number; limit?: number } = {},
+  ): Promise<{ data: UserWithProfileAndAccount[]; pagination: any }> {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      disabled: false,
+      profile: {
+        deleted: false,
+        OR: [
+          { username: { contains: query, mode: Prisma.QueryMode.insensitive } },
+          {
+            displayName: {
+              contains: query,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        ],
+      },
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: userWithProfileAndAccountSelect,
+        orderBy: {
+          profile: {
+            username: 'asc',
+          },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users.map(toUserWithProfileAndAccount),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

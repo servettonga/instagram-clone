@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
-import styles from './privacy.module.css';
+import styles from './privacy.module.scss';
 
 export default function PrivacySettingsPage() {
   const { user, logout } = useAuthStore();

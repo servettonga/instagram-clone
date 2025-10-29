@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/authStore';
 import type { SignupData } from '@repo/shared-types';
-import styles from './signup.module.css';
+import styles from './signup.module.scss';
 
 export default function SignupPage() {
   const router = useRouter();

@@ -2,7 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import styles from './SearchModal.module.css';
+import Link from 'next/link';
+import { CloseIcon, VerifiedBadge } from '@/components/ui/icons';
+import { usersApi } from '@/lib/api/users';
+import { postsAPI } from '@/lib/api/posts';
+import type { UserWithProfileAndAccount } from '@/types/auth';
+import type { Post } from '@repo/shared-types';
+import {
+  getRecentSearches,
+  addRecentSearch,
+  removeRecentSearch,
+  clearRecentSearches,
+  type RecentSearchItem,
+} from '@/lib/utils/recentSearches';
+import styles from './SearchModal.module.scss';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -10,18 +23,128 @@ interface SearchModalProps {
   isCollapsed?: boolean;
 }
 
-const RECENT_SEARCHES = [
-  { username: 'ted', displayName: 'TED Talks', avatarUrl: 'https://i.pravatar.cc/150?img=1', isVerified: true },
-  { username: 'voxdotcom', displayName: 'Vox', avatarUrl: 'https://i.pravatar.cc/150?img=2', isVerified: true },
-  { username: 'mkbhd', displayName: 'Marques Brownlee', avatarUrl: 'https://i.pravatar.cc/150?img=3', isVerified: true, following: true },
-  { username: 'veritasium', displayName: 'Veritasium', avatarUrl: 'https://i.pravatar.cc/150?img=4', isVerified: true, following: true },
-  { username: 'lewishamilton', displayName: 'Lewis Hamilton', avatarUrl: 'https://i.pravatar.cc/150?img=5', isVerified: true, following: true },
-  { username: 'openaidalle', displayName: 'DALL·E by OpenAI', avatarUrl: 'https://i.pravatar.cc/150?img=6', isVerified: true, following: true },
-];
+type SearchTab = 'accounts' | 'posts';
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 export default function SearchModal({ isOpen, onClose, isCollapsed = false }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<SearchTab>('accounts');
+  const [userResults, setUserResults] = useState<UserWithProfileAndAccount[]>([]);
+  const [postResults, setPostResults] = useState<Post[]>([]);
+  const [userPagination, setUserPagination] = useState<Pagination | null>(null);
+  const [postPagination, setPostPagination] = useState<Pagination | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    if (isOpen) {
+      setRecentSearches(getRecentSearches());
+    }
+  }, [isOpen]);
+
+  // Perform search with debounce
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Set new timeout for debounced search
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+        try {
+          if (activeTab === 'accounts') {
+            const response = await usersApi.searchUsers(searchQuery, { page: 1, limit: 20 });
+            setUserResults(response.data);
+            setUserPagination(response.pagination);
+          } else {
+            const response = await postsAPI.searchPosts(searchQuery, { page: 1, limit: 20 });
+            setPostResults(response.data);
+            setPostPagination(response.pagination);
+          }
+        } catch (error) {
+          console.error('Search failed:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300); // 300ms debounce
+    } else {
+      setUserResults([]);
+      setPostResults([]);
+      setUserPagination(null);
+      setPostPagination(null);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, activeTab]);
+
+  // Load more results
+  const handleLoadMore = async () => {
+    const pagination = activeTab === 'accounts' ? userPagination : postPagination;
+    if (!pagination || pagination.page >= pagination.totalPages) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = pagination.page + 1;
+      
+      if (activeTab === 'accounts') {
+        const response = await usersApi.searchUsers(searchQuery, { page: nextPage, limit: 20 });
+        setUserResults(prev => [...prev, ...response.data]);
+        setUserPagination(response.pagination);
+      } else {
+        const response = await postsAPI.searchPosts(searchQuery, { page: nextPage, limit: 20 });
+        setPostResults(prev => [...prev, ...response.data]);
+        setPostPagination(response.pagination);
+      }
+    } catch (error) {
+      console.error('Failed to load more:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Save to recent searches
+  const handleSaveToRecent = (item: Omit<RecentSearchItem, 'timestamp'>) => {
+    addRecentSearch(item);
+    setRecentSearches(getRecentSearches());
+  };
+
+  // Remove from recent searches
+  const handleRemoveRecent = (id: string) => {
+    removeRecentSearch(id);
+    setRecentSearches(getRecentSearches());
+  };
+
+  // Clear all recent searches
+  const handleClearAll = () => {
+    clearRecentSearches();
+    setRecentSearches([]);
+  };
+
+  // Clear search when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+      setUserResults([]);
+      setPostResults([]);
+      setActiveTab('accounts');
+    }
+  }, [isOpen]);
 
   // Close on click outside - including the button that opened it
   useEffect(() => {
@@ -70,16 +193,18 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
 
   if (!isOpen) return null;
 
+  const showRecent = !searchQuery.trim();
+  const hasResults = activeTab === 'accounts' ? userResults.length > 0 : postResults.length > 0;
+  const pagination = activeTab === 'accounts' ? userPagination : postPagination;
+  const canLoadMore = pagination && pagination.page < pagination.totalPages;
+
   return (
     <div className={`${styles.modalOverlay} ${isCollapsed ? styles.modalOverlayCollapsed : ''}`}>
       <div className={styles.searchPanel} ref={modalRef}>
         <div className={styles.searchHeader}>
           <h2 className={styles.title}>Search</h2>
           <button className={styles.closeButton} onClick={onClose}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <CloseIcon width={18} height={18} />
           </button>
         </div>
 
@@ -94,57 +219,229 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
           />
           {searchQuery && (
             <button className={styles.clearInputButton} onClick={() => setSearchQuery('')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m15 9-6 6m0-6 6 6" />
-              </svg>
+              <CloseIcon width={16} height={16} />
             </button>
           )}
         </div>
 
-        <div className={styles.searchContent}>
-          <div className={styles.recentHeader}>
-            <span className={styles.recentTitle}>Recent</span>
-            <button className={styles.clearAll}>Clear all</button>
+        {/* Tabs - only show when searching */}
+        {!showRecent && (
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${activeTab === 'accounts' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('accounts')}
+            >
+              Accounts
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'posts' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('posts')}
+            >
+              Posts
+            </button>
           </div>
+        )}
 
-          <div className={styles.recentList}>
-            {RECENT_SEARCHES.map((user) => (
-              <div key={user.username} className={styles.userItem}>
-                <div className={styles.userAvatar}>
-                  <Image
-                    src={user.avatarUrl}
-                    alt={user.username}
-                    width={44}
-                    height={44}
-                    className={styles.avatar}
-                    unoptimized
-                  />
+        <div className={styles.searchContent}>
+          {showRecent ? (
+            <>
+              {recentSearches.length > 0 ? (
+                <>
+                  <div className={styles.recentHeader}>
+                    <span className={styles.recentTitle}>Recent</span>
+                    <button className={styles.clearAll} onClick={handleClearAll}>
+                      Clear all
+                    </button>
+                  </div>
+
+                  <div className={styles.recentList}>
+                    {recentSearches.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.type === 'user' ? `/app/profile/${item.username}` : `/app/post/${item.id}`}
+                        className={item.type === 'user' ? styles.userItem : styles.postItem}
+                        onClick={onClose}
+                      >
+                        {item.type === 'user' ? (
+                          <>
+                            <div className={styles.userAvatar}>
+                              <Image
+                                src={item.avatarUrl || 'https://i.pravatar.cc/150?img=50'}
+                                alt={item.username || 'User'}
+                                width={44}
+                                height={44}
+                                className={styles.avatar}
+                                unoptimized
+                              />
+                            </div>
+                            <div className={styles.userInfo}>
+                              <div className={styles.usernameRow}>
+                                <span className={styles.username}>{item.username}</span>
+                                {item.isVerified && <VerifiedBadge className={styles.verifiedBadge} />}
+                              </div>
+                              <span className={styles.displayName}>
+                                {item.displayName}
+                                {item.following && ' • Following'}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className={styles.postThumbnail}>
+                              <Image
+                                src={item.postImageUrl || ''}
+                                alt="Post"
+                                width={64}
+                                height={64}
+                                className={styles.postImage}
+                                unoptimized
+                              />
+                            </div>
+                            <div className={styles.postInfo}>
+                              <div className={styles.postUsername}>{item.username}</div>
+                              <div className={styles.postCaption}>
+                                {item.postCaption || 'No caption'}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        <button
+                          className={styles.removeButton}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRemoveRecent(item.id);
+                          }}
+                        >
+                          <CloseIcon width={17} height={17} stroke="#8E8E8E" />
+                        </button>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className={styles.noResults}>
+                  <p>No recent searches</p>
                 </div>
-                <div className={styles.userInfo}>
-                  <div className={styles.usernameRow}>
-                    <span className={styles.username}>{user.username}</span>
-                    {user.isVerified && (
-                      <svg aria-label="Verified" className={styles.verifiedBadge} fill="rgb(0, 149, 246)" height="12" role="img" viewBox="0 0 40 40" width="12">
-                        <title>Verified</title>
-                        <path d="M19.998 3.094 14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v5.905h5.975L14.638 40l5.36-3.094L25.358 40l3.232-5.6h6.162v-6.01L40 25.359 36.905 20 40 14.641l-5.248-3.03v-6.46h-6.419L25.358 0l-5.36 3.094Zm7.415 11.225 2.254 2.287-11.43 11.5-6.835-6.93 2.244-2.258 4.587 4.581 9.18-9.18Z" fillRule="evenodd"></path>
-                      </svg>
+              )}
+            </>
+          ) : (
+            <>
+              {isSearching ? (
+                <div className={styles.loadingState}>
+                  <p>Searching...</p>
+                </div>
+              ) : hasResults ? (
+                <>
+                  <div className={styles.resultsList}>
+                    {activeTab === 'accounts' ? (
+                      userResults.map((user) => (
+                        <Link
+                          key={user.id}
+                          href={`/app/profile/${user.profile?.username || user.id}`}
+                          className={styles.userItem}
+                          onClick={() => {
+                            handleSaveToRecent({
+                              id: user.id,
+                              type: 'user',
+                              username: user.profile?.username || 'Unknown',
+                              displayName: user.profile?.displayName || user.profile?.username,
+                              avatarUrl: user.profile?.avatarUrl || undefined,
+                            });
+                            onClose();
+                          }}
+                        >
+                          <div className={styles.userAvatar}>
+                            <Image
+                              src={user.profile?.avatarUrl || 'https://i.pravatar.cc/150?img=50'}
+                              alt={user.profile?.username || 'User'}
+                              width={44}
+                              height={44}
+                              className={styles.avatar}
+                              unoptimized
+                            />
+                          </div>
+                          <div className={styles.userInfo}>
+                            <div className={styles.usernameRow}>
+                              <span className={styles.username}>{user.profile?.username || 'Unknown'}</span>
+                            </div>
+                            <span className={styles.displayName}>
+                              {user.profile?.displayName || user.profile?.username || 'User'}
+                            </span>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      postResults.map((post) => (
+                        <Link
+                          key={post.id}
+                          href={`/app/post/${post.id}`}
+                          className={styles.postItem}
+                          onClick={() => {
+                            handleSaveToRecent({
+                              id: post.id,
+                              type: 'post',
+                              username: post.profile?.username || 'Unknown',
+                              postCaption: post.content || undefined,
+                              postImageUrl: post.assets[0]?.url || undefined,
+                            });
+                            onClose();
+                          }}
+                        >
+                          <div className={styles.postThumbnail}>
+                            <Image
+                              src={post.assets[0]?.url || ''}
+                              alt="Post"
+                              width={64}
+                              height={64}
+                              className={styles.postImage}
+                              unoptimized
+                            />
+                          </div>
+                          <div className={styles.postInfo}>
+                            <div className={styles.postUsername}>{post.profile?.username || 'Unknown'}</div>
+                            <div className={styles.postCaption}>
+                              {post.content || 'No caption'}
+                            </div>
+                            <div className={styles.postStats}>
+                              {post.likesCount} likes • {post.commentsCount} comments
+                            </div>
+                          </div>
+                        </Link>
+                      ))
                     )}
                   </div>
-                  <span className={styles.displayName}>
-                    {user.displayName}
-                    {user.following && ' • Following'}
-                  </span>
+                  
+                  {/* Show more button or See all results link */}
+                  {activeTab === 'posts' && postPagination && postPagination.total > 20 ? (
+                    <div className={styles.showMoreContainer}>
+                      <Link 
+                        href={`/app/search?q=${encodeURIComponent(searchQuery)}`}
+                        className={styles.seeAllLink}
+                        onClick={onClose}
+                      >
+                        See all {postPagination.total} results
+                      </Link>
+                    </div>
+                  ) : canLoadMore ? (
+                    <div className={styles.showMoreContainer}>
+                      <button 
+                        className={styles.showMoreButton} 
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore ? 'Loading...' : 'Show more'}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <div className={styles.noResults}>
+                  <p>No results found</p>
                 </div>
-                <button className={styles.removeButton}>
-                  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.262 2.73804L8.50002 8.50004L2.73535 14.2647" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M14.2661 14.266L2.73608 2.73596" stroke="#8E8E8E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

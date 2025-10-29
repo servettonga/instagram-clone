@@ -1,0 +1,70 @@
+// Instagram Design Tokens - SCSS Variables
+// Use these instead of CSS variables when you need to compute values
+
+// Colors
+$ig-blue: #0095f6;
+$ig-blue-hover: #1877f2;
+$ig-background: #fafafa;
+$ig-border: #dbdbdb;
+$ig-text-primary: #262626;
+$ig-text-secondary: #8e8e8e;
+$ig-text-placeholder: #8e8e8e;
+$ig-white: #ffffff;
+$ig-black: #000000;
+$ig-error: #ed4956;
+$ig-success: #00c853;
+
+// Spacing (Instagram uses 8px grid system)
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Border Radius
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-round: 50%;
+
+// Shadows
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+// Font Weights
+$font-light: 300;
+$font-regular: 400;
+$font-medium: 500;
+$font-bold: 700;
+
+// Font Sizes
+$font-xs: 12px;
+$font-sm: 14px;
+$font-md: 16px;
+$font-lg: 18px;
+$font-xl: 20px;
+$font-xxl: 24px;
+
+// Z-Index Layers
+$z-base: 0;
+$z-dropdown: 1000;
+$z-sticky: 1020;
+$z-fixed: 1030;
+$z-modal-backdrop: 1040;
+$z-modal: 1050;
+$z-popover: 1060;
+$z-tooltip: 1070;
+
+// Breakpoints
+$breakpoint-mobile: 640px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1280px;
+
+// Transitions
+$transition-fast: 150ms ease-in-out;
+$transition-normal: 300ms ease-in-out;
+$transition-slow: 500ms ease-in-out;

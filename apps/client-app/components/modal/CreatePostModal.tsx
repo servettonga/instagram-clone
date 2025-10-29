@@ -1,20 +1,50 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import styles from './CreatePostModal.module.css';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { BackArrowIcon, UploadMediaIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/icons';
+import { postsAPI } from '@/lib/api/posts';
+import type { UploadAssetResponseDto } from '@repo/shared-types';
+import styles from './CreatePostModal.module.scss';
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPostCreated?: () => void;
 }
 
-export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
+type ModalStep = 'upload' | 'details';
+
+export default function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef2 = useRef<HTMLInputElement>(null);
+
+  // State
+  const [step, setStep] = useState<ModalStep>('upload');
+  const [uploadedAssets, setUploadedAssets] = useState<UploadAssetResponseDto[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [content, setContent] = useState('');
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setStep('upload');
+      setUploadedAssets([]);
+      setCurrentImageIndex(0);
+      setContent('');
+      setAspectRatio('1:1');
+      setError('');
+    }
+  }, [isOpen]);
 
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isUploading && !isCreating) {
         onClose();
       }
     };
@@ -26,53 +56,301 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, isUploading, isCreating, onClose]);
+
+  const handleClose = () => {
+    if (isUploading || isCreating) return;
+    onClose();
+  };
+
+  // Handle file selection
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setError('');
+    setIsUploading(true);
+
+    try {
+      const newAssets: UploadAssetResponseDto[] = [];
+
+      for (let i = 0; i < Math.min(files.length, 10 - uploadedAssets.length); i++) {
+        const file = files[i];
+
+        if (!file) continue;
+
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+          setError('Only image files are allowed');
+          continue;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          setError('File size must be less than 10MB');
+          continue;
+        }
+
+        // Upload file
+        const asset = await postsAPI.uploadAsset(file);
+        newAssets.push(asset);
+      }
+
+      if (newAssets.length > 0) {
+        setUploadedAssets(prev => {
+          const updated = [...prev, ...newAssets];
+
+          // If this is the first upload, go to details step
+          if (prev.length === 0) {
+            setStep('details');
+          }
+
+          return updated;
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload images');
+    } finally {
+      setIsUploading(false);
+      // Reset file input to allow selecting the same files again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [uploadedAssets.length]);
+
+  // Handle drag and drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isUploading || uploadedAssets.length >= 10) return;
+
+    handleFileSelect(e.dataTransfer.files);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUploading, uploadedAssets.length]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  // Remove image
+  const handleRemoveImage = (index: number) => {
+    const newAssets = uploadedAssets.filter((_, i) => i !== index);
+    setUploadedAssets(newAssets);
+
+    // If no images left, go back to upload step
+    if (newAssets.length === 0) {
+      setStep('upload');
+    } else if (currentImageIndex >= newAssets.length) {
+      setCurrentImageIndex(newAssets.length - 1);
+    }
+  };
+
+  // Navigate images
+  const handlePrevImage = () => {
+    setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : uploadedAssets.length - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => (prev < uploadedAssets.length - 1 ? prev + 1 : 0));
+  };
+
+  // Create post
+  const handleCreatePost = async () => {
+    if (uploadedAssets.length === 0) {
+      setError('Please upload at least one image');
+      return;
+    }
+
+    setIsCreating(true);
+    setError('');
+
+    try {
+      await postsAPI.createPost({
+        content: content.trim() || undefined,
+        assetIds: uploadedAssets.map(asset => asset.id),
+        aspectRatio,
+      });
+
+      // Dispatch event to refresh feed
+      window.dispatchEvent(new CustomEvent('postCreated'));
+
+      onPostCreated?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create post');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalBackdrop} onClick={onClose}>
+    <div className={styles.modalBackdrop} onClick={handleClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.createPanel} ref={modalRef}>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-
+          {/* Header */}
           <div className={styles.header}>
-            <h2 className={styles.title}>Create new post</h2>
+            {step === 'details' && (
+              <button
+                className={styles.backButton}
+                onClick={() => setStep('upload')}
+                disabled={isCreating}
+              >
+                <BackArrowIcon />
+              </button>
+            )}
+
+            <h2 className={styles.title}>
+              {step === 'upload' ? 'Create new post' : 'Create new post'}
+            </h2>
+
+            {step === 'details' && (
+              <button
+                className={styles.shareButton}
+                onClick={handleCreatePost}
+                disabled={isCreating || uploadedAssets.length === 0}
+              >
+                {isCreating ? 'Sharing...' : 'Share'}
+              </button>
+            )}
           </div>
 
-          <div className={styles.uploadArea}>
-            <div style={{width: 96, height: 77, position: 'relative', overflow: 'hidden'}}>
-              <div style={{width: 96, height: 77, left: 0, top: 0, position: 'absolute'}}>
-                <div data-svg-wrapper style={{left: 11.01, top: 14.05, position: 'absolute'}}>
-                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5.53295 10.5901H5.82803C8.58213 10.3934 10.6477 8.03274 10.5493 5.27864C10.3526 2.52454 7.99196 0.458965 5.23787 0.557326C2.48377 0.655686 0.418194 3.1147 0.516554 5.8688C0.614915 8.52454 2.87721 10.5901 5.53295 10.5901ZM3.17229 3.50814C3.6641 2.91798 4.45098 2.52454 5.23787 2.52454H5.43459C7.10672 2.52454 8.48377 3.90159 8.48377 5.57372C8.48377 7.24585 7.10672 8.6229 5.43459 8.6229C3.76246 8.6229 2.38541 7.24585 2.38541 5.57372C2.38541 4.78683 2.68049 4.09831 3.17229 3.50814Z" fill="#262626"/>
-                  </svg>
+          {/* Content */}
+          {step === 'upload' && (
+            <div
+              className={styles.uploadArea}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
+              <UploadMediaIcon />
+
+              <p className={styles.uploadText}>Drag photos and videos here</p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                style={{ display: 'none' }}
+              />
+
+              <button
+                className={styles.selectButton}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Select from computer'}
+              </button>
+
+              {error && <p className={styles.error}>{error}</p>}
+            </div>
+          )}
+
+          {step === 'details' && uploadedAssets.length > 0 && uploadedAssets[currentImageIndex] && (
+            <div className={styles.detailsContainer}>
+              {/* Image Preview */}
+              <div
+                key={`preview-${aspectRatio}`}
+                className={styles.imagePreview}
+                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={uploadedAssets[currentImageIndex].url}
+                  alt={`Upload ${currentImageIndex + 1}`}
+                  className={styles.previewImage}
+                />
+
+                {/* Navigation arrows */}
+                {uploadedAssets.length > 1 && (
+                  <>
+                    <button className={styles.navButton} style={{ left: 12 }} onClick={handlePrevImage}>
+                      <ChevronLeftIcon />
+                    </button>
+                    <button className={styles.navButton} style={{ right: 12 }} onClick={handleNextImage}>
+                      <ChevronRightIcon />
+                    </button>
+                  </>
+                )}
+
+                {/* Image indicators */}
+                {uploadedAssets.length > 1 && (
+                  <div className={styles.imageIndicators}>
+                    {uploadedAssets.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`${styles.indicator} ${index === currentImageIndex ? styles.active : ''}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Remove button */}
+                <button
+                  className={styles.removeImageButton}
+                  onClick={() => handleRemoveImage(currentImageIndex)}
+                >
+                  ✕
+                </button>
+
+                {/* Add more button */}
+                {uploadedAssets.length < 10 && (
+                  <button
+                    className={styles.addMoreButton}
+                    onClick={() => fileInputRef2.current?.click()}
+                    disabled={isUploading}
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+
+              {/* Caption Form */}
+              <div className={styles.captionForm}>
+                <textarea
+                  className={styles.captionInput}
+                  placeholder="Write a caption..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  maxLength={5000}
+                />
+                <div className={styles.characterCount}>
+                  {content.length}/5000
                 </div>
-                <div data-svg-wrapper style={{left: 3.04, top: 4.50, position: 'absolute'}}>
-                  <svg width="91" height="69" viewBox="0 0 91 69" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M80.8117 14.082L54.5494 12.6066L54.3527 9.65578C54.0576 4.04922 49.2379 -0.278648 43.533 0.0164342L10.1887 1.88529C4.58218 2.18037 0.254311 7.0984 0.549393 12.705L2.41825 46.1476V46.9345C3.10677 52.0492 7.43464 55.8853 12.5494 55.8853H13.1396L34.4838 54.705V55.2951C34.1887 60.9017 38.4183 65.8197 44.1232 66.1148L77.5658 68.082H78.156C83.5658 68.082 88.0904 63.8525 88.3855 58.4427L90.3527 25C90.7461 19.2951 86.4183 14.4755 80.8117 14.082ZM4.58218 6.6066C6.05759 4.93447 8.12316 3.95086 10.2871 3.8525L43.7297 1.98365C48.2543 1.68857 52.1887 5.22955 52.4838 9.75414L52.6805 12.5082L47.4674 12.2132C41.8609 11.9181 36.9428 16.1476 36.6478 21.8525L36.0576 31.1968L26.7133 41.7214C26.5166 42.0164 26.1232 42.1148 25.7297 42.2132C25.3363 42.2132 25.0412 42.1148 24.7461 41.8197L17.074 34.9345C15.6969 33.6558 13.6314 33.8525 12.3527 35.2296L4.38546 44.1804L2.61497 12.705C2.41825 10.4427 3.20513 8.27873 4.58218 6.6066ZM13.1396 53.8197C8.91005 54.0164 5.17234 51.0656 4.48382 46.8361L13.7297 36.5082C13.9264 36.2132 14.3199 36.1148 14.7133 36.0164C15.1068 36.0164 15.4019 36.1148 15.6969 36.4099L23.3691 43.2951C24.0576 43.8853 24.9428 44.1804 25.8281 44.1804C26.7133 44.1804 27.5002 43.6886 28.0904 43.0984L35.7625 34.4427L34.6805 52.7378L13.1396 53.8197ZM88.3855 24.8033L86.4183 58.2459C86.1232 62.7705 82.1887 66.3115 77.6642 66.0164L44.2215 64.0492C39.6969 63.7541 36.156 59.8197 36.451 55.2951L38.4182 21.8525C38.7133 17.5246 42.2543 14.082 46.6805 14.082H47.1723L80.615 16.0492C85.2379 16.3443 88.6805 20.2787 88.3855 24.8033Z" fill="#262626"/>
-                  </svg>
+
+                {/* Aspect Ratio Selector */}
+                <div className={styles.aspectRatioSection}>
+                  <label className={styles.aspectRatioLabel}>Aspect Ratio</label>
+                  <div className={styles.aspectRatioButtons}>
+                    {['1:1', '4:5', '16:9'].map((ratio) => (
+                      <button
+                        key={ratio}
+                        className={`${styles.aspectRatioButton} ${aspectRatio === ratio ? styles.active : ''}`}
+                        onClick={() => setAspectRatio(ratio)}
+                      >
+                        {ratio}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div data-svg-wrapper style={{left: 52.32, top: 29.74, position: 'absolute'}}>
-                  <svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M25.4178 11.9016L8.79485 0.983593C6.72927 -0.393456 3.97517 0.196707 2.69649 2.26228C2.30304 2.95081 2.00796 3.63933 2.00796 4.42622L0.827635 24.1967C0.729274 26.6557 2.49977 28.7213 4.95878 28.918H5.25386C5.94239 28.918 6.63091 28.7213 7.22108 28.4262L24.926 19.5738C27.0899 18.4918 27.9752 15.8361 26.8932 13.6721C26.4998 12.9836 26.008 12.3934 25.4178 11.9016ZM24.0408 17.8033L6.33583 26.6557C5.94239 26.8524 5.54895 26.9508 5.05714 26.9508C4.6637 26.9508 4.1719 26.7541 3.87681 26.5574C3.18829 26.0656 2.69649 25.2787 2.79485 24.3934L3.97518 4.62294C4.07354 3.73769 4.56534 2.9508 5.35222 2.55736C6.13911 2.16392 7.02435 2.26228 7.81124 2.65573L24.2375 13.5738C25.4178 14.3606 25.7129 15.8361 24.926 16.918C24.7293 17.3115 24.4342 17.6065 24.0408 17.8033Z" fill="#262626"/>
-                  </svg>
-                </div>
+
+                {error && <p className={styles.error}>{error}</p>}
+
+                {/* Hidden file input for adding more images in details step */}
+                <input
+                  ref={fileInputRef2}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  style={{ display: 'none' }}
+                />
               </div>
             </div>
-
-            <p className={styles.uploadText}>Drag photos and videos here</p>
-
-            <button className={styles.selectButton}>
-              Select from computer
-            </button>
-
-          </div>
+          )}
         </div>
       </div>
     </div>

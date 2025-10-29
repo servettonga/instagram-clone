@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
-import styles from './callback.module.css';
+import styles from './callback.module.scss';
 
 export default function AuthCallbackPage() {
   const router = useRouter();

@@ -1,0 +1,137 @@
+// Feed Sidebar styles
+@use '@/styles/index.scss' as *;
+
+.sidebar {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+}
+
+// Current user section
+.sidebarUser {
+  @include flex-center;
+  gap: $spacing-sm;
+  padding: $spacing-sm 0 $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.sidebarAvatarWrapper {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.sidebarAvatar {
+  @include avatar(56px);
+}
+
+.avatarPlaceholder {
+  @include avatar(56px);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  @include flex-center;
+  font-size: 24px;
+  font-weight: $font-bold;
+  color: $ig-white;
+}
+
+.sidebarUserInfo {
+  flex: 1;
+}
+
+.sidebarUsername {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-text-primary;
+  text-decoration: none;
+  display: block;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.sidebarDisplayName {
+  font-size: $font-sm;
+  color: $ig-text-secondary;
+  font-weight: $font-regular;
+}
+
+// Suggestions section
+.suggestions {
+  margin-top: $spacing-sm;
+}
+
+.suggestionsHeader {
+  @include flex-between;
+  margin-bottom: $spacing-md;
+}
+
+.suggestionsTitle {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-text-secondary;
+}
+
+.seeAllButton {
+  background: none;
+  border: none;
+  font-size: $font-xs;
+  font-weight: $font-medium;
+  color: $ig-text-primary;
+  cursor: pointer;
+
+  &:hover {
+    color: $ig-text-secondary;
+  }
+}
+
+.suggestionsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.suggestionItem {
+  @include flex-center;
+  gap: $spacing-sm;
+}
+
+.suggestionAvatar {
+  @include avatar(32px);
+}
+
+.suggestionInfo {
+  flex: 1;
+}
+
+.suggestionUsername {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $ig-text-primary;
+  text-decoration: none;
+  display: block;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.suggestionNote {
+  font-size: $font-xs;
+  color: $ig-text-secondary;
+  font-weight: $font-regular;
+}
+
+.followButton {
+  border: none;
+  font-size: $font-xs;
+  font-weight: $font-medium;
+  color: $ig-blue;
+  cursor: pointer;
+  background: none;
+
+  &:hover {
+    color: $ig-text-primary;
+  }
+}

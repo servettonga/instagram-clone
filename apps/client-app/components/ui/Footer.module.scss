@@ -1,0 +1,58 @@
+// Footer Component Styles
+@use '@/styles/index.scss' as *;
+
+// Sidebar Footer (for feed sidebar)
+.sidebarFooter {
+  margin-top: auto;
+  padding-top: $spacing-md;
+
+  &Links {
+    font-size: $font-xs;
+    color: $ig-text-secondary;
+    line-height: 1.5;
+  }
+
+  .copyright {
+    font-size: $font-xs;
+    color: $ig-text-secondary;
+    margin-top: $spacing-md;
+  }
+}
+
+// Default Footer (for profile and other pages)
+.footer {
+  margin-top: $spacing-xxl;
+  padding: $spacing-xxl $spacing-md;
+  border-top: 1px solid $ig-border;
+
+  &Links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    font-size: $font-xs;
+    color: $ig-text-secondary;
+    margin-bottom: $spacing-md;
+
+    span {
+      cursor: pointer;
+      @include hover-opacity(0.7);
+    }
+  }
+
+  .copyright {
+    @include flex-center;
+    gap: $spacing-md;
+    font-size: $font-xs;
+    color: $ig-text-secondary;
+
+    &Text {
+      color: $ig-text-secondary;
+    }
+  }
+
+  .languageSelect {
+    @include flex-center;
+    gap: $spacing-xs;
+    cursor: pointer;
+  }
+}

@@ -111,12 +111,12 @@ class CoreServiceClient {
   }
 
   /**
-   * Get user by ID from Core Service
+   * Get user by ID from Core Service (internal endpoint)
    */
   async getUserById(userId: string): Promise<UserWithProfileAndAccount | null> {
     try {
       const response = await this.client.get<UserWithProfileAndAccount>(
-        `/api/users/${userId}`,
+        `/api/users/internal/${userId}`,
       );
       return response.data;
     } catch (error) {

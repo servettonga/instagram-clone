@@ -1,0 +1,220 @@
+// Converted to SCSS
+@use '@/styles/index.scss' as *;
+
+/* Container - same as login */
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FAFAFA;
+  padding: 1rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--ig-border);
+  border-radius: 0;
+  padding: 40px;
+  width: 100%;
+  max-width: 375px;
+  box-shadow: none;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ig-text-primary);
+  margin-bottom: 8px;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--ig-text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.errorBanner {
+  background-color: #FEE;
+  border: 1px solid #ECC;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #C00;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* OAuth button at top */
+.oauthButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px;
+  border: none;
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--ig-blue);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-bottom: 16px;
+}
+
+.oauthButton:hover {
+  opacity: 0.7;
+}
+
+.oauthIcon {
+  width: 17px;
+  height: 17px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  color: var(--ig-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background-color: var(--ig-border);
+}
+
+.divider span {
+  padding: 0 18px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.input {
+  padding: 13.5px 15px;
+  background-color: var(--ig-background);
+  border: 0.5px solid var(--ig-border);
+  border-radius: 5px;
+  font-size: 14px;
+  color: var(--ig-text-primary);
+  transition: border-color 0.15s;
+}
+
+.input::placeholder {
+  color: var(--ig-text-placeholder);
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(0, 0, 0, 0.20);
+  background-color: white;
+}
+
+.inputError {
+  border-color: #ED4956;
+  background-color: #FEE;
+}
+
+.inputError:focus {
+  border-color: #ED4956;
+}
+
+.errorText {
+  color: #ED4956;
+  font-size: 12px;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+
+/* Terms text */
+.termsText {
+  color: var(--ig-text-secondary);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+  margin: 8px 0;
+}
+
+.submitButton {
+  background-color: var(--ig-blue);
+  color: white;
+  padding: 13px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-top: 8px;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: var(--ig-blue-hover);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.footer {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--ig-text-secondary);
+  font-size: 14px;
+}
+
+.link {
+  color: var(--ig-blue);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .card {
+    border: none;
+    padding: 24px 16px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+}

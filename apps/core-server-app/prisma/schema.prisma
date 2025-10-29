@@ -114,7 +114,8 @@ model Profile {
 model Post {
   id            String      @id @default(uuid())
   profileId     String      @map("profile_id")
-  content       String
+  content       String?
+  aspectRatio   String      @default("1:1") @map("aspect_ratio") @db.VarChar(10)
   isArchived    Boolean     @default(false) @map("is_archived")
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")

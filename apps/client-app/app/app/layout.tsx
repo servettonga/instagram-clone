@@ -8,7 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore';
 import SearchModal from '@/components/modal/SearchModal';
 import NotificationsModal from '@/components/modal/NotificationsModal';
 import CreatePostModal from '@/components/modal/CreatePostModal';
-import styles from './layout.module.css';
+import styles from './layout.module.scss';
 
 export default function AppLayout({
   children,

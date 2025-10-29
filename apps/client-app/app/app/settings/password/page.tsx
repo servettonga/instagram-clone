@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { authApi } from '@/lib/api/auth';
-import styles from './password.module.css';
+import styles from './password.module.scss';
 
 export default function PasswordSettingsPage() {
   const { user, setUser } = useAuthStore();

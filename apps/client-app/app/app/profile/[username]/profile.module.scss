@@ -1,0 +1,405 @@
+// Converted to SCSS
+@use '@/styles/index.scss' as *;
+
+.profileContainer {
+  background: white;
+  min-height: 100vh;
+}
+
+.profileWrapper {
+  background: white;
+  padding-top: 30px;
+  padding-bottom: 52px;
+  max-width: 935px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.profileHeader {
+  display: flex;
+  gap: 90px;
+  margin-bottom: 44px;
+}
+
+.avatarSection {
+  flex-shrink: 0;
+}
+
+.avatarWrapper {
+  width: 150px;
+  height: 150px;
+  position: relative;
+  background: #FAFAFA;
+  border-radius: 75px;
+  overflow: hidden;
+}
+
+.avatar {
+  border-radius: 75px;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.avatarPlaceholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 75px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 700;
+  color: white;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.profileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.profileActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  height: 40px;
+}
+
+.username {
+  font-size: 20px;
+  font-weight: 400;
+  color: #262626;
+  line-height: 25px;
+  margin: 0;
+  margin-right: 12px;
+}
+
+.editButton,
+.messageButton {
+  padding: 7px 16px;
+  background: #EFEFEF;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: black;
+  line-height: 18px;
+  transition: background-color 0.2s;
+}
+
+.editButton:hover,
+.messageButton:hover {
+  background: #DBDBDB;
+}
+
+.followButton {
+  padding: 7px 16px;
+  background: var(--ig-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 18px;
+  transition: background-color 0.2s;
+}
+
+.followButton:hover {
+  background: var(--ig-blue-hover);
+}
+
+.settingsButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #262626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsButton:hover {
+  opacity: 0.7;
+}
+
+.profileStats {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.statItem {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.statCount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+  line-height: 24px;
+}
+
+.statLabel {
+  font-size: 16px;
+  font-weight: 400;
+  color: #262626;
+  line-height: 24px;
+}
+
+.profileBio {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.displayName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  line-height: 18px;
+  margin-bottom: 0;
+}
+
+.bioText {
+  font-size: 14px;
+  font-weight: 400;
+  color: #262626;
+  line-height: 18px;
+  margin-top: 0;
+  white-space: pre-wrap;
+}
+
+.bioLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00376B;
+  line-height: 18px;
+  text-decoration: none;
+  margin-top: 0;
+}
+
+.bioCategory {
+  font-size: 13px;
+  font-weight: 400;
+  color: #8E8E8E;
+  line-height: 18px;
+  margin-top: 0;
+}
+
+.postsSection {
+  border-top: 1px solid #DBDBDB;
+  padding-top: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.postsTabs {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  margin-bottom: 0;
+  height: 53px;
+  align-items: flex-end;
+  position: relative;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-top: 1px solid transparent;
+  padding: 17.5px 0 16.5px 0;
+  cursor: pointer;
+  color: #8E8E8E;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 18px;
+  position: relative;
+  margin-top: -1px;
+}
+
+.tab span {
+  display: block;
+  line-height: 18px;
+}
+
+.tab:hover {
+  color: #262626;
+}
+
+.tabActive {
+  color: #262626;
+  border-top-color: #262626;
+}
+
+.tab svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.postsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0;
+}
+
+.postsRow {
+  display: flex;
+  gap: 4px;
+}
+
+.gridItem {
+  position: relative;
+  width: 309px;
+  height: 309px;
+  cursor: pointer;
+  overflow: hidden;
+  background: #EFEFEF;
+  flex: 1;
+}
+
+.gridImage {
+  object-fit: cover;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gridItem:hover .overlay {
+  opacity: 1;
+}
+
+.stats {
+  display: flex;
+  gap: 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.stats span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multiIcon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+}
+
+.footer {
+  background: white;
+  padding: 24px 16px 52px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: #8E8E8E;
+  line-height: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footerLinks span {
+  cursor: pointer;
+}
+
+.footerLinks span:hover {
+  text-decoration: underline;
+}
+
+.copyright {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.languageSelect {
+  font-size: 11px;
+  color: #8E8E8E;
+  line-height: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.copyrightText {
+  font-size: 12px;
+  color: #8E8E8E;
+  line-height: 16px;
+}
+
+@media (max-width: 768px) {
+  .profileContainer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .profileHeader {
+    gap: 30px;
+  }
+
+  .avatarSection {
+    padding-left: 0;
+  }
+
+  .avatarWrapper {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatarPlaceholder {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+  }
+
+  .profileStats {
+    gap: 20px;
+    padding-right: 0;
+  }
+
+  .postsGrid {
+    gap: 2px;
+  }
+
+  .postsRow {
+    gap: 2px;
+  }
+}
