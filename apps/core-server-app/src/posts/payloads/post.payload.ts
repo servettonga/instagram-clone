@@ -66,13 +66,8 @@ export type PostWithDetails = Prisma.PostGetPayload<{
 /**
  * Transform post to safe response format with computed fields
  */
-export function toPostResponse(
-  post: PostWithDetails,
-  currentUserId?: string,
-  coreServiceUrl?: string,
-) {
-  const baseurl =
-    coreServiceUrl || process.env.CORE_SERVICE_URL || 'http://localhost:8000';
+export function toPostResponse(post: PostWithDetails, currentUserId?: string) {
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
 
   return {
     id: post.id,
@@ -83,15 +78,23 @@ export function toPostResponse(
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     profile: post.profile,
-    assets: post.assets.map((pa) => ({
-      id: pa.asset.id,
-      fileName: pa.asset.fileName,
-      filePath: pa.asset.filePath,
-      fileType: pa.asset.fileType,
-      fileSize: pa.asset.fileSize,
-      orderIndex: pa.orderIndex,
-      url: `${baseurl}${pa.asset.filePath}`,
-    })),
+    assets: post.assets.map((pa) => {
+      // Handle both old (relative) and new (full URL) formats
+      const filePath = pa.asset.filePath;
+      const url = filePath.startsWith('http')
+        ? filePath // Already a full URL
+        : `${backendUrl}${filePath}`; // Relative path, prepend backend URL
+
+      return {
+        id: pa.asset.id,
+        fileName: pa.asset.fileName,
+        filePath: pa.asset.filePath,
+        fileType: pa.asset.fileType,
+        fileSize: pa.asset.fileSize,
+        orderIndex: pa.orderIndex,
+        url,
+      };
+    }),
     likesCount: post._count.likes,
     commentsCount: post._count.comments,
     isLikedByCurrentUser: currentUserId

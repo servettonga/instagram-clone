@@ -2,21 +2,21 @@ interface CloseIconProps {
   width?: number;
   height?: number;
   className?: string;
-  stroke?: string;
+  color?: string;
 }
 
 export const CloseIcon = ({
   width = 16,
   height = 16,
   className,
-  stroke = 'currentColor'
+  color,
 }: CloseIconProps) => (
   <svg
     width={width}
     height={height}
     viewBox="0 0 24 24"
     fill="none"
-    stroke={stroke}
+    stroke={color ?? 'currentColor'}
     strokeWidth="2"
     className={className}
   >

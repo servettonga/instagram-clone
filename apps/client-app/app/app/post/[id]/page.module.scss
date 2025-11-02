@@ -1,130 +1,42 @@
-// Post page styles - matching PostViewModal
+// Post page styles aligned with PostViewModal
 @use '@/styles/index.scss' as *;
 
 .pageContainer {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  padding: $spacing-md;
-  background: $ig-background;
+  padding: 60px $spacing-md $spacing-xl;
+  background: $color-white;
+  color: $color-text;
 }
 
 .postView {
   display: flex;
   width: 100%;
   max-width: 1200px;
-  height: calc(100vh - 40px);
-  max-height: 800px;
-  background: $ig-white;
+  max-height: calc(100vh - 120px);
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
   overflow: hidden;
-  border: 1px solid $ig-border;
+  box-shadow: $shadow-sm;
 }
 
-.loadingContainer,
-.errorContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 40px;
-  text-align: center;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid $ig-text-primary;
-  border-radius: $radius-round;
-  animation: spin 1s linear infinite;
-  margin-bottom: $spacing-md;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.backLink {
-  margin-top: $spacing-md;
-  color: $ig-blue;
-  text-decoration: none;
-  font-weight: $font-bold;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-/* Image Section */
-.imageSection {
-  position: relative;
-  flex: 1;
-  background: #000000; /* Dark background for the entire section */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  overflow: hidden;
-  max-height: calc(100vh - 80px);
-  aspect-ratio: 1/1; /* Default to square */
-}
-
-/* No background for 4:5 images */
-.imageSectionNoBackground {
-  background: transparent;
-  aspect-ratio: 4/5; /* Tall aspect ratio for 4:5 images */
-}
-
-.imageSectionWide {
-  aspect-ratio: 16/9;
-}
-
-/* Outer container that fills the image section */
-.imageContainer {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Right-aligned container for 4:5 images */
-.imageContainerRightAlign {
-  justify-content: flex-end;
-}
-
-/* Inner container with aspect ratio constraint - like feed page */
 .imageWrapper {
   position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-bg-highlight;
   overflow: hidden;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 800px;
 }
 
-/* Square wrapper for 1:1 images */
-.imageWrapperSquare {
-  width: 100%;
-  aspect-ratio: 1/1;
-  background: #EFEFEF;
-}
-
-/* Wide wrapper for 16:9 images (with top/bottom bars in square container) */
-.imageWrapperWide {
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #EFEFEF;
-}
-
-/* Tall wrapper for 4:5 images */
-.imageWrapperTall {
-  height: 100%;
-  aspect-ratio: 4/5;
-  background: #EFEFEF;
-}
+.imageWrapperSquare { aspect-ratio: 1 / 1; }
+.imageWrapperWide { aspect-ratio: 16 / 9; }
+.imageWrapperTall { aspect-ratio: 4 / 5; max-width: 640px; }
 
 .postImage {
   display: block;
@@ -141,61 +53,86 @@
   display: flex;
   gap: $spacing-xs;
   z-index: 2;
+  pointer-events: none;
 }
 
 .indicator {
   width: 6px;
   height: 6px;
   border-radius: 3px;
-  background: $ig-white;
+  background: $color-white;
   opacity: 0.4;
 }
 
-.indicatorActive {
-  opacity: 1;
-}
+.indicatorActive { opacity: 1; }
 
+.navPrev,
 .navNext {
   position: absolute;
-  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.navPrev {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  background: rgba($color-black, 0.20);
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: $spacing-xs;
+  border-radius: $radius-round;
+  color: $color-white;
+  z-index: 2;
+  transition: opacity $transition-fast;
+}
+
+.navPrev { left: $spacing-sm; }
+.navNext { right: $spacing-sm; }
+
+.navPrev:hover,
+.navNext:hover { opacity: 0.8; }
+
+.loadingContainer,
+.errorContainer {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  padding: 40px;
+  gap: $spacing-md;
+  text-align: center;
+  color: $color-text;
 }
 
-.navNext:hover,
-.navPrev:hover {
-  opacity: 0.8;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $color-bg-highlight;
+  border-top: 3px solid $color-text;
+  border-radius: $radius-round;
+  animation: spin 1s linear infinite;
 }
 
-/* Info Section */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.backLink {
+  margin-top: $spacing-sm;
+  color: $color-primary;
+  font-weight: $font-bold;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
 .infoSection {
-  background: $ig-white;
-  min-width: 360px;
+  width: 400px;
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid $ig-border;
+  background: $color-white;
+  border-left: 1px solid $color-border;
   flex-shrink: 0;
 }
 
@@ -204,7 +141,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid $ig-border;
+  border-bottom: 1px solid $color-surface;
 }
 
 .userInfo {
@@ -217,84 +154,47 @@
   position: relative;
   width: 32px;
   height: 32px;
-  cursor: pointer;
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar {
   border-radius: 16px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .userDetails {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 2px;
 }
 
 .usernameRow {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: $ig-text-primary;
-  line-height: 18px;
+  color: $color-text;
+  line-height: 1.2;
 }
 
 .usernameLink {
   font-weight: $font-bold;
-  color: $ig-text-primary;
+  color: $color-text;
   text-decoration: none;
-  cursor: pointer;
-}
 
-.usernameLink:hover {
-  text-decoration: underline;
+  &:hover { text-decoration: underline; }
 }
 
 .moreButton {
   background: none;
   border: none;
-  cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-}
-
-.moreMenu {
-  position: absolute;
-  top: 40px;
-  right: 0;
-  background: $ig-white;
-  border: 1px solid $ig-border;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  min-width: 140px;
-  overflow: hidden;
-}
-
-.menuItem {
-  display: block;
-  width: 100%;
-  padding: 8px 16px;
-  border: none;
-  background: none;
-  text-align: left;
-  font-size: $font-sm;
-  color: $ig-text-primary;
   cursor: pointer;
-  transition: background-color $transition-fast;
-}
-
-.menuItem:hover {
-  background-color: $ig-background;
-}
-
-.menuItem:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  position: relative;
 }
 
 .svgWrapper {
@@ -307,16 +207,48 @@
 
 .svgWrapperInner {
   position: absolute;
-  left: 0;
   top: 0;
+  left: 0;
 }
 
-/* Comments Section */
+.moreMenu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  box-shadow: $shadow-sm;
+  min-width: 140px;
+  overflow: hidden;
+  z-index: $z-dropdown;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: $font-sm;
+  color: $color-text;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover { background-color: $color-bg; }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .commentsSection {
   flex: 1;
   overflow-y: auto;
   padding: $spacing-md;
-  border-left: 1px solid $ig-border;
+  color: $color-text;
 }
 
 .comment {
@@ -329,40 +261,64 @@
 .commentAvatar {
   border-radius: 16px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
   flex-shrink: 0;
-  cursor: pointer;
 }
+
+.commentContent { flex: 1; min-width: 0; }
 
 .commentUsernameLink {
   font-weight: $font-bold;
-  color: $ig-text-primary;
+  color: $color-text;
   text-decoration: none;
-  cursor: pointer;
-}
 
-.commentUsernameLink:hover {
-  text-decoration: underline;
-}
-
-.commentContent {
-  flex: 1;
+  &:hover { text-decoration: underline; }
 }
 
 .commentText {
   font-size: $font-sm;
-  color: $ig-text-primary;
+  color: $color-text;
   line-height: 18px;
   margin-bottom: 6px;
-  word-wrap: break-word;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* Post Actions */
+.commentMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: $color-muted;
+}
+
+.timeAgo,
+.likes { color: $color-muted; }
+
+.replyButton,
+.likeButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: $font-bold;
+  color: $color-muted;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+
+  &:hover { color: $color-text; }
+}
+
+.likeButton {
+  position: absolute;
+  top: 9px;
+  right: 0;
+}
+
 .postActions {
   padding: 0 16px;
-  border-top: 1px solid #EFEFEF;
-  border-left: 1px solid $ig-border;
+  border-top: 1px solid $color-border;
 }
 
 .actionsRow {
@@ -370,22 +326,24 @@
   align-items: center;
   gap: $spacing-sm;
   padding: 6px 0;
-  height: 55px;
+  min-height: 55px;
 }
 
 .actionButton {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: $spacing-xs;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: $color-text;
+  transition: opacity $transition-fast;
+
+  &:hover { opacity: 0.7; }
 }
 
-.actionButton:hover {
-  opacity: 0.7;
-}
+.actionButton:last-child { margin-left: auto; }
 
 .likesSection {
   display: flex;
@@ -396,51 +354,44 @@
 
 .likesText {
   font-size: $font-sm;
-  color: $ig-text-primary;
+  color: $color-text;
+
+  a {
+    color: $color-text;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
 }
 
-.likesText a {
-  color: $ig-text-primary;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.likesText a:hover {
-  text-decoration: underline;
-}
-
-.bold {
-  font-weight: $font-bold;
-}
+.bold { font-weight: $font-bold; }
 
 .postTime {
-  font-size: 10px;
-  color: $ig-text-secondary;
+  font-size: $font-xs;
+  color: $color-muted;
   text-transform: uppercase;
-  line-height: 12px;
   letter-spacing: 0.2px;
   padding-bottom: 8px;
 }
 
-/* Add Comment */
 .addCommentSection {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  padding: 7px 16px 6px;
-  border-top: 1px solid #EFEFEF;
-  height: 53px;
+  padding: 7px 16px;
+  border-top: 1px solid $color-border;
+  min-height: 53px;
 }
 
 .emojiButton {
   background: none;
   border: none;
-  cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  cursor: pointer;
+  color: $color-text;
 }
 
 .commentInput {
@@ -448,12 +399,11 @@
   border: none;
   outline: none;
   font-size: $font-sm;
-  color: $ig-text-primary;
+  color: $color-text;
   line-height: 18px;
-}
+  background: transparent;
 
-.commentInput::placeholder {
-  color: $ig-text-primary;
+  &::placeholder { color: $color-muted; }
 }
 
 .postButton {
@@ -461,61 +411,112 @@
   border: none;
   font-size: 13px;
   font-weight: $font-bold;
-  color: #B3DBFF;
+  color: $color-primary;
   cursor: pointer;
   padding: 0;
-  flex-shrink: 0;
-}
+  transition: opacity $transition-fast;
 
-.postButton:hover {
-  color: $ig-blue;
-}
-
-/* Responsive */
-@media (max-width: 1200px) {
-  .pageContainer {
-    padding: 12px;
+  &:disabled {
+    color: $color-primary-contrast;
+    cursor: default;
+    opacity: 0.6;
   }
+
+  &:not(:disabled):hover { opacity: 0.7; }
+}
+
+.editCaptionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $color-bg;
+  border-radius: $radius-sm;
+  margin-bottom: $spacing-md;
+}
+
+.editCaptionInput {
+  @include comment-input;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.editActions {
+  display: flex;
+  gap: $spacing-sm;
+  justify-content: flex-end;
+}
+
+.cancelButton,
+.saveButton {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: $font-sm;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity $transition-fast;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid $color-border;
+  color: $color-text;
+
+  &:hover:not(:disabled) { background: rgba($color-black, 0.04); }
+}
+
+.saveButton {
+  background: $color-primary;
+  border: none;
+  color: $color-white;
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+}
+
+@media (max-width: 1200px) {
+  .pageContainer { padding: 40px $spacing-sm; }
 
   .postView {
     max-width: 100%;
+    max-height: calc(100vh - 80px);
   }
 
   .infoSection {
-    width: 400px;
-    min-width: 350px;
-    max-width: 400px;
+    width: 360px;
+    max-width: 360px;
   }
 }
 
 @media (max-width: 900px) {
   .pageContainer {
     padding: 0;
+    background: $color-white;
   }
 
   .postView {
     flex-direction: column;
-    height: 100vh;
-    max-height: 100vh;
+    border-radius: 0;
     border: none;
-  }
-
-  .imageSection {
-    width: 100%;
-    flex: 0 0 auto;
-    height: 60vh;
-    max-width: 100%;
+    box-shadow: none;
+    max-height: none;
   }
 
   .imageWrapper {
     width: 100%;
-    height: 100%;
+    max-width: 100%;
+    height: 60vh;
   }
 
   .infoSection {
     width: 100%;
-    min-width: 100%;
     max-width: 100%;
-    height: 40vh;
+    border-left: none;
+    border-top: 1px solid $color-border;
+    min-height: 40vh;
   }
 }

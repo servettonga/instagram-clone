@@ -5,18 +5,18 @@
 .appContainer {
   display: flex;
   min-height: 100vh;
-  background-color: #FAFAFA;
+  background-color: $color-bg;
 }
 
 /* Left Sidebar */
 .sidebar {
-  width: 244px;
+  width: 220px;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  background: white;
-  border-right: 1px solid var(--ig-border);
+  background: $color-white;
+  border-right: 1px solid $color-border;
   display: flex;
   flex-direction: column;
   padding: 40px 12px 24px;
@@ -44,7 +44,7 @@
 .logo {
   font-size: 24px;
   font-weight: 700;
-  color: var(--ig-text-primary);
+  color: $color-text;
   margin: 0 12px 60px;
   text-decoration: none;
   letter-spacing: -0.5px;
@@ -66,11 +66,11 @@
   align-items: center;
   gap: 16px;
   padding: 12px;
-  color: var(--ig-text-primary);
+  color: $color-text;
   text-decoration: none;
   font-size: 16px;
   font-weight: 400;
-  border-radius: 24px;
+  border-radius: 8px;
   transition: background-color 0.2s;
   background: none;
   border: none;
@@ -80,7 +80,7 @@
 }
 
 .navLink:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba($color-black, 0.05);
 }
 
 .navLink svg,
@@ -116,19 +116,19 @@
   height: 24px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba($color-black, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: $color-surface;
+  color: $color-text;
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .profileIconActive {
-  border: 2px solid #262626;
+  border: 2px solid $color-text;
 }
 
 .profileImage {
@@ -139,19 +139,19 @@
 
 /* More Section */
 .moreSection {
-  position: relative;
-  margin-top: auto;
+  background: transparent;
+  color: $color-text;
 }
 
 .moreMenu {
   position: absolute;
   bottom: 60px;
   left: 12px;
-  background: white;
-  border: 1px solid var(--ig-border);
+  background: $color-white;
+  border: 1px solid $color-border;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 230px;
+  box-shadow: 0 4px 12px rgba($color-black, 0.15);
+  min-width: 160px;
   padding: 8px 0;
   z-index: 1000;
 }
@@ -161,7 +161,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  color: var(--ig-text-primary);
+  color: $color-text;
   text-decoration: none;
   font-size: 14px;
   font-weight: 400;
@@ -174,7 +174,7 @@
 }
 
 .moreMenuItem:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba($color-black, 0.05);
 }
 
 .moreMenuItem svg {
@@ -183,7 +183,7 @@
 
 .menuDivider {
   height: 1px;
-  background-color: var(--ig-border);
+  background-color: $color-border;
   margin: 8px 0;
 }
 
@@ -193,7 +193,7 @@
   align-items: center;
   gap: 16px;
   padding: 12px;
-  color: var(--ig-text-primary);
+  color: $color-text;
   background: none;
   border: none;
   font-size: 16px;
@@ -206,7 +206,7 @@
 }
 
 .logoutButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba($color-black, 0.05);
 }
 
 .logoutButton svg {
@@ -215,8 +215,8 @@
 
 /* Main Content */
 .mainContent {
-  margin-left: 244px;
-  width: calc(100% - 244px);
+  margin-left: 220px;
+  width: calc(100% - 220px);
   min-height: 100vh;
   transition: margin-left 0.3s ease;
 }
@@ -232,14 +232,14 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #FAFAFA;
+  background-color: $color-bg;
 }
 
 .spinner {
   width: 3rem;
   height: 3rem;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: var(--ig-blue);
+  border: 2px solid rgba($color-black, 0.1);
+  border-top-color: $color-primary;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;

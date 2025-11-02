@@ -25,6 +25,7 @@ export default function SettingsLayout({
         {/* Sidebar Navigation */}
         <aside className={styles.sidebar}>
           <nav className={styles.sidebarNav}>
+            <h2 className={styles.settingsTitle}>Settings</h2>
             {navItems.map((item) => (
               <Link
                 key={item.href}

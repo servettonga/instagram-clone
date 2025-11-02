@@ -31,16 +31,18 @@ describe('UsersController', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
-    accounts: [{
-      id: 'test-account-id',
-      userId: 'test-user-id',
-      provider: 'LOCAL',
-      providerId: null,
-      email: 'test@example.com',
-      lastLoginAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }],
+    accounts: [
+      {
+        id: 'test-account-id',
+        userId: 'test-user-id',
+        provider: 'LOCAL',
+        providerId: null,
+        email: 'test@example.com',
+        lastLoginAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
   };
 
   const mockUsersService = {
@@ -146,7 +148,10 @@ describe('UsersController', () => {
 
       const result = await controller.update('test-user-id', updateUserDto);
 
-      expect(service.update).toHaveBeenCalledWith('test-user-id', updateUserDto);
+      expect(service.update).toHaveBeenCalledWith(
+        'test-user-id',
+        updateUserDto,
+      );
       expect(result).toEqual(updatedUser);
     });
   });

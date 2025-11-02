@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import type { Request } from 'express';
 import { ERROR_MESSAGES } from '../constants/messages';
 
 @Injectable()
@@ -36,7 +37,11 @@ export class FileUploadService {
       limits: {
         fileSize: this.maxFileSize,
       },
-      fileFilter: (req, file, cb) => {
+      fileFilter: (
+        _req: Request,
+        file: Express.Multer.File,
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
         // Only allow image files
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
           cb(new BadRequestException(ERROR_MESSAGES.INVALID_FILE_TYPE), false);

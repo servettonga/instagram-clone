@@ -13,26 +13,6 @@ import PostViewModal from '@/components/modal/PostViewModal';
 import styles from './profile.module.scss';
 import { transformPostForModal } from '@/lib/utils';
 
-// Mock comments data for modal
-const MOCK_COMMENTS = [
-  {
-    id: 'comment-1',
-    username: 'user1',
-    avatarUrl: 'https://i.pravatar.cc/150?img=1',
-    text: 'Amazing post!',
-    timeAgo: '2h',
-    likes: 10,
-  },
-  {
-    id: 'comment-2',
-    username: 'user2',
-    avatarUrl: 'https://i.pravatar.cc/150?img=2',
-    text: 'Love this! 🔥',
-    timeAgo: '5h',
-    likes: 5,
-  },
-];
-
 export default function ProfilePage() {
   const params = useParams();
   const username = params.username as string;
@@ -107,9 +87,10 @@ export default function ProfilePage() {
     likes: post.likesCount,
     comments: post.commentsCount,
     hasMultipleImages: post.assets.length > 1 ? true : undefined,
+    isLiked: post.isLikedByCurrentUser,
   }));
 
-  const handlePostClick = (post: { id: string; imageUrl: string | null; likes: number; comments: number; hasMultipleImages?: boolean; }) => {
+  const handlePostClick = (post: { id: string; imageUrl: string | null; likes: number; comments: number; hasMultipleImages?: boolean; isLiked?: boolean; }) => {
     // Find the full post data and its index
     const postIndex = userPosts.findIndex(p => p.id === post.id);
     const fullPost = userPosts[postIndex];
@@ -138,11 +119,55 @@ export default function ProfilePage() {
     }
   };
 
-  const profileStats = {
+  const [profileStatsState, setProfileStatsState] = useState({
     posts: userPosts.length,
     followers: 0,
     following: 0,
-  };
+  });
+
+  // helper to get the actual userId (not profile id) required by follow API
+  const getUserIdForProfile = useCallback(() => {
+    if (isOwnProfile) return currentUser?.id || null;
+    return otherUserData?.id || null;
+  }, [isOwnProfile, currentUser?.id, otherUserData?.id]);
+
+  const loadProfileStats = useCallback(async () => {
+    const userId = getUserIdForProfile();
+    if (!userId) return;
+    try {
+      const followersRes = await (await import('@/lib/api/follow')).followAPI.getFollowers(userId, 1, 1);
+      const followingRes = await (await import('@/lib/api/follow')).followAPI.getFollowing(userId, 1, 1);
+      setProfileStatsState({ posts: userPosts.length, followers: followersRes.total ?? 0, following: followingRes.total ?? 0 });
+    } catch (err) {
+      console.error('Failed to load profile stats:', err);
+    }
+  }, [getUserIdForProfile, userPosts.length]);
+
+  // Load stats initially and when profile changes
+  useEffect(() => {
+    loadProfileStats();
+  }, [loadProfileStats]);
+
+  // Listen to global follow changes to refresh counts when someone follows/unfollows
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { targetUserId?: string; action?: 'follow' | 'unfollow' } | undefined;
+      const userId = getUserIdForProfile();
+      if (!userId) return;
+      if (!detail) return;
+      // If the event affects this profile, reload stats
+      if (detail.targetUserId === userId) {
+        loadProfileStats();
+      }
+      // If current user followed/unfollowed someone and we're viewing own profile, refresh following count
+      if (isOwnProfile && detail.action && (detail.action === 'follow' || detail.action === 'unfollow')) {
+        loadProfileStats();
+      }
+    };
+
+    window.addEventListener('follow:changed', handler as EventListener);
+    return () => window.removeEventListener('follow:changed', handler as EventListener);
+  }, [getUserIdForProfile, isOwnProfile, loadProfileStats]);
 
   // Display current user's profile if own profile, otherwise show other user's profile
   const displayProfile = profile || otherUserData?.profile || {
@@ -161,7 +186,7 @@ export default function ProfilePage() {
         <ProfileHeader
           profile={displayProfile}
           isOwnProfile={isOwnProfile}
-          stats={profileStats}
+          stats={{ ...profileStatsState, posts: userPosts.length }}
         />
 
         {/* Profile Grid Component */}
@@ -192,7 +217,7 @@ export default function ProfilePage() {
             setSelectedPost(null);
           }}
           onPostUpdated={() => loadUserPostsData(true, selectedPost)}
-          post={transformPostForModal(selectedPost, MOCK_COMMENTS)}
+          post={transformPostForModal(selectedPost)}
           onNextPost={userPosts.length > 1 ? handleNextPost : undefined}
           onPrevPost={userPosts.length > 1 ? handlePrevPost : undefined}
         />

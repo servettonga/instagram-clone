@@ -72,7 +72,12 @@ export interface UploadAssetResponseDto {
   id: string;
   fileName: string;
   filePath: string;
+  thumbnailPath?: string | null;
+  mediumPath?: string | null;
   fileType: string;
   fileSize: number;
+  aspectRatio?: string | null;
   url: string;
+  thumbnailUrl?: string | null;
+  mediumUrl?: string | null;
 }

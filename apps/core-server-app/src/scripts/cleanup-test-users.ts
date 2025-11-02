@@ -54,7 +54,7 @@ async function cleanupTestUsers(options: CleanupOptions = DEFAULT_OPTIONS) {
         },
         accounts: {
           some: {
-            OR: testEmailPatterns.map(pattern => ({
+            OR: testEmailPatterns.map((pattern) => ({
               email: {
                 startsWith: pattern.replace('%', ''),
               },
@@ -130,7 +130,6 @@ async function cleanupTestUsers(options: CleanupOptions = DEFAULT_OPTIONS) {
     console.log(`  - Successfully deleted: ${deletedCount}`);
     console.log(`  - Errors: ${errorCount}`);
     console.log('\n✓ Cleanup complete!');
-
   } catch (error) {
     console.error('Cleanup failed:', error);
     throw error;

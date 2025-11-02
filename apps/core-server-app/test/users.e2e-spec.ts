@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, ExecutionContext } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  ExecutionContext,
+} from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -329,12 +333,10 @@ describe('Users (e2e)', () => {
     });
 
     it('should return 409 when updating to existing username', async () => {
-      await request(app.getHttpServer())
-        .post('/api/users')
-        .send({
-          email: 'existing@example.com',
-          username: 'existing',
-        });
+      await request(app.getHttpServer()).post('/api/users').send({
+        email: 'existing@example.com',
+        username: 'existing',
+      });
 
       const response = await request(app.getHttpServer())
         .patch(`/api/users/${userId}`)
@@ -402,19 +404,15 @@ describe('Users (e2e)', () => {
 
   describe('GET /api/users', () => {
     it('should return array of users', async () => {
-      await request(app.getHttpServer())
-        .post('/api/users')
-        .send({
-          email: 'user1@example.com',
-          username: 'user1',
-        });
+      await request(app.getHttpServer()).post('/api/users').send({
+        email: 'user1@example.com',
+        username: 'user1',
+      });
 
-      await request(app.getHttpServer())
-        .post('/api/users')
-        .send({
-          email: 'user2@example.com',
-          username: 'user2',
-        });
+      await request(app.getHttpServer()).post('/api/users').send({
+        email: 'user2@example.com',
+        username: 'user2',
+      });
 
       const response = await request(app.getHttpServer())
         .get('/api/users')

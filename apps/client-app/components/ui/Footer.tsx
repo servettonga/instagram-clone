@@ -1,6 +1,5 @@
 // Reusable Footer component for profile and other pages
 
-import Link from 'next/link';
 import { ChevronDownIcon } from '@/components/ui/icons';
 import styles from './Footer.module.scss';
 

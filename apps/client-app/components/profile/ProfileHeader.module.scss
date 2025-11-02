@@ -5,22 +5,33 @@
 
 .profileHeader {
   display: flex;
-  gap: 90px;
+  flex-direction: column;
   margin-bottom: 44px;
   padding-left: 20px;
   padding-right: 20px;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.topSection {
+  display: flex;
+  gap: 90px;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 .avatarSection {
   flex-shrink: 0;
   padding-left: 70.83px;
+  width: 150px;
 }
 
 .avatarWrapper {
   width: 150px;
   height: 150px;
   position: relative;
-  background: #FAFAFA;
+  background: $color-surface;
   border-radius: 75px;
   overflow: hidden;
 }
@@ -28,27 +39,27 @@
 .avatar {
   border-radius: 75px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .avatarPlaceholder {
   width: 150px;
   height: 150px;
   border-radius: 75px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: $color-surface;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 64px;
   font-weight: 700;
-  color: white;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  color: $color-muted;
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .profileInfo {
   flex: 1;
   min-width: 0;
-  max-width: 613.33px;
+  max-width: 372px;
 }
 
 .profileActions {
@@ -62,35 +73,55 @@
 .username {
   font-size: 20px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 25px;
   margin: 0;
-  margin-right: 12px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  padding-left: 70.83px;
+  padding-right: 20px;
+  width: 100%;
+}
+
+.buttonLink {
+  flex: 1;
+  text-decoration: none;
+
+  button {
+    width: 100%;
+  }
 }
 
 .editButton,
+.archiveButton,
 .messageButton {
+  flex: 1;
   padding: 7px 16px;
-  background: #EFEFEF;
+  background: $color-surface;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  color: black;
+  color: $color-black;
   line-height: 18px;
   transition: background-color 0.2s;
 }
 
 .editButton:hover,
+.archiveButton:hover,
 .messageButton:hover {
-  background: #DBDBDB;
+  background: $color-muted-alt;
 }
 
 .followButton {
+  flex: 1;
   padding: 7px 16px;
-  background: var(--ig-blue);
-  color: white;
+  background: $color-primary;
+  color: $color-white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -101,14 +132,13 @@
 }
 
 .followButton:hover {
-  background: var(--ig-blue-hover);
+  background: $color-primary-contrast;
 }
 
 .profileStats {
   display: flex;
   gap: 40px;
   margin-bottom: 20px;
-  padding-right: 309.62px;
 }
 
 .statItem {
@@ -117,17 +147,30 @@
   align-items: baseline;
 }
 
+.statButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
 .statCount {
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 24px;
 }
 
 .statLabel {
   font-size: 16px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 24px;
 }
 
@@ -135,12 +178,14 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .displayName {
   font-size: 14px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   margin-bottom: 0;
 }
@@ -148,7 +193,7 @@
 .bioText {
   font-size: 14px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   margin-top: 0;
   white-space: pre-wrap;
@@ -157,7 +202,7 @@
 .bioLink {
   font-size: 14px;
   font-weight: 600;
-  color: #00376B;
+  color: $color-primary;
   line-height: 18px;
   text-decoration: none;
   margin-top: 0;
@@ -170,7 +215,7 @@
 .bioCategory {
   font-size: 13px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 18px;
   margin-top: 0;
 }

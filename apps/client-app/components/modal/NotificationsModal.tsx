@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import Avatar from '@/components/ui/Avatar';
 import Link from 'next/link';
 import { CloseIcon, AvatarPlaceholderIcon } from '@/components/ui/icons';
 import styles from './NotificationsModal.module.scss';
@@ -88,14 +89,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
             <h3 className={styles.sectionTitle}>Yesterday</h3>
             {NOTIFICATIONS.yesterday.map((notif) => (
               <Link key={notif.id} href={`/app/profile/${notif.username}`} className={styles.notificationItem} onClick={onClose}>
-                <Image
-                  src={notif.avatarUrl!}
-                  alt={notif.username}
-                  width={44}
-                  height={44}
-                  className={styles.avatar}
-                  unoptimized
-                />
+                <Avatar avatarUrl={notif.avatarUrl} username={notif.username} size="lg" unoptimized />
                 <div className={styles.notifContent}>
                   <span className={styles.username}>{notif.username}</span>
                   <span className={styles.action}> started following you. </span>
@@ -113,14 +107,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
               <div key={notif.id} className={styles.notificationItem}>
                 {notif.type === 'suggestion' && notif.avatarUrl && (
                   <Link href={`/app/profile/${notif.username}`} onClick={onClose}>
-                    <Image
-                      src={notif.avatarUrl}
-                      alt={notif.username!}
-                      width={44}
-                      height={44}
-                      className={styles.avatar}
-                      unoptimized
-                    />
+                    <Avatar avatarUrl={notif.avatarUrl} username={notif.username!} size="lg" unoptimized />
                   </Link>
                 )}
                 {!notif.avatarUrl && (

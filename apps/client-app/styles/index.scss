@@ -1,8 +1,22 @@
 // Main SCSS entry point - Use this in components that need SCSS features
 // For CSS Modules: @use '@/styles/index.scss' as *;
 
-@forward './variables';
+@forward './variables' hide
+	$color-text,
+	$color-muted,
+	$color-border,
+	$color-bg,
+	$color-white,
+	$color-black,
+	$color-primary,
+	$color-primary-contrast,
+	$color-error,
+	$color-success,
+	$shadow-sm,
+	$shadow-md,
+	$shadow-lg;
 @forward './mixins';
+@forward './tokens';
 
 // You can add global utility classes here if needed
 // But prefer CSS Modules for component-specific styles

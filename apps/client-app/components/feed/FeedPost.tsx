@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
+import { getImageSize } from '@/lib/utils/image';
 import {
   VerifiedBadge,
   MoreIcon,
@@ -16,6 +17,8 @@ import {
   NavPrevIcon,
   NavNextIcon,
 } from '@/components/ui/icons';
+import Avatar from '@/components/ui/Avatar';
+import ConfirmModal from '@/components/modal/ConfirmModal';
 import styles from './FeedPost.module.scss';
 
 interface FeedPostProps {
@@ -23,7 +26,7 @@ interface FeedPostProps {
     id: string;
     username: string;
     displayName: string;
-    avatarUrl: string;
+    avatarUrl?: string;
     isVerified: boolean;
     timeAgo: string;
     imageUrl: string;
@@ -33,13 +36,15 @@ interface FeedPostProps {
     commentsCount: number;
     aspectRatio?: string;
     profileId?: string;
+    isLikedByUser?: boolean;
   };
   onCommentClick: () => void;
   onPostDeleted?: () => void;
   onEditClick?: () => void;
+  onPostUpdated?: () => void;
 }
 
-export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditClick }: FeedPostProps) {
+export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditClick, onPostUpdated }: FeedPostProps) {
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -48,6 +53,11 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Like state
+  const [isLiked, setIsLiked] = useState(post.isLikedByUser || false);
+  const [likesCount, setLikesCount] = useState(post.likes);
+  const [isLiking, setIsLiking] = useState(false);
 
   // Get assets array (use imageUrl as fallback for single image)
   const images = post.assets && post.assets.length > 0 ? post.assets : [{ url: post.imageUrl }];
@@ -81,20 +91,39 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
     }
   };
 
+  const handleToggleLike = async () => {
+    if (isLiking) return;
+
+    setIsLiking(true);
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+
+    try {
+      const result = await postsAPI.toggleLike(post.id);
+      setIsLiked(result.liked);
+      setLikesCount(result.likesCount);
+      onPostUpdated?.(); // Notify parent to refresh if needed
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      // Revert optimistic update on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
   return (
     <article className={styles.post}>
       {/* Post Header */}
       <div className={styles.postHeader}>
         <div className={styles.postUser}>
           <div className={styles.avatarWrapper}>
-            <Image
-              src={post.avatarUrl}
-              alt={post.username}
-              width={32}
-              height={32}
-              className={styles.avatar}
-              unoptimized
-            />
+            {/* Avatar */}
+            <Avatar avatarUrl={post.avatarUrl} username={post.displayName || post.username} size="md" unoptimized />
           </div>
           <div className={styles.userInfo}>
             <div className={styles.usernameRow}>
@@ -125,7 +154,7 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
                   <button className={styles.menuItem} onClick={() => { setShowMenu(false); /* TODO: Archive functionality */ }}>
                     Archive
                   </button>
-                  <button className={styles.menuItem} style={{ color: '#ED4956' }} onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }} disabled={isDeleting}>
+                  <button className={styles.menuItem} style={{ color: 'var(--color-error)' }} onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }} disabled={isDeleting}>
                     Delete
                   </button>
                 </>
@@ -145,45 +174,37 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
       </div>
 
             {/* Delete Confirmation Dialog - Outside postHeader to avoid clipping */}
-      {showDeleteConfirm && (
-        <div className={styles.confirmationDialog}>
-          <div className={styles.confirmationContent}>
-            <h3 className={styles.confirmationTitle}>Delete Post?</h3>
-            <p className={styles.confirmationText}>This post will be deleted permanently.</p>
-            {deleteError && <div className={styles.errorMessage}>{deleteError}</div>}
-            <div className={styles.confirmationButtons}>
-              <button
-                className={styles.confirmCancelButton}
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.confirmDeleteButton}
-                onClick={handleDeletePost}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete confirmation using centralized ConfirmModal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Post?"
+        message={deleteError ? `${deleteError}` : 'This post will be deleted permanently.'}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        onConfirm={handleDeletePost}
+        onCancel={() => setShowDeleteConfirm(false)}
+        danger={true}
+      />
 
       {/* Post Image */}
       <div
         className={styles.postImageWrapper}
         style={{ aspectRatio: post.aspectRatio || '4/5' }}
       >
-        <Image
-          src={images[currentImageIndex]?.url || post.imageUrl}
-          alt={`Post by ${post.username}`}
-          fill
-          sizes="(max-width: 768px) 100vw, 468px"
-          className={styles.postImage}
-          unoptimized
-        />
+        {images[currentImageIndex]?.url ? (
+          <Image
+            src={getImageSize(images[currentImageIndex].url, 'medium')}
+            alt={`Post by ${post.username}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 468px"
+            className={styles.postImage}
+            unoptimized
+          />
+        ) : (
+          <div className={styles.imagePlaceholder}>
+            <span>Image not available</span>
+          </div>
+        )}
 
         {/* Navigation buttons for multiple images */}
         {hasMultipleImages && (
@@ -225,8 +246,12 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
       {/* Post Actions */}
       <div className={styles.postActions}>
         <div className={styles.actionsLeft}>
-          <button className={styles.actionButton}>
-            <HeartIcon />
+          <button
+            className={styles.actionButton}
+            onClick={handleToggleLike}
+            disabled={isLiking}
+          >
+            <HeartIcon filled={isLiked} fill={isLiked ? "var(--color-error)" : "currentColor"} />
           </button>
           <button className={styles.actionButton} onClick={onCommentClick}>
             <CommentIcon />
@@ -243,7 +268,7 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
       {/* Post Info */}
       <div className={styles.postInfo}>
         <div className={styles.likes}>
-          {post.likes.toLocaleString()} likes
+          {likesCount.toLocaleString()} {likesCount === 1 ? 'like' : 'likes'}
         </div>
         {post.caption && (
           <div className={styles.caption}>

@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
+import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
+import { getFollowersCountForUsername } from '@/lib/utils/profileCache';
+import { commentsAPI } from '@/lib/api/comments';
 import {
   CloseIcon,
   HeartIcon,
@@ -16,16 +18,9 @@ import {
   NavPrevIcon,
   NavNextIcon,
 } from '@/components/ui/icons';
+import ConfirmModal from '@/components/modal/ConfirmModal';
+import CommentsList from '@/components/feed/CommentsList';
 import styles from './PostViewModal.module.scss';
-
-interface Comment {
-  id: string;
-  username: string;
-  avatarUrl: string;
-  text: string;
-  timeAgo: string;
-  likes: number;
-}
 
 interface PostViewModalProps {
   isOpen: boolean;
@@ -34,16 +29,16 @@ interface PostViewModalProps {
     id: string;
     imageUrl?: string;
     username: string;
-    avatarUrl: string;
+      avatarUrl?: string;
     caption?: string;
     likes: number;
     timeAgo: string;
-    comments: Comment[];
     collaborators?: string[];
     assets?: Array<{ url: string }>;
     createdAt?: string;
     profileId?: string;
     aspectRatio?: string;
+    isLikedByUser?: boolean;
   };
   onPostDeleted?: () => void;
   onPostUpdated?: () => void;
@@ -76,6 +71,22 @@ export default function PostViewModal({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Comment state
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [commentsKey, setCommentsKey] = useState(0);
+
+  // Post like state
+  const [isLiked, setIsLiked] = useState(post.isLikedByUser || false);
+  const [likesCount, setLikesCount] = useState(post.likes);
+  const [isLiking, setIsLiking] = useState(false);
+  const initialLikeStateRef = useRef(post.isLikedByUser || false);
+  const likeStateChangedRef = useRef(false);
+  const previousUrlRef = useRef<string | null>(null);
+  const [followersCount, setFollowersCount] = useState<number | null>(null);
+
+
+
   // Reset states when post changes (when navigating between posts)
   useEffect(() => {
     setCurrentImageIndex(0);
@@ -87,7 +98,45 @@ export default function PostViewModal({
     setDeleteError(null);
     setSaveError(null);
     setSaveSuccess(false);
-  }, [post.id, post.caption, initialEditMode]);
+    setIsLiked(post.isLikedByUser || false);
+    setLikesCount(post.likes);
+    initialLikeStateRef.current = post.isLikedByUser || false;
+    likeStateChangedRef.current = false;
+    setFollowersCount(null);
+  }, [post.id, post.caption, initialEditMode, post.isLikedByUser, post.likes]);
+
+
+
+  // Load followers count for the post's author when modal opens or post changes (cached)
+  useEffect(() => {
+    let mounted = true;
+    const loadFollowers = async () => {
+      if (!isOpen || !post.username) return;
+      try {
+        const total = await getFollowersCountForUsername(post.username);
+        if (mounted) setFollowersCount(total);
+      } catch (error) {
+        console.error('Failed to load followers count (cached):', error);
+        if (mounted) setFollowersCount(null);
+      }
+    };
+
+    loadFollowers();
+
+    return () => { mounted = false; };
+  }, [isOpen, post.username]);
+
+  // Update URL when modal opens or post changes
+  useEffect(() => {
+    if (isOpen && post.id) {
+      // Store the current URL on first open
+      if (previousUrlRef.current === null) {
+        previousUrlRef.current = window.location.pathname + window.location.search;
+      }
+      // Update URL to the post URL
+      window.history.replaceState(null, '', `/app/post/${post.id}`);
+    }
+  }, [isOpen, post.id]);
 
   // Get all images from post
   const images = post.assets || (post.imageUrl ? [{ url: post.imageUrl }] : []);
@@ -134,10 +183,23 @@ export default function PostViewModal({
     ? editedCaption
     : editedCaption?.split('\n').slice(0, 10).join('\n') + (captionLineCount > 10 ? '...' : '');
 
+  const handleClose = useCallback(() => {
+    // Restore previous URL if it was stored
+    if (previousUrlRef.current !== null) {
+      window.history.replaceState(null, '', previousUrlRef.current);
+      previousUrlRef.current = null;
+    }
+    // If like state changed, notify parent to refresh
+    if (likeStateChangedRef.current && onPostUpdated) {
+      onPostUpdated();
+    }
+    onClose();
+  }, [onClose, onPostUpdated]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        handleClose();
       } else if (event.key === 'ArrowRight' && onNextPost) {
         onNextPost();
       } else if (event.key === 'ArrowLeft' && onPrevPost) {
@@ -154,7 +216,7 @@ export default function PostViewModal({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose, onNextPost, onPrevPost]);
+  }, [isOpen, handleClose, onNextPost, onPrevPost]);
 
   const handleDeletePost = async () => {
     setIsDeleting(true);
@@ -162,7 +224,7 @@ export default function PostViewModal({
       await postsAPI.deletePost(post.id);
       setShowDeleteConfirm(false);
       onPostDeleted?.();
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Failed to delete post:', error);
       setDeleteError('Failed to delete post. Please try again.');
@@ -196,10 +258,72 @@ export default function PostViewModal({
     setIsEditMode(false);
   };
 
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      await commentsAPI.createComment(post.id, {
+        content: commentText.trim(),
+      });
+      setCommentText('');
+      // Force CommentsList to refetch
+      setCommentsKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Failed to post comment:', error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleTogglePostLike = async () => {
+    if (isLiking) return;
+
+    setIsLiking(true);
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+
+    try {
+      const result = await postsAPI.toggleLike(post.id);
+      setIsLiked(result.liked);
+      setLikesCount(result.likesCount);
+      // Track that like state changed from initial
+      likeStateChangedRef.current = result.liked !== initialLikeStateRef.current;
+    } catch (error) {
+      console.error('Failed to toggle post like:', error);
+      // Revert optimistic update on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      likeStateChangedRef.current = previousLiked !== initialLikeStateRef.current;
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const formatTimeAgo = (date: Date | string) => {
+    const now = new Date();
+    const createdAt = new Date(date);
+    const seconds = Math.floor((now.getTime() - createdAt.getTime()) / 1000);
+
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d`;
+    const weeks = Math.floor(days / 7);
+    return `${weeks}w`;
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalBackdrop} onClick={onClose}>
+    <>
+    <div className={styles.modalBackdrop} onClick={handleClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         {/* Top navigation buttons */}
         {onPrevPost && (
@@ -208,8 +332,8 @@ export default function PostViewModal({
           </button>
         )}
 
-        <button className={styles.closeButton} onClick={onClose} aria-label="Close">
-          <CloseIcon width={18} height={18} stroke="white" />
+        <button className={styles.closeButton} onClick={handleClose} aria-label="Close">
+          <CloseIcon width={18} height={18} />
         </button>
 
         {onNextPost && (
@@ -237,36 +361,38 @@ export default function PostViewModal({
                 {/* Navigation Arrows - only show if multiple images */}
                 {images.length > 1 && (
                   <>
-                    <button
-                      className={styles.navPrev}
-                      aria-label="Previous"
-                      onClick={() => setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : images.length - 1))}
-                    >
-                      <NavPrevIcon width={24} height={24} />
-                    </button>
-                    <button
-                      className={styles.navNext}
-                      aria-label="Next"
-                      onClick={() => setCurrentImageIndex(prev => (prev < images.length - 1 ? prev + 1 : 0))}
-                    >
-                      <NavNextIcon width={24} height={24} />
-                    </button>
+                    {currentImageIndex > 0 && (
+                      <button
+                        className={styles.navPrev}
+                        aria-label="Previous"
+                        onClick={() => setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : images.length - 1))}
+                      >
+                        <NavPrevIcon width={24} height={24} />
+                      </button>
+                    )}
+                    {currentImageIndex < images.length - 1 && (
+                      <button
+                        className={styles.navNext}
+                        aria-label="Next"
+                        onClick={() => setCurrentImageIndex(prev => (prev < images.length - 1 ? prev + 1 : 0))}
+                      >
+                        <NavNextIcon width={24} height={24} />
+                      </button>
+                    )}
+
+                    {/* Carousel Indicators - moved inside imageWrapper */}
+                    <div className={styles.carouselIndicators}>
+                      {images.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`${styles.indicator} ${index === currentImageIndex ? styles.indicatorActive : ''}`}
+                        />
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
             </div>
-
-            {/* Carousel Indicators - only show if multiple images */}
-            {images.length > 1 && (
-              <div className={styles.carouselIndicators}>
-                {images.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`${styles.indicator} ${index === currentImageIndex ? styles.indicatorActive : ''}`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Info Section */}
@@ -275,26 +401,8 @@ export default function PostViewModal({
             <div className={styles.postHeader}>
               <div className={styles.userInfo}>
                 <Link href={`/app/profile/${post.username}`} className={styles.avatarStack} onClick={onClose}>
-                  <Image
-                    src={post.avatarUrl}
-                    alt={post.username}
-                    width={24}
-                    height={24}
-                    className={styles.avatar}
-                    unoptimized
-                  />
-                  {post.collaborators && post.collaborators.length > 0 && (
-                    <div className={styles.collaboratorAvatar}>
-                      <Image
-                        src="https://i.pravatar.cc/150?img=50"
-                        alt="Collaborator"
-                        width={24}
-                        height={24}
-                        className={styles.avatar}
-                        unoptimized
-                      />
-                    </div>
-                  )}
+                  <Avatar avatarUrl={post.avatarUrl} username={post.username} size="md" unoptimized />
+                  {/* TODO: Add collaborators support when API is ready */}
                 </Link>
                 <div className={styles.userDetails}>
                   <div className={styles.usernameRow}>
@@ -310,7 +418,7 @@ export default function PostViewModal({
                       </>
                     )}
                   </div>
-                  <div className={styles.followersCount}>2073</div>
+                  <div className={styles.followersCount}>{followersCount !== null ? followersCount.toLocaleString() + ' Followers' : ''}</div>
                 </div>
               </div>
               <button className={styles.moreButton} onClick={() => setShowMenu(!showMenu)}>
@@ -335,7 +443,7 @@ export default function PostViewModal({
                       <button className={styles.menuItem} onClick={() => { setShowMenu(false); /* TODO: implement archive */ }}>
                         Archive
                       </button>
-                      <button className={styles.menuItem} style={{ color: '#ED4956' }} onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }} disabled={isDeleting}>
+                      <button className={styles.menuItem} style={{ color: 'var(--color-error)' }} onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }} disabled={isDeleting}>
                         Delete
                       </button>
                     </>
@@ -385,44 +493,22 @@ export default function PostViewModal({
                 </div>
               ) : (
                 <>
-                  {/* Delete Confirmation Dialog */}
-                  {showDeleteConfirm && (
-                    <div className={styles.confirmationDialog}>
-                      <div className={styles.confirmationContent}>
-                        <h3 className={styles.confirmationTitle}>Delete Post?</h3>
-                        <p className={styles.confirmationText}>This post will be deleted permanently.</p>
-                        {deleteError && <div className={styles.errorMessage}>{deleteError}</div>}
-                        <div className={styles.confirmationButtons}>
-                          <button
-                            className={styles.confirmCancelButton}
-                            onClick={() => setShowDeleteConfirm(false)}
-                            disabled={isDeleting}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            className={styles.confirmDeleteButton}
-                            onClick={handleDeletePost}
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? 'Deleting...' : 'Delete'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Delete confirmation using site-wide ConfirmModal */}
+                  <ConfirmModal
+                    isOpen={showDeleteConfirm}
+                    title="Delete Post?"
+                    message={deleteError ? `${deleteError}` : 'This post will be deleted permanently.'}
+                    confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+                    cancelLabel="Cancel"
+                    onConfirm={handleDeletePost}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                    danger={true}
+                  />
 
                   {/* Original Post Caption */}
                   <div className={styles.comment}>
                     <Link href={`/app/profile/${post.username}`} onClick={onClose}>
-                      <Image
-                        src={post.avatarUrl}
-                        alt={post.username}
-                        width={32}
-                        height={32}
-                        className={styles.commentAvatar}
-                        unoptimized
-                      />
+                      <Avatar avatarUrl={post.avatarUrl} username={post.username} size="md" unoptimized />
                     </Link>
                     <div className={styles.commentContent}>
                       <div className={styles.commentText}>
@@ -450,50 +536,27 @@ export default function PostViewModal({
               )}
 
               {/* Comments */}
-              {post.comments.map((comment) => (
-                <div key={comment.id} className={styles.comment}>
-                  <Link href={`/app/profile/${comment.username}`} onClick={onClose}>
-                    <Image
-                      src={comment.avatarUrl}
-                      alt={comment.username}
-                      width={32}
-                      height={32}
-                      className={styles.commentAvatar}
-                      unoptimized
-                    />
-                  </Link>
-                  <div className={styles.commentContent}>
-                    <div className={styles.commentText}>
-                      <Link href={`/app/profile/${comment.username}`} className={styles.commentUsernameLink} onClick={onClose}>
-                        {comment.username}
-                      </Link>
-                      {' '}
-                      {comment.text}
-                    </div>
-                    <div className={styles.commentMeta}>
-                      <span className={styles.timeAgo}>{comment.timeAgo}</span>
-                      <span className={styles.likes}>{comment.likes} like{comment.likes !== 1 ? 's' : ''}</span>
-                      <button className={styles.replyButton}>Reply</button>
-                    </div>
-                  </div>
-                  <button className={styles.likeButton}>
-                    <div className={styles.svgWrapper}>
-                      <div className={styles.svgWrapperInner}>
-                        <HeartIcon width={13} height={13} />
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              ))}
+              <CommentsList
+                key={commentsKey}
+                postId={post.id}
+                currentUserId={currentUser?.profile?.id}
+                isOpen={isOpen}
+                formatTimeAgo={formatTimeAgo}
+                onCloseModal={onClose}
+              />
             </div>
 
             {/* Actions */}
             <div className={styles.postActions}>
               <div className={styles.actionsRow}>
-                <button className={styles.actionButton}>
+                <button
+                  className={styles.actionButton}
+                  onClick={handleTogglePostLike}
+                  disabled={isLiking}
+                >
                   <div className={styles.svgWrapper}>
                     <div className={styles.svgWrapperInner}>
-                      <HeartIcon width={25} height={25} />
+                      <HeartIcon width={25} height={25} filled={isLiked} fill={isLiked ? "var(--color-error)" : "currentColor"} />
                     </div>
                   </div>
                 </button>
@@ -514,17 +577,11 @@ export default function PostViewModal({
               </div>
 
               <div className={styles.likesSection}>
-                <Image
-                  src="https://i.pravatar.cc/150?img=50"
-                  alt="Liker"
-                  width={20}
-                  height={20}
-                  className={styles.likerAvatar}
-                  unoptimized
-                />
-                <div className={styles.likesText}>
-                  Liked by <Link href="/app/profile/openaidalle" className={styles.bold} onClick={onClose}>openaidalle</Link> and <span className={styles.bold}>1,000 others</span>
-                </div>
+                {likesCount > 0 && (
+                  <div className={styles.likesText}>
+                    <span className={styles.bold}>{likesCount.toLocaleString()} {likesCount === 1 ? 'like' : 'likes'}</span>
+                  </div>
+                )}
               </div>
 
               <div className={styles.postTime}>{post.timeAgo}</div>
@@ -542,12 +599,29 @@ export default function PostViewModal({
                 type="text"
                 placeholder="Add a comment…"
                 className={styles.commentInput}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmitComment();
+                  }
+                }}
+                disabled={isSubmittingComment}
               />
-              <button className={styles.postButton}>Post</button>
+              <button
+                className={styles.postButton}
+                onClick={handleSubmitComment}
+                disabled={!commentText.trim() || isSubmittingComment}
+              >
+                {isSubmittingComment ? 'Posting...' : 'Post'}
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    </>
   );
 }

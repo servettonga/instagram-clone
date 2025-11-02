@@ -7,10 +7,10 @@
   left: 244px;
   width: 397px;
   height: 100vh;
-  background: white;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  background: $color-white;
+  box-shadow: 4px 0 24px rgba($color-black, 0.15);
   z-index: 200;
-  border-right: 1px solid $ig-border;
+  border-right: 1px solid $color-border;
   border-top-right-radius: 16px;
   border-bottom-right-radius: 16px;
   overflow-y: auto;
@@ -35,7 +35,7 @@
 .title {
   font-size: 24px;
   font-weight: 700;
-  color: $ig-text-primary;
+  color: $color-text;
 }
 
 .closeButton {
@@ -43,7 +43,7 @@
   border: none;
   padding: 8px;
   cursor: pointer;
-  color: $ig-text-secondary;
+  color: $color-muted;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,7 +52,7 @@
 }
 
 .closeButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba($color-black, 0.05);
 }
 
 .content {
@@ -62,7 +62,7 @@
 
 .section {
   padding: 24px 0;
-  border-top: 1px solid $ig-border;
+  border-top: 1px solid $color-border;
 }
 
 .section:first-child {
@@ -72,7 +72,7 @@
 .sectionTitle {
   font-size: 16px;
   font-weight: 700;
-  color: $ig-text-primary;
+  color: $color-text;
   padding: 0 24px 16px;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .notificationItem:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba($color-black, 0.02);
 }
 
 .avatar {
@@ -101,7 +101,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #C4C4C4;
+  background: $color-surface;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -131,12 +131,12 @@
 
 .username {
   font-weight: 600;
-  color: $ig-text-primary;
+  color: $color-text;
 }
 
 .usernameLink {
   font-weight: 600;
-  color: $ig-text-primary;
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -146,21 +146,21 @@
 }
 
 .action {
-  color: $ig-text-primary;
+  color: $color-text;
 }
 
 .time {
-  color: $ig-text-secondary;
+  color: $color-muted;
 }
 
 .bold {
   font-weight: 700;
-  color: $ig-text-primary;
+  color: $color-text;
 }
 
 .followButton {
   padding: 7px 20px;
-  background: $ig-blue;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;
@@ -172,7 +172,7 @@
 }
 
 .followButton:hover {
-  background: var(--ig-blue-hover);
+  background: $color-primary-contrast;
 }
 
 .postThumbnail {

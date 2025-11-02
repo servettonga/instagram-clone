@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FAFAFA;
+  background-color: $color-bg;
 }
 
 .loadingContent {
@@ -18,8 +18,8 @@
   width: 3rem;
   height: 3rem;
   margin: 0 auto 1rem;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: var(--ig-blue);
+  border: 2px solid rgba($color-black, 0.1);
+  border-top-color: $color-primary;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -29,6 +29,6 @@
 }
 
 .loadingText {
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   font-size: 14px;
 }

@@ -13,7 +13,7 @@ export interface FeedPost {
   id: string;
   username: string;
   displayName: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   isVerified: boolean;
   timeAgo: string;
   imageUrl: string;
@@ -23,6 +23,7 @@ export interface FeedPost {
   commentsCount: number;
   aspectRatio: string;
   profileId?: string;
+  isLikedByUser?: boolean;
 }
 
 /**
@@ -42,7 +43,7 @@ export function transformPostToFeedPost(post: Post): FeedPost {
     id: post.id,
     username: post.profile.username,
     displayName: post.profile.displayName,
-    avatarUrl: post.profile.avatarUrl || '',
+    avatarUrl: post.profile.avatarUrl ?? undefined,
     isVerified: false, // TODO: Implement verification logic
     timeAgo: getTimeAgo(post.createdAt),
     imageUrl: post.assets[0]?.url || '',
@@ -52,6 +53,7 @@ export function transformPostToFeedPost(post: Post): FeedPost {
     commentsCount: post.commentsCount,
     aspectRatio: (post.aspectRatio || '4:5').replace(':', '/'),
     profileId: post.profileId,
+    isLikedByUser: post.isLikedByCurrentUser,
   };
 }
 
@@ -71,20 +73,9 @@ export function transformPostsToFeedPosts(posts: Post[]): FeedPost[] {
  * This creates a consistent interface for the modal regardless of source (feed, profile, explore)
  *
  * @param post - Raw Post from API or FeedPost
- * @param mockComments - Array of comment objects (temporary until API is ready)
  * @returns Formatted post object for PostViewModal
  */
-export function transformPostForModal(
-  post: Post | FeedPost,
-  mockComments: Array<{
-    id: string;
-    username: string;
-    avatarUrl: string;
-    text: string;
-    timeAgo: string;
-    likes: number;
-  }>
-) {
+export function transformPostForModal(post: Post | FeedPost) {
   // If it's already a FeedPost, use the pre-formatted data
   if ('displayName' in post) {
     return {
@@ -92,13 +83,13 @@ export function transformPostForModal(
       imageUrl: post.imageUrl,
       assets: post.assets,
       username: post.username,
-      avatarUrl: post.avatarUrl || 'https://i.pravatar.cc/150?u=' + post.username,
+    avatarUrl: post.avatarUrl || '',
       caption: post.caption || undefined,
       likes: post.likes,
       timeAgo: post.timeAgo,
-      comments: mockComments,
       profileId: post.profileId,
       aspectRatio: post.aspectRatio,
+      isLikedByUser: post.isLikedByUser,
     };
   }
 
@@ -108,13 +99,13 @@ export function transformPostForModal(
     imageUrl: post.assets[0]?.url || '',
     assets: post.assets,
     username: post.profile.username,
-    avatarUrl: post.profile.avatarUrl || 'https://i.pravatar.cc/150?u=' + post.profile.username,
+    avatarUrl: post.profile.avatarUrl ?? undefined,
     caption: post.content || undefined,
     likes: post.likesCount,
     timeAgo: getTimeAgo(post.createdAt),
-    comments: mockComments,
     profileId: post.profileId,
     createdAt: post.createdAt,
     aspectRatio: (post.aspectRatio || '4:5').replace(':', '/'),
+    isLikedByUser: post.isLikedByCurrentUser,
   };
 }

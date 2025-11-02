@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { of, throwError } from 'rxjs';
 import { AxiosError, AxiosResponse } from 'axios';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { LoginCredentials } from '@repo/shared-types';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -131,7 +132,10 @@ describe('AuthService', () => {
 
   describe('handleLogin', () => {
     it('should forward login request to Auth Service', async () => {
-      const credentials = { email: 'test@example.com', password: 'password123' };
+      const credentials: LoginCredentials = {
+        identifier: 'test@example.com',
+        password: 'password123',
+      };
 
       const mockResponse: AxiosResponse = {
         data: {
@@ -156,7 +160,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException on invalid credentials', async () => {
-      const credentials = { email: 'test@example.com', password: 'wrong' };
+      const credentials = { identifier: 'test@example.com', password: 'wrong' };
 
       const mockError: Partial<AxiosError> = {
         response: {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
 import styles from './privacy.module.scss';
+import ConfirmModal from '@/components/modal/ConfirmModal';
 
 export default function PrivacySettingsPage() {
   const { user, logout } = useAuthStore();
@@ -96,62 +97,42 @@ export default function PrivacySettingsPage() {
         </button>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className={styles.modalOverlay} onClick={() => !isDeleting && setShowDeleteModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2 className={styles.modalTitle}>Delete Account</h2>
-            <p className={styles.modalText}>
-              Are you absolutely sure? This action <strong>cannot be undone</strong>.
-              This will permanently delete your account, all your posts, comments,
-              and profile data.
-            </p>
-
-            <div className={styles.modalWarning}>
-              <strong>⚠️ Warning:</strong> All your content will be permanently
-              deleted and cannot be recovered.
-            </div>
-
-            <div className={styles.modalForm}>
-              <label className={styles.modalLabel}>
-                Type <strong>{user?.profile?.username}</strong> to confirm:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmation}
-                onChange={(e) => {
-                  setDeleteConfirmation(e.target.value);
-                  setDeleteError(null);
-                }}
-                className={styles.modalInput}
-                placeholder={user?.profile?.username}
-                disabled={isDeleting}
-                autoFocus
-              />
-              {deleteError && (
-                <p className={styles.modalError}>{deleteError}</p>
-              )}
-            </div>
-
-            <div className={styles.modalActions}>
-              <button
-                className={styles.modalCancelButton}
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.modalDeleteButton}
-                onClick={handleDeleteAccount}
-                disabled={isDeleting || deleteConfirmation !== user?.profile?.username}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Account'}
-              </button>
-            </div>
-          </div>
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Account"
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete Account'}
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+        danger={true}
+        confirmDisabled={isDeleting || deleteConfirmation !== user?.profile?.username}
+      >
+        <div className={styles.modalWarning}>
+          <strong>⚠️ Warning:</strong> All your content will be permanently
+          deleted and cannot be recovered.
         </div>
-      )}
+
+        <div className={styles.modalForm}>
+          <label className={styles.modalLabel}>
+            Type <strong>{user?.profile?.username}</strong> to confirm:
+          </label>
+          <input
+            type="text"
+            value={deleteConfirmation}
+            onChange={(e) => {
+              setDeleteConfirmation(e.target.value);
+              setDeleteError(null);
+            }}
+            className={styles.modalInput}
+            placeholder={user?.profile?.username}
+            disabled={isDeleting}
+            autoFocus
+          />
+          {deleteError && (
+            <p className={styles.modalError}>{deleteError}</p>
+          )}
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

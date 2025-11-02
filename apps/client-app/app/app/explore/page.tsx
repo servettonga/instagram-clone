@@ -6,30 +6,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { postsAPI } from '@/lib/api/posts';
 import { transformPostForModal } from '@/lib/utils';
+import { getImageSize } from '@/lib/utils/image';
 import PostViewModal from '@/components/modal/PostViewModal';
 import { HeartIcon, CommentIcon, MultiImageIcon } from '@/components/ui/icons';
 import type { Post } from '@repo/shared-types';
 import styles from './explore.module.scss';
-
-// Mock comments data (temporary until real API is ready)
-const MOCK_COMMENTS = [
-  {
-    id: '1',
-    username: 'johndoe',
-    avatarUrl: 'https://i.pravatar.cc/150?u=johndoe',
-    text: 'Amazing photo! 🔥',
-    timeAgo: '2h',
-    likes: 15,
-  },
-  {
-    id: '2',
-    username: 'jane_smith',
-    avatarUrl: 'https://i.pravatar.cc/150?u=jane_smith',
-    text: 'Love this content!',
-    timeAgo: '5h',
-    likes: 8,
-  },
-];
 
 export default function ExplorePage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -82,7 +63,7 @@ export default function ExplorePage() {
             }}
           >
             <Image
-              src={post.assets[0]?.url || 'https://picsum.photos/293/293'}
+              src={getImageSize(post.assets[0]?.url || 'https://picsum.photos/293/293', 'medium')}
               alt="Explore post"
               fill
               sizes="(max-width: 768px) 33vw, 293px"
@@ -117,7 +98,7 @@ export default function ExplorePage() {
             setShowPostModal(false);
             setSelectedPost(null);
           }}
-          post={transformPostForModal(selectedPost, MOCK_COMMENTS)}
+          post={transformPostForModal(selectedPost)}
           onPostUpdated={() => loadPosts()}
         />
       )}

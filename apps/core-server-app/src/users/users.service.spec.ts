@@ -219,7 +219,9 @@ describe('UsersService', () => {
         profile: mockProfile,
         accounts: [mockAccount],
       };
-      mockPrismaService.user.findUnique.mockResolvedValue(mockUserWithRelations);
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        mockUserWithRelations,
+      );
 
       const result = await service.findOne('test-user-id');
 
@@ -317,7 +319,9 @@ describe('UsersService', () => {
         profile: { ...mockProfile, ...updateUserDto },
         accounts: [mockAccount],
       };
-      mockPrismaService.user.findUnique.mockResolvedValue(mockUserWithRelations);
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        mockUserWithRelations,
+      );
 
       const result = await service.update('test-user-id', updateUserDto);
 
@@ -353,11 +357,16 @@ describe('UsersService', () => {
   describe('remove', () => {
     it('should soft delete a user successfully', async () => {
       // Mock the update operations to return objects
-      mockPrismaService.user.update.mockReturnValue({ id: 'test-user-id', disabled: true });
+      mockPrismaService.user.update.mockReturnValue({
+        id: 'test-user-id',
+        disabled: true,
+      });
       mockPrismaService.profile.updateMany.mockReturnValue({ count: 1 });
 
       // Mock the transaction to just return the operations array
-      mockPrismaService.$transaction.mockImplementation((ops) => Promise.resolve(ops));
+      mockPrismaService.$transaction.mockImplementation((ops) =>
+        Promise.resolve(ops),
+      );
 
       await service.remove('test-user-id');
 
@@ -366,7 +375,7 @@ describe('UsersService', () => {
         expect.arrayContaining([
           expect.any(Object), // User update operation
           expect.any(Object), // Profile update operation
-        ])
+        ]),
       );
     });
 

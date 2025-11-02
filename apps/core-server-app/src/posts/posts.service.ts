@@ -440,4 +440,139 @@ export class PostsService {
       currentUserId,
     );
   }
+
+  /**
+   * Toggle like on a post (like if not liked, unlike if already liked)
+   */
+  async toggleLike(postId: string, userId: string, profileId: string) {
+    // Verify post exists
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, isArchived: true },
+    });
+
+    if (!post || post.isArchived) {
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+    }
+
+    // Verify profile exists and belongs to user
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { id: true, userId: true, deleted: true },
+    });
+
+    if (!profile || profile.deleted || profile.userId !== userId) {
+      throw new ForbiddenException(ERROR_MESSAGES.NOT_RESOURCE_OWNER);
+    }
+
+    // Check if already liked
+    const existingLike = await this.prisma.postLike.findUnique({
+      where: {
+        postId_profileId: {
+          postId,
+          profileId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      // Unlike: delete the like
+      await this.prisma.postLike.delete({
+        where: {
+          postId_profileId: {
+            postId,
+            profileId,
+          },
+        },
+      });
+
+      // Get updated count
+      const likesCount = await this.prisma.postLike.count({
+        where: { postId },
+      });
+
+      return {
+        liked: false,
+        likesCount,
+      };
+    } else {
+      // Like: create new like
+      await this.prisma.postLike.create({
+        data: {
+          postId,
+          profileId,
+          createdBy: userId,
+        },
+      });
+
+      // Get updated count
+      const likesCount = await this.prisma.postLike.count({
+        where: { postId },
+      });
+
+      return {
+        liked: true,
+        likesCount,
+      };
+    }
+  }
+
+  /**
+   * Get users who liked a post
+   */
+  async getPostLikes(
+    postId: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Verify post exists
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+    }
+
+    const [likes, total] = await Promise.all([
+      this.prisma.postLike.findMany({
+        where: { postId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          profile: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              bio: true,
+            },
+          },
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.postLike.count({ where: { postId } }),
+    ]);
+
+    return {
+      likes: likes.map((like) => ({
+        id: like.id,
+        profile: like.profile,
+        createdAt: like.createdAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

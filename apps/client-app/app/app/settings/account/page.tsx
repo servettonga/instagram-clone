@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
 import styles from './account.module.scss';
@@ -226,20 +226,12 @@ export default function AccountSettingsPage() {
                 <div className={styles.formInputWrapper}>
                   <div className={styles.profilePhotoSection}>
                     <div className={styles.avatarWrapper}>
-                      {avatarPreview || profile?.avatarUrl ? (
-                        <Image
-                          src={avatarPreview || profile?.avatarUrl || ''}
-                          alt={profile?.username || 'User avatar'}
-                          width={38}
-                          height={38}
-                          className={styles.avatar}
-                          unoptimized
-                        />
-                      ) : (
-                        <div className={styles.avatarPlaceholder}>
-                          {profile?.displayName?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                      )}
+                      <Avatar
+                        avatarUrl={avatarPreview ?? profile?.avatarUrl ?? undefined}
+                        username={profile?.displayName || profile?.username}
+                        size="md"
+                        unoptimized
+                      />
                     </div>
                     <div className={styles.profilePhotoInfo}>
                       <div className={styles.currentUsername}>{profile?.username}</div>

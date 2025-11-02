@@ -15,16 +15,16 @@
   padding: $spacing-sm;
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: $ig-text-secondary;
+  color: $color-muted;
   cursor: pointer;
   transition: all $transition-normal;
   position: relative;
 
   &:hover {
-    color: $ig-text-primary;
+    color: $color-text;
   }
 
   &Active {
-    color: $ig-text-primary;
+    color: $color-text;
   }
 }

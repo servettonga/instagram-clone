@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { GridIcon, ReelsIcon, BookmarkSimpleIcon, UserTagIcon, HeartIcon, CommentIcon, MultiImageIcon } from '@/components/ui/icons';
+import { getImageSize } from '@/lib/utils/image';
 import styles from './ProfileGrid.module.scss';
 
 interface Post {
@@ -10,6 +11,7 @@ interface Post {
   likes: number;
   comments: number;
   hasMultipleImages?: boolean;
+  isLiked?: boolean;
 }
 
 interface ProfileGridProps {
@@ -53,7 +55,7 @@ export default function ProfileGrid({ posts, onPostClick }: ProfileGridProps) {
                 {post.imageUrl && (
                   <>
                     <Image
-                      src={post.imageUrl}
+                      src={getImageSize(post.imageUrl, 'medium')}
                       alt="Post"
                       fill
                       sizes="309px"
@@ -68,11 +70,16 @@ export default function ProfileGrid({ posts, onPostClick }: ProfileGridProps) {
                     <div className={styles.overlay}>
                       <div className={styles.stats}>
                         <span>
-                          <HeartIcon width={20} height={20} fill="white" filled/>
+                          <HeartIcon
+                              width={20}
+                              height={20}
+                              fill={post.isLiked ? "var(--color-error)" : "var(--color-white)"}
+                              filled
+                            />
                           {post.likes.toLocaleString()}
                         </span>
                         <span>
-                          <CommentIcon width={20} height={20} fill="white" filled />
+                          <CommentIcon width={20} height={20} fill="var(--color-white)" filled />
                           {post.comments.toLocaleString()}
                         </span>
                       </div>

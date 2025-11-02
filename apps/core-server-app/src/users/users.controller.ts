@@ -13,6 +13,7 @@ import {
   UploadedFile,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -29,11 +30,18 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUsersDto } from './dto/search-users.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { SuggestionsQueryDto } from './dto/suggestions-query.dto';
+import { FollowResponseDto } from './dto/follow-response.dto';
+import { FollowersListDto } from './dto/follower.dto';
+import { FollowingListDto } from './dto/following.dto';
+import { FollowRequestsListDto } from './dto/follow-requests.dto';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { ERROR_MESSAGES, HTTP_MESSAGES } from '../common/constants/messages';
 import { AccessGuard } from '../auth/guards/access.guard';
 import { OwnershipGuard } from '../common/guards/ownership.guard';
 import { Public } from '../auth/decorators/public.decorator';
+import type { AuthenticatedRequest } from '@repo/shared-types';
 
 @ApiTags('Users')
 @Controller('users')
@@ -251,5 +259,247 @@ export class UsersController {
   @ApiResponse({ status: 400, description: ERROR_MESSAGES.INVALID_UUID_FORMAT })
   remove(@Param('id', UuidValidationPipe) id: string) {
     return this.usersService.remove(id);
+  }
+
+  // Follow/Unfollow Endpoints
+
+  @Post(':id/follow')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Follow a user',
+    description:
+      'Follow a user. If the user has a private profile, a follow request will be sent.',
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID to follow' })
+  @ApiResponse({
+    status: 201,
+    description: 'Successfully followed user or sent follow request',
+    type: FollowResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Cannot follow yourself' })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({
+    status: 404,
+    description: ERROR_MESSAGES.USER_NOT_FOUND(':id'),
+  })
+  @ApiResponse({ status: 409, description: 'Already following this user' })
+  async followUser(
+    @Param('id', UuidValidationPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const currentUserId = req.user?.id || '';
+    return this.usersService.followUser(currentUserId, id);
+  }
+
+  @Delete(':id/follow')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Unfollow a user',
+    description: 'Unfollow a user or cancel a pending follow request.',
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID to unfollow' })
+  @ApiResponse({ status: 204, description: 'Successfully unfollowed user' })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({
+    status: 404,
+    description: 'User or follow relationship not found',
+  })
+  async unfollowUser(
+    @Param('id', UuidValidationPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const currentUserId = req.user?.id || '';
+    await this.usersService.unfollowUser(currentUserId, id);
+  }
+
+  @Get(':id/followers')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get user followers',
+    description: 'Get a list of users following this user.',
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved followers',
+    type: FollowersListDto,
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({
+    status: 404,
+    description: ERROR_MESSAGES.USER_NOT_FOUND(':id'),
+  })
+  async getFollowers(
+    @Param('id', UuidValidationPipe) id: string,
+    @Query() paginationDto: PaginationQueryDto,
+  ) {
+    return this.usersService.getFollowers(id, {
+      page: paginationDto.page,
+      limit: paginationDto.limit,
+    });
+  }
+
+  @Get(':id/following')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get users this user is following',
+    description: 'Get a list of users that this user follows.',
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved following list',
+    type: FollowingListDto,
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({
+    status: 404,
+    description: ERROR_MESSAGES.USER_NOT_FOUND(':id'),
+  })
+  async getFollowing(
+    @Param('id', UuidValidationPipe) id: string,
+    @Query() paginationDto: PaginationQueryDto,
+  ) {
+    return this.usersService.getFollowing(id, {
+      page: paginationDto.page,
+      limit: paginationDto.limit,
+    });
+  }
+
+  @Get(':id/is-following/:targetId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Check if user is following another user',
+    description: 'Check if user A is following user B.',
+  })
+  @ApiParam({ name: 'id', type: 'string', description: 'Follower user ID' })
+  @ApiParam({
+    name: 'targetId',
+    type: 'string',
+    description: 'Followed user ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns follow status',
+    schema: {
+      type: 'object',
+      properties: {
+        isFollowing: { type: 'boolean' },
+        isPending: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  async isFollowing(
+    @Param('id', UuidValidationPipe) id: string,
+    @Param('targetId', UuidValidationPipe) targetId: string,
+  ) {
+    return this.usersService.isFollowing(id, targetId);
+  }
+
+  /**
+   * GET /api/users/me/suggestions
+   * Returns suggested users for the authenticated user.
+   * Query params:
+   * - type: one of 'popular_followers' | 'friends_of_following' | 'most_followers'
+   * - limit: number of suggestions to return (max 100)
+   */
+  @Get('me/suggestions')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get suggested users',
+    description:
+      'Get suggested users for the authenticated user based on several strategies',
+  })
+  @ApiResponse({ status: 200, description: 'Suggested users' })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  getSuggestions(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: SuggestionsQueryDto,
+  ) {
+    const currentUserId = req.user?.id || '';
+    return this.usersService.getSuggestions(currentUserId, {
+      type: query.type,
+      limit: query.limit,
+    });
+  }
+
+  // Follow Requests Endpoints
+
+  @Get('me/follow-requests')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get pending follow requests',
+    description:
+      'Get all pending follow requests for the authenticated user (people who want to follow them).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved follow requests',
+    type: FollowRequestsListDto,
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  async getFollowRequests(
+    @Req() req: AuthenticatedRequest,
+    @Query() paginationDto: PaginationQueryDto,
+  ) {
+    const currentUserId = req.user?.id || '';
+    return this.usersService.getFollowRequests(currentUserId, {
+      page: paginationDto.page,
+      limit: paginationDto.limit,
+    });
+  }
+
+  @Post('me/follow-requests/:userId/approve')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Approve a follow request',
+    description: 'Approve a pending follow request from another user.',
+  })
+  @ApiParam({
+    name: 'userId',
+    type: 'string',
+    description: 'User ID of the follower',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Successfully approved follow request',
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({ status: 404, description: 'Follow request not found' })
+  async approveFollowRequest(
+    @Param('userId', UuidValidationPipe) userId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const currentUserId = req.user?.id || '';
+    await this.usersService.approveFollowRequest(currentUserId, userId);
+  }
+
+  @Post('me/follow-requests/:userId/reject')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Reject a follow request',
+    description: 'Reject a pending follow request from another user.',
+  })
+  @ApiParam({
+    name: 'userId',
+    type: 'string',
+    description: 'User ID of the follower',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Successfully rejected follow request',
+  })
+  @ApiResponse({ status: 401, description: ERROR_MESSAGES.UNAUTHORIZED })
+  @ApiResponse({ status: 404, description: 'Follow request not found' })
+  async rejectFollowRequest(
+    @Param('userId', UuidValidationPipe) userId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const currentUserId = req.user?.id || '';
+    await this.usersService.rejectFollowRequest(currentUserId, userId);
   }
 }

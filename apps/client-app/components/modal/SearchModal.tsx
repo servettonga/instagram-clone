@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CloseIcon, VerifiedBadge } from '@/components/ui/icons';
+import { CloseIcon, VerifiedBadge, SearchIcon } from '@/components/ui/icons';
+import Avatar from '@/components/ui/Avatar';
+import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
 import { postsAPI } from '@/lib/api/posts';
 import type { UserWithProfileAndAccount } from '@/types/auth';
@@ -33,6 +35,8 @@ interface Pagination {
 }
 
 export default function SearchModal({ isOpen, onClose, isCollapsed = false }: SearchModalProps) {
+  const { user } = useAuthStore();
+  const userId = user?.id;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTab>('accounts');
   const [userResults, setUserResults] = useState<UserWithProfileAndAccount[]>([]);
@@ -48,9 +52,9 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
   // Load recent searches on mount
   useEffect(() => {
     if (isOpen) {
-      setRecentSearches(getRecentSearches());
+      setRecentSearches(getRecentSearches(userId));
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   // Perform search with debounce
   useEffect(() => {
@@ -101,7 +105,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
     setIsLoadingMore(true);
     try {
       const nextPage = pagination.page + 1;
-      
+
       if (activeTab === 'accounts') {
         const response = await usersApi.searchUsers(searchQuery, { page: nextPage, limit: 20 });
         setUserResults(prev => [...prev, ...response.data]);
@@ -120,19 +124,19 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
 
   // Save to recent searches
   const handleSaveToRecent = (item: Omit<RecentSearchItem, 'timestamp'>) => {
-    addRecentSearch(item);
-    setRecentSearches(getRecentSearches());
+    addRecentSearch(item, userId);
+    setRecentSearches(getRecentSearches(userId));
   };
 
   // Remove from recent searches
   const handleRemoveRecent = (id: string) => {
-    removeRecentSearch(id);
-    setRecentSearches(getRecentSearches());
+    removeRecentSearch(id, userId);
+    setRecentSearches(getRecentSearches(userId));
   };
 
   // Clear all recent searches
   const handleClearAll = () => {
-    clearRecentSearches();
+    clearRecentSearches(userId);
     setRecentSearches([]);
   };
 
@@ -258,21 +262,26 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                     {recentSearches.map((item) => (
                       <Link
                         key={item.id}
-                        href={item.type === 'user' ? `/app/profile/${item.username}` : `/app/post/${item.id}`}
-                        className={item.type === 'user' ? styles.userItem : styles.postItem}
+                        href={
+                          item.type === 'user'
+                            ? `/app/profile/${item.username}`
+                            : item.type === 'post'
+                            ? `/app/post/${item.id}`
+                            : `/app/search?q=${encodeURIComponent(item.query || '')}`
+                        }
+                        className={
+                          item.type === 'user'
+                            ? styles.userItem
+                            : item.type === 'post'
+                            ? styles.postItem
+                            : styles.queryItem
+                        }
                         onClick={onClose}
                       >
                         {item.type === 'user' ? (
                           <>
                             <div className={styles.userAvatar}>
-                              <Image
-                                src={item.avatarUrl || 'https://i.pravatar.cc/150?img=50'}
-                                alt={item.username || 'User'}
-                                width={44}
-                                height={44}
-                                className={styles.avatar}
-                                unoptimized
-                              />
+                              <Avatar avatarUrl={item.avatarUrl} username={item.username} size="lg" unoptimized />
                             </div>
                             <div className={styles.userInfo}>
                               <div className={styles.usernameRow}>
@@ -285,7 +294,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                               </span>
                             </div>
                           </>
-                        ) : (
+                        ) : item.type === 'post' ? (
                           <>
                             <div className={styles.postThumbnail}>
                               <Image
@@ -304,6 +313,15 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                               </div>
                             </div>
                           </>
+                        ) : (
+                          <>
+                            <div className={styles.searchIconWrapper}>
+                              <SearchIcon width={24} height={24} />
+                            </div>
+                            <div className={styles.queryInfo}>
+                              <span className={styles.queryText}>{item.query}</span>
+                            </div>
+                          </>
                         )}
                         <button
                           className={styles.removeButton}
@@ -313,7 +331,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                             handleRemoveRecent(item.id);
                           }}
                         >
-                          <CloseIcon width={17} height={17} stroke="#8E8E8E" />
+                          <CloseIcon width={17} height={17} />
                         </button>
                       </Link>
                     ))}
@@ -352,14 +370,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                           }}
                         >
                           <div className={styles.userAvatar}>
-                            <Image
-                              src={user.profile?.avatarUrl || 'https://i.pravatar.cc/150?img=50'}
-                              alt={user.profile?.username || 'User'}
-                              width={44}
-                              height={44}
-                              className={styles.avatar}
-                              unoptimized
-                            />
+                            <Avatar avatarUrl={user.profile?.avatarUrl} username={user.profile?.username} size="lg" unoptimized />
                           </div>
                           <div className={styles.userInfo}>
                             <div className={styles.usernameRow}>
@@ -411,22 +422,30 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                       ))
                     )}
                   </div>
-                  
-                  {/* Show more button or See all results link */}
-                  {activeTab === 'posts' && postPagination && postPagination.total > 20 ? (
+
+                  {/* Show "See all results" link for posts, or "Show more" button for accounts */}
+                  {activeTab === 'posts' && postPagination && postPagination.total > 0 ? (
                     <div className={styles.showMoreContainer}>
-                      <Link 
+                      <Link
                         href={`/app/search?q=${encodeURIComponent(searchQuery)}`}
                         className={styles.seeAllLink}
-                        onClick={onClose}
+                        onClick={() => {
+                          // Save the search query to recents
+                          handleSaveToRecent({
+                            id: `query_${searchQuery}`,
+                            type: 'query',
+                            query: searchQuery,
+                          });
+                          onClose();
+                        }}
                       >
-                        See all {postPagination.total} results
+                        See all results for &ldquo;{searchQuery}&rdquo;
                       </Link>
                     </div>
                   ) : canLoadMore ? (
                     <div className={styles.showMoreContainer}>
-                      <button 
-                        className={styles.showMoreButton} 
+                      <button
+                        className={styles.showMoreButton}
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}
                       >

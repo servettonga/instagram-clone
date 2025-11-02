@@ -1,0 +1,87 @@
+@use "@/styles/index.scss" as *;
+
+.modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba($color-black, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+}
+
+.modalContent {
+    width: 360px;
+    background: $color-white;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $color-border;
+    text-align: center;
+}
+
+.title {
+    font-size: $font-md;
+    font-weight: $font-bold;
+}
+
+.body {
+    padding: 16px;
+    text-align: center;
+    color: $color-muted;
+}
+.message {
+    margin: 0;
+}
+
+.footer {
+    display: flex;
+    gap: 8px;
+    padding: $spacing-sm $spacing-md;
+    justify-content: flex-end;
+    border-top: 1px solid $color-border;
+}
+
+.cancelButton {
+    background: $color-surface;
+    color: $color-black;
+    font-weight: $font-bold;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.cancelButton:hover {
+    background: $color-muted-alt;
+}
+
+.cancelButton:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.confirmButton {
+    background: none;
+    color: $color-text;
+    font-weight: $font-bold;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.confirmButtonDanger {
+    background: $color-error;
+    color: white;
+    font-weight: $font-bold;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}

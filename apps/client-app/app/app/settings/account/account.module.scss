@@ -23,21 +23,21 @@
   height: 38px;
   border-radius: 19px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .avatarPlaceholder {
   width: 38px;
   height: 38px;
   border-radius: 19px;
-  background: #FAFAFA;
+  background: $color-bg;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  color: $color-text;
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .profilePhotoInfo {
@@ -49,14 +49,14 @@
 .currentUsername {
   font-size: 16px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 20px;
 }
 
 .changePhotoButton {
   background: none;
   border: none;
-  color: #0095F6;
+  color: $color-primary;
   font-size: 14px;
   font-weight: 600;
   line-height: 18px;
@@ -67,7 +67,7 @@
 }
 
 .changePhotoButton:hover {
-  color: #00376B;
+  color: $color-primary-contrast;
 }
 
 .fileInput {
@@ -86,7 +86,7 @@
   text-align: right;
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   flex-shrink: 0;
   margin-right: 32px;
@@ -100,23 +100,23 @@
 .formInput {
   width: 100%;
   padding: 7.5px 11px 6.5px;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 3px;
   font-size: 16px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   margin-bottom: 14px;
 }
 
 .formInput:disabled {
-  background: #EFEFEF;
-  color: #8E8E8E;
+  background: $color-surface;
+  color: $color-muted;
 }
 
 .formInput:focus {
   outline: none;
-  border-color: #262626;
+  border-color: $color-text;
 }
 
 /* Input validation styles */
@@ -131,11 +131,11 @@
 }
 
 .inputValid {
-  border-color: #00A82D !important;
+  border-color: $color-success !important;
 }
 
 .inputInvalid {
-  border-color: #ED4956 !important;
+  border-color: $color-error !important;
 }
 
 .validationIcon {
@@ -155,24 +155,24 @@
 }
 
 .validationSuccess {
-  color: #00A82D;
+  color: $color-success;
 }
 
 .validationError {
-  color: #ED4956;
+  color: $color-error;
   font-size: 12px;
   margin: 2px 0;
 }
 
 .validationInfo {
-  color: #8E8E8E;
+  color: $color-muted;
 }
 
 .passwordRequirements {
   margin-bottom: 8px;
   padding: 8px 12px;
-  background: #FFF3F3;
-  border: 1px solid #FFDDDD;
+  background: $color-danger-bg;
+  border: 1px solid $color-danger-border;
   border-radius: 4px;
 }
 
@@ -180,11 +180,11 @@
   width: 100%;
   min-height: 60px;
   padding: 11px;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 3px;
   font-size: 16px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   resize: vertical;
   margin-bottom: 8px;
@@ -192,13 +192,13 @@
 
 .formTextarea:focus {
   outline: none;
-  border-color: #262626;
+  border-color: $color-text;
 }
 
 .formHelp {
   font-size: 11px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 16px;
   margin: 0 0 11px 0;
 }
@@ -206,14 +206,14 @@
 .charCount {
   font-size: 11px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 16px;
 }
 
 .inlineLink {
   background: none;
   border: none;
-  color: #0095F6;
+  color: $color-primary;
   font-size: 11px;
   font-weight: 400;
   cursor: pointer;
@@ -232,7 +232,7 @@
 .sectionTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 18px;
   margin-bottom: 2px;
 }
@@ -240,7 +240,7 @@
 .sectionDescription {
   font-size: 12px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 16px;
 }
 
@@ -254,7 +254,7 @@
 .checkbox {
   width: 16px;
   height: 16px;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;
@@ -268,7 +268,7 @@
 .checkboxText {
   font-size: 14px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 16px;
   margin: 0;
 }
@@ -283,8 +283,8 @@
 
 .submitButton {
   padding: 7px 16px;
-  background: #0095F6;
-  color: white;
+  background: $color-primary;
+  color: $color-white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -295,11 +295,11 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #1877F2;
+  background: $color-primary-contrast;
 }
 
 .submitButton:disabled {
-  background: #B2DFFC;
+  background: $color-primary-disabled;
   cursor: not-allowed;
 }
 
@@ -312,15 +312,15 @@
 }
 
 .submitMessage.success {
-  background: #D4EDDA;
-  color: #155724;
-  border: 1px solid #C3E6CB;
+  background: $color-success-bg;
+  color: $color-success;
+  border: 1px solid $color-success-border;
 }
 
 .submitMessage.error {
-  background: #F8D7DA;
-  color: #721C24;
-  border: 1px solid #F5C6CB;
+  background: $color-error-bg;
+  color: $color-error;
+  border: 1px solid $color-error-border;
 }
 
 @media (max-width: 768px) {

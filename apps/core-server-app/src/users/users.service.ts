@@ -410,4 +410,656 @@ export class UsersService {
       },
     };
   }
+
+  /**
+   * Follow a user
+   */
+  async followUser(
+    followerUserId: string,
+    followedUserId: string,
+  ): Promise<{
+    id: string;
+    followerProfileId: string;
+    followedProfileId: string;
+    accepted: boolean | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    // Get both profiles
+    const [followerProfile, followedProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: followerUserId, deleted: false },
+      }),
+      this.prisma.profile.findFirst({
+        where: { userId: followedUserId, deleted: false },
+      }),
+    ]);
+
+    if (!followerProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followerUserId),
+      );
+    }
+
+    if (!followedProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followedUserId),
+      );
+    }
+
+    if (followerProfile.id === followedProfile.id) {
+      throw new BadRequestException(ERROR_MESSAGES.CANNOT_FOLLOW_YOURSELF);
+    }
+
+    // Check if already following
+    const existingFollow = await this.prisma.profileFollow.findUnique({
+      where: {
+        followerProfileId_followedProfileId: {
+          followerProfileId: followerProfile.id,
+          followedProfileId: followedProfile.id,
+        },
+      },
+    });
+
+    if (existingFollow) {
+      throw new ConflictException(ERROR_MESSAGES.ALREADY_FOLLOWING);
+    }
+
+    // If profile is public, auto-accept. If private, set accepted to null (pending)
+    const accepted = followedProfile.isPublic ? true : null;
+
+    const follow = await this.prisma.profileFollow.create({
+      data: {
+        followerProfileId: followerProfile.id,
+        followedProfileId: followedProfile.id,
+        accepted,
+        createdBy: followerUserId,
+      },
+    });
+
+    return follow;
+  }
+
+  /**
+   * Unfollow a user
+   */
+  async unfollowUser(
+    followerUserId: string,
+    followedUserId: string,
+  ): Promise<void> {
+    // Get both profiles
+    const [followerProfile, followedProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: followerUserId, deleted: false },
+      }),
+      this.prisma.profile.findFirst({
+        where: { userId: followedUserId, deleted: false },
+      }),
+    ]);
+
+    if (!followerProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followerUserId),
+      );
+    }
+
+    if (!followedProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followedUserId),
+      );
+    }
+
+    try {
+      await this.prisma.profileFollow.delete({
+        where: {
+          followerProfileId_followedProfileId: {
+            followerProfileId: followerProfile.id,
+            followedProfileId: followedProfile.id,
+          },
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(
+            ERROR_MESSAGES.FOLLOW_RELATIONSHIP_NOT_FOUND,
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Approve a follow request
+   */
+  async approveFollowRequest(
+    profileOwnerId: string,
+    followerUserId: string,
+  ): Promise<void> {
+    // Get both profiles
+    const [profileOwner, followerProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: profileOwnerId, deleted: false },
+      }),
+      this.prisma.profile.findFirst({
+        where: { userId: followerUserId, deleted: false },
+      }),
+    ]);
+
+    if (!profileOwner) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(profileOwnerId),
+      );
+    }
+
+    if (!followerProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followerUserId),
+      );
+    }
+
+    try {
+      await this.prisma.profileFollow.update({
+        where: {
+          followerProfileId_followedProfileId: {
+            followerProfileId: followerProfile.id,
+            followedProfileId: profileOwner.id,
+          },
+          accepted: null, // Only update if it's pending
+        },
+        data: {
+          accepted: true,
+          updatedBy: profileOwnerId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(ERROR_MESSAGES.FOLLOW_REQUEST_NOT_FOUND);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Reject a follow request
+   */
+  async rejectFollowRequest(
+    profileOwnerId: string,
+    followerUserId: string,
+  ): Promise<void> {
+    // Get both profiles
+    const [profileOwner, followerProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: profileOwnerId, deleted: false },
+      }),
+      this.prisma.profile.findFirst({
+        where: { userId: followerUserId, deleted: false },
+      }),
+    ]);
+
+    if (!profileOwner) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(profileOwnerId),
+      );
+    }
+
+    if (!followerProfile) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.USER_NOT_FOUND(followerUserId),
+      );
+    }
+
+    try {
+      await this.prisma.profileFollow.delete({
+        where: {
+          followerProfileId_followedProfileId: {
+            followerProfileId: followerProfile.id,
+            followedProfileId: profileOwner.id,
+          },
+          accepted: null, // Only delete if it's pending
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(ERROR_MESSAGES.FOLLOW_REQUEST_NOT_FOUND);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get followers of a user
+   */
+  async getFollowers(
+    userId: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Get user's profile
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId, deleted: false },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(userId));
+    }
+
+    // Get followers where accepted is true
+    const [followers, total] = await Promise.all([
+      this.prisma.profileFollow.findMany({
+        where: {
+          followedProfileId: profile.id,
+          accepted: true,
+        },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          followerProfile: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              bio: true,
+              isPublic: true,
+            },
+          },
+          accepted: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.profileFollow.count({
+        where: {
+          followedProfileId: profile.id,
+          accepted: true,
+        },
+      }),
+    ]);
+
+    return {
+      followers: followers.map((f) => ({
+        id: f.id,
+        profile: f.followerProfile,
+        accepted: f.accepted,
+        createdAt: f.createdAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Get users that this user is following
+   */
+  async getFollowing(
+    userId: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Get user's profile
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId, deleted: false },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(userId));
+    }
+
+    // Get users this profile is following where accepted is true
+    const [following, total] = await Promise.all([
+      this.prisma.profileFollow.findMany({
+        where: {
+          followerProfileId: profile.id,
+          accepted: true,
+        },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          followedProfile: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              bio: true,
+              isPublic: true,
+            },
+          },
+          accepted: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.profileFollow.count({
+        where: {
+          followerProfileId: profile.id,
+          accepted: true,
+        },
+      }),
+    ]);
+
+    return {
+      following: following.map((f) => ({
+        id: f.id,
+        profile: f.followedProfile,
+        accepted: f.accepted,
+        createdAt: f.createdAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Get pending follow requests for a user (people who want to follow them)
+   */
+  async getFollowRequests(
+    userId: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Get user's profile
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId, deleted: false },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(userId));
+    }
+
+    // Get follow requests where accepted is null
+    const [requests, total] = await Promise.all([
+      this.prisma.profileFollow.findMany({
+        where: {
+          followedProfileId: profile.id,
+          accepted: null,
+        },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          followerProfile: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              bio: true,
+              user: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.profileFollow.count({
+        where: {
+          followedProfileId: profile.id,
+          accepted: null,
+        },
+      }),
+    ]);
+
+    return {
+      requests: requests.map((r) => ({
+        id: r.id,
+        followerProfile: {
+          id: r.followerProfile.id,
+          username: r.followerProfile.username,
+          displayName: r.followerProfile.displayName,
+          avatarUrl: r.followerProfile.avatarUrl,
+          bio: r.followerProfile.bio,
+          userId: r.followerProfile.user.id,
+        },
+        createdAt: r.createdAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Check if user A is following user B
+   */
+  async isFollowing(
+    followerUserId: string,
+    followedUserId: string,
+  ): Promise<{ isFollowing: boolean; isPending: boolean }> {
+    const [followerProfile, followedProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: followerUserId, deleted: false },
+      }),
+      this.prisma.profile.findFirst({
+        where: { userId: followedUserId, deleted: false },
+      }),
+    ]);
+
+    if (!followerProfile || !followedProfile) {
+      return { isFollowing: false, isPending: false };
+    }
+
+    const follow = await this.prisma.profileFollow.findUnique({
+      where: {
+        followerProfileId_followedProfileId: {
+          followerProfileId: followerProfile.id,
+          followedProfileId: followedProfile.id,
+        },
+      },
+    });
+
+    if (!follow) {
+      return { isFollowing: false, isPending: false };
+    }
+
+    return {
+      isFollowing: follow.accepted === true,
+      isPending: follow.accepted === null,
+    };
+  }
+
+  /**
+   * Get suggested users for a user based on different strategies.
+   * Strategies:
+   * - popular_followers: users who follow you and have the most followers themselves
+   * - friends_of_following: users who are followed by people you follow (friends-of-following) and have many followers
+   * - most_followers: global users with the most followers
+   */
+  async getSuggestions(
+    currentUserId: string,
+    options: {
+      type?: 'popular_followers' | 'friends_of_following' | 'most_followers';
+      limit?: number;
+    } = {},
+  ) {
+    const type = options.type || 'most_followers';
+    const limit = Math.min(options.limit || 5, 100);
+
+    // Resolve current user's profile id
+    const currentProfile = await this.prisma.profile.findFirst({
+      where: { userId: currentUserId, deleted: false },
+    });
+    if (!currentProfile) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(currentUserId));
+    }
+
+    // Get the list of profiles the current user already follows so we can
+    // exclude them from suggestions.
+    const myFollowingRows = await this.prisma.profileFollow.findMany({
+      where: { followerProfileId: currentProfile.id, accepted: true },
+      select: { followedProfileId: true },
+    });
+    const myFollowingIds = new Set(
+      myFollowingRows.map((r) => r.followedProfileId),
+    );
+
+    // We'll include followers (accepted only) with follower profile info so
+    // we can compute `followedBy` (which of your followings follow the
+    // candidate). Also include a filtered `following` relation that tells us
+    // whether the candidate follows the current user (accepted only). We'll
+    // compute counts in-memory, then sort.
+    const includeFollowers = {
+      followers: {
+        where: { accepted: true },
+        select: { followerProfile: { select: { id: true, username: true } } },
+      },
+      following: {
+        where: { followedProfileId: currentProfile.id, accepted: true },
+        select: { id: true },
+      },
+      user: { select: { id: true } },
+    } as const;
+
+    if (type === 'popular_followers') {
+      // Profiles who follow the current user (i.e., their following includes currentProfile.id)
+      const candidates = await this.prisma.profile.findMany({
+        where: {
+          deleted: false,
+          id: { notIn: [currentProfile.id, ...Array.from(myFollowingIds)] },
+          following: {
+            some: {
+              followedProfileId: currentProfile.id,
+              accepted: true,
+            },
+          },
+        },
+        include: includeFollowers,
+        take: Math.max(limit * 4, limit), // fetch a few extra to allow good sorting
+      });
+
+      const sorted = candidates
+        .map((p) => {
+          const followerProfiles =
+            p.followers?.map((f) => f.followerProfile) ?? [];
+          return {
+            id: p.id,
+            username: p.username,
+            userId: p.user?.id,
+            displayName: p.displayName,
+            avatarUrl: p.avatarUrl,
+            followersCount: followerProfiles.length,
+            followsYou: (p.following?.length ?? 0) > 0,
+            // Which of the profiles you follow also follow this candidate
+            followedBy: followerProfiles
+              .filter((fp) => myFollowingIds.has(fp.id))
+              .map((fp) => fp.username),
+          };
+        })
+        .sort((a, b) => b.followersCount - a.followersCount)
+        .slice(0, limit);
+
+      return sorted;
+    }
+
+    if (type === 'friends_of_following') {
+      // First, get profile ids that current user is following
+      const followingRows = await this.prisma.profileFollow.findMany({
+        where: { followerProfileId: currentProfile.id, accepted: true },
+        select: { followedProfileId: true },
+      });
+      const followedIds = followingRows.map((r) => r.followedProfileId);
+
+      if (followedIds.length === 0) return [];
+
+      // Find profiles that are followed by any of those followedIds
+      const candidates = await this.prisma.profile.findMany({
+        where: {
+          deleted: false,
+          id: { notIn: [currentProfile.id, ...Array.from(myFollowingIds)] },
+          followers: {
+            some: {
+              followerProfileId: { in: followedIds },
+              accepted: true,
+            },
+          },
+        },
+        include: includeFollowers,
+        take: Math.max(limit * 4, limit),
+      });
+
+      const sorted = candidates
+        .map((p) => {
+          const followerProfiles =
+            p.followers?.map((f) => f.followerProfile) ?? [];
+          return {
+            id: p.id,
+            username: p.username,
+            userId: p.user?.id,
+            displayName: p.displayName,
+            avatarUrl: p.avatarUrl,
+            followersCount: followerProfiles.length,
+            followsYou: (p.following?.length ?? 0) > 0,
+            followedBy: followerProfiles
+              .filter((fp) => myFollowingIds.has(fp.id))
+              .map((fp) => fp.username),
+          };
+        })
+        .sort((a, b) => b.followersCount - a.followersCount)
+        .slice(0, limit);
+
+      return sorted;
+    }
+
+    // most_followers (global)
+    const candidates = await this.prisma.profile.findMany({
+      where: {
+        deleted: false,
+        id: { notIn: [currentProfile.id, ...Array.from(myFollowingIds)] },
+      },
+      include: includeFollowers,
+      take: Math.max(limit * 4, limit),
+    });
+
+    return candidates
+      .map((p) => {
+        const followerProfiles =
+          p.followers?.map((f) => f.followerProfile) ?? [];
+        return {
+          id: p.id,
+          username: p.username,
+          userId: p.user?.id,
+          displayName: p.displayName,
+          avatarUrl: p.avatarUrl,
+          followersCount: followerProfiles.length,
+          followsYou: (p.following?.length ?? 0) > 0,
+          followedBy: followerProfiles
+            .filter((fp) => myFollowingIds.has(fp.id))
+            .map((fp) => fp.username),
+        };
+      })
+      .sort((a, b) => b.followersCount - a.followersCount)
+      .slice(0, limit);
+  }
 }

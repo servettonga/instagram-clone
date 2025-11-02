@@ -7,7 +7,8 @@ beforeAll(() => {
 
   // Verify Docker container is running
   const { execSync } = require('child_process');
-  const POSTGRES_CONTAINER = process.env.POSTGRES_CONTAINER || 'intern_project_postgres_dev';
+  const POSTGRES_CONTAINER =
+    process.env.POSTGRES_CONTAINER || 'intern_project_postgres_dev';
 
   try {
     execSync(`docker exec ${POSTGRES_CONTAINER} pg_isready`, {

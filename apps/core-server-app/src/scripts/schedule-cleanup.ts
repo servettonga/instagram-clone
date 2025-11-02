@@ -44,18 +44,20 @@ export class CleanupScheduler {
 
     this.task = cron.schedule(
       this.config.cronSchedule,
-      async () => {
-        console.log('\nRunning scheduled cleanup...');
-        try {
-          await cleanupTestUsers({
-            dryRun: false,
-            retentionDays: this.config.retentionDays,
-            batchSize: 100,
-          });
-          console.log('✓ Scheduled cleanup completed successfully\n');
-        } catch (error) {
-          console.error('✗ Scheduled cleanup failed:', error, '\n');
-        }
+      () => {
+        void (async () => {
+          console.log('\nRunning scheduled cleanup...');
+          try {
+            await cleanupTestUsers({
+              dryRun: false,
+              retentionDays: this.config.retentionDays,
+              batchSize: 100,
+            });
+            console.log('✓ Scheduled cleanup completed successfully\n');
+          } catch (error) {
+            console.error('✗ Scheduled cleanup failed:', error, '\n');
+          }
+        })();
       },
       {
         scheduled: true,

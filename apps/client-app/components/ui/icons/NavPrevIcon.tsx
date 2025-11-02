@@ -19,7 +19,7 @@ const NavPrevIcon: React.FC<NavPrevIconProps> = ({
       fill="white"
       className={className}
     >
-      <circle cx="15" cy="15" r="15" fillOpacity="0.8" />
+      <circle cx="15" cy="15" r="15" fillOpacity="0.4" />
       <path d="M18 9L12 15L18 21" stroke="black" strokeWidth="2" fill="none" />
     </svg>
   );

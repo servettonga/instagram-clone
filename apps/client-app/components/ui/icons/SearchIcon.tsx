@@ -2,21 +2,21 @@ interface SearchIconProps {
   width?: number;
   height?: number;
   className?: string;
-  stroke?: string;
+  color?: string;
 }
 
 export const SearchIcon = ({
   width = 18,
   height = 18,
   className,
-  stroke = 'currentColor'
+  color,
 }: SearchIconProps) => (
   <svg
     width={width}
     height={height}
     viewBox="0 0 24 24"
     fill="none"
-    stroke={stroke}
+    stroke={color ?? 'currentColor'}
     strokeWidth="2"
     className={className}
   >

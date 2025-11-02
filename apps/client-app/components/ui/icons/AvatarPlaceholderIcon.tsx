@@ -11,7 +11,7 @@ const AvatarPlaceholderIcon: React.FC<AvatarPlaceholderIconProps> = ({
   width = 44,
   height = 44,
   className,
-  fill = '#C4C4C4'
+  fill = '#eeeeee'
 }) => {
   return (
     <svg

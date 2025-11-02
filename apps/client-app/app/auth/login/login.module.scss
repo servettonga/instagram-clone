@@ -7,14 +7,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FAFAFA;
+  background-color: $color-bg;
   padding: 1rem;
 }
 
 /* Card - main login form container */
 .card {
-  background: white;
-  border: 1px solid var(--ig-border);
+  background: $color-white;
+  border: 1px solid $color-border;
   border-radius: 0;
   padding: 40px;
   width: 100%;
@@ -26,14 +26,14 @@
 .title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--ig-text-primary);
+  color: $color-text;
   margin-bottom: 12px;
   text-align: center;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   font-size: 14px;
   text-align: center;
   margin-bottom: 24px;
@@ -41,12 +41,12 @@
 
 /* Server error banner */
 .errorBanner {
-  background-color: #FEE;
-  border: 1px solid #ECC;
+  background-color: $color-error-bg;
+  border: 1px solid $color-error-border;
   border-radius: 4px;
   padding: 12px;
   margin-bottom: 16px;
-  color: #C00;
+  color: $color-error;
   font-size: 14px;
   text-align: center;
 }
@@ -78,40 +78,40 @@
   border-width: 0;
 }
 
-/* Input fields - Instagram style */
+/* Input fields */
 .input {
   padding: 13.5px 15px;
-  background-color: var(--ig-background);
-  border: 0.5px solid var(--ig-border);
+  background-color: $color-bg;
+  border: 0.5px solid $color-border;
   border-radius: 5px;
   font-size: 14px;
-  color: var(--ig-text-primary);
+  color: $color-text;
   transition: border-color 0.15s;
 }
 
 .input::placeholder {
-  color: var(--ig-text-placeholder);
+  color: $color-muted;
 }
 
 .input:focus {
   outline: none;
-  border-color: rgba(0, 0, 0, 0.20);
+  border-color: rgba($color-black, 0.20);
   background-color: white;
 }
 
 /* Input error state */
 .inputError {
-  border-color: #ED4956;
-  background-color: #FEE;
+  border-color: $color-error;
+  background-color: $color-error-bg;
 }
 
 .inputError:focus {
-  border-color: #ED4956;
+  border-color: $color-error;
 }
 
 /* Error message text */
 .errorText {
-  color: #ED4956;
+  color: $color-error;
   font-size: 12px;
   margin-top: 6px;
   padding-left: 4px;
@@ -120,7 +120,7 @@
 /* Forgot password link */
 .forgotPassword {
   align-self: flex-end;
-  color: var(--ig-blue);
+  color: $color-primary;
   font-size: 12px;
   font-weight: 500;
   text-decoration: none;
@@ -129,12 +129,12 @@
 }
 
 .forgotPassword:hover {
-  color: var(--ig-blue-hover);
+  color: $color-primary-contrast;
 }
 
-/* Submit button - Instagram blue */
+/* Submit button */
 .submitButton {
-  background-color: var(--ig-blue);
+  background-color: $color-primary;
   color: white;
   padding: 13px;
   border: none;
@@ -147,10 +147,10 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: var(--ig-blue-hover);
+  background-color: $color-primary-contrast;
 }
 
-/* Disabled state - Instagram shows reduced opacity */
+/* Disabled state */
 .submitButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -161,7 +161,7 @@
   display: flex;
   align-items: center;
   margin: 24px 0 20px;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   font-size: 12px;
   font-weight: 600;
 }
@@ -171,7 +171,7 @@
   content: '';
   flex: 1;
   height: 0.5px;
-  background-color: var(--ig-border);
+  background-color: $color-border;
 }
 
 .divider span {
@@ -194,7 +194,7 @@
   border: none;
   border-radius: 5px;
   background-color: transparent;
-  color: var(--ig-blue);
+  color: $color-primary;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -215,12 +215,12 @@
 .footer {
   margin-top: 24px;
   text-align: center;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   font-size: 14px;
 }
 
 .link {
-  color: var(--ig-blue);
+  color: $color-primary;
   font-weight: 400;
   text-decoration: none;
   margin-left: 4px;

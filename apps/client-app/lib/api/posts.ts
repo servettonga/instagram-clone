@@ -1,5 +1,6 @@
 // Posts API client
 import apiClient from './client';
+import { API_ENDPOINTS } from './constants';
 import type {
   Post,
   CreatePostDto,
@@ -7,15 +8,21 @@ import type {
   QueryPostsDto,
   PostsPaginationResponse,
   UploadAssetResponseDto,
+  LikeToggleResponse,
+  LikesListResponse,
 } from '@repo/shared-types';
 
 class PostsAPI {
   /**
    * Upload image asset
    */
-  async uploadAsset(file: File): Promise<UploadAssetResponseDto> {
+  async uploadAsset(
+    file: File,
+    aspectRatio: string = '1:1',
+  ): Promise<UploadAssetResponseDto> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('aspectRatio', aspectRatio);
 
     const { data } = await apiClient.post('/api/posts/upload', formData, {
       headers: {
@@ -30,7 +37,7 @@ class PostsAPI {
    * Create a new post
    */
   async createPost(data: CreatePostDto): Promise<Post> {
-    const { data: post } = await apiClient.post<Post>('/api/posts', data);
+    const { data: post } = await apiClient.post<Post>(API_ENDPOINTS.POSTS.BASE, data);
     return post;
   }
 
@@ -38,7 +45,7 @@ class PostsAPI {
    * Get all posts (For You feed)
    */
   async getAllPosts(params?: QueryPostsDto): Promise<PostsPaginationResponse> {
-    const { data } = await apiClient.get<PostsPaginationResponse>('/api/posts', { params });
+    const { data } = await apiClient.get<PostsPaginationResponse>(API_ENDPOINTS.POSTS.BASE, { params });
     return data;
   }
 
@@ -46,7 +53,7 @@ class PostsAPI {
    * Get personalized feed (Following)
    */
   async getFeed(params?: QueryPostsDto): Promise<PostsPaginationResponse> {
-    const { data } = await apiClient.get<PostsPaginationResponse>('/api/posts/feed', { params });
+    const { data } = await apiClient.get<PostsPaginationResponse>(API_ENDPOINTS.POSTS.FEED, { params });
     return data;
   }
 
@@ -54,7 +61,7 @@ class PostsAPI {
    * Get a single post by ID
    */
   async getPost(id: string): Promise<Post> {
-    const { data } = await apiClient.get<Post>(`/api/posts/${id}`);
+    const { data } = await apiClient.get<Post>(API_ENDPOINTS.POSTS.BY_ID(id));
     return data;
   }
 
@@ -62,7 +69,7 @@ class PostsAPI {
    * Update a post
    */
   async updatePost(id: string, data: UpdatePostDto): Promise<Post> {
-    const { data: post } = await apiClient.patch<Post>(`/api/posts/${id}`, data);
+    const { data: post } = await apiClient.patch<Post>(API_ENDPOINTS.POSTS.BY_ID(id), data);
     return post;
   }
 
@@ -70,14 +77,14 @@ class PostsAPI {
    * Delete a post
    */
   async deletePost(id: string): Promise<void> {
-    await apiClient.delete(`/api/posts/${id}`);
+    await apiClient.delete(API_ENDPOINTS.POSTS.BY_ID(id));
   }
 
   /**
    * Archive a post
    */
   async archivePost(id: string): Promise<Post> {
-    const { data } = await apiClient.patch<Post>(`/api/posts/${id}/archive`);
+    const { data } = await apiClient.patch<Post>(`${API_ENDPOINTS.POSTS.BY_ID(id)}/archive`);
     return data;
   }
 
@@ -85,7 +92,7 @@ class PostsAPI {
    * Unarchive a post
    */
   async unarchivePost(id: string): Promise<Post> {
-    const { data } = await apiClient.patch<Post>(`/api/posts/${id}/unarchive`);
+    const { data } = await apiClient.patch<Post>(`${API_ENDPOINTS.POSTS.BY_ID(id)}/unarchive`);
     return data;
   }
 
@@ -93,7 +100,7 @@ class PostsAPI {
    * Search posts
    */
   async searchPosts(query: string, params?: QueryPostsDto): Promise<PostsPaginationResponse> {
-    const { data } = await apiClient.get<PostsPaginationResponse>('/api/posts/search', {
+    const { data } = await apiClient.get<PostsPaginationResponse>(`${API_ENDPOINTS.POSTS.BASE}/search`, {
       params: { q: query, ...params },
     });
     return data;
@@ -103,7 +110,25 @@ class PostsAPI {
    * Get archived posts
    */
   async getArchivedPosts(params?: QueryPostsDto): Promise<PostsPaginationResponse> {
-    const { data } = await apiClient.get<PostsPaginationResponse>('/api/posts/archived', { params });
+    const { data } = await apiClient.get<PostsPaginationResponse>(`${API_ENDPOINTS.POSTS.BASE}/archived`, { params });
+    return data;
+  }
+
+  /**
+   * Toggle like on a post (like/unlike)
+   */
+  async toggleLike(postId: string): Promise<LikeToggleResponse> {
+    const { data } = await apiClient.post<LikeToggleResponse>(API_ENDPOINTS.POSTS.LIKE(postId));
+    return data;
+  }
+
+  /**
+   * Get users who liked a post
+   */
+  async getPostLikes(postId: string, page?: number, limit?: number): Promise<LikesListResponse> {
+    const { data } = await apiClient.get<LikesListResponse>(API_ENDPOINTS.POSTS.LIKES(postId), {
+      params: { page, limit },
+    });
     return data;
   }
 }

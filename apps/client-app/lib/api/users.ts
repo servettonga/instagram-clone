@@ -35,6 +35,12 @@ export const usersApi = {
     return data;
   },
 
+  // Get user by id
+  getUserById: async (id: string): Promise<UserWithProfileAndAccount> => {
+    const { data } = await apiClient.get(`/api/users/${id}`);
+    return data;
+  },
+
   // Update user profile
   updateProfile: async (userId: string, data: UpdateProfileData): Promise<UserWithProfileAndAccount> => {
     const { data: responseData } = await apiClient.patch(`/api/users/${userId}`, data);
@@ -72,5 +78,22 @@ export const usersApi = {
       params: { q: query, ...params },
     });
     return data;
+  },
+
+  // Get suggestions for the authenticated user
+  getSuggestions: async (params?: { type?: 'popular_followers' | 'friends_of_following' | 'most_followers'; limit?: number }) => {
+    const { data } = await apiClient.get('/api/users/me/suggestions', {
+      params,
+    });
+    return data as Array<{
+      id: string;
+      userId?: string;
+      username: string;
+      displayName?: string | null;
+      avatarUrl?: string | null;
+      followersCount: number;
+      followsYou?: boolean;
+      followedBy?: string[];
+    }>;
   },
 };

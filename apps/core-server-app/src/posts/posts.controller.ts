@@ -55,7 +55,7 @@ export class PostsController {
   @ApiOperation({
     summary: 'Upload an image for a post',
     description:
-      'Upload an image file and receive an asset ID to attach to a post. Maximum file size: 10MB.',
+      'Upload an image file with aspect ratio and receive processed image variants (thumbnail, medium, full). Maximum file size: 10MB.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -67,12 +67,19 @@ export class PostsController {
           format: 'binary',
           description: 'Image file (jpg, jpeg, png, gif, webp)',
         },
+        aspectRatio: {
+          type: 'string',
+          enum: ['1:1', '4:5', '16:9'],
+          default: '1:1',
+          description: 'Desired aspect ratio for the image',
+        },
       },
+      required: ['file'],
     },
   })
   @ApiResponse({
     status: 201,
-    description: 'Image uploaded successfully',
+    description: 'Image uploaded and processed successfully',
     type: UploadAssetResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file or file too large' })
@@ -84,6 +91,7 @@ export class PostsController {
   )
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
+    @Body() body: { aspectRatio?: string },
     @Req() req: AuthenticatedRequest,
   ): Promise<UploadAssetResponseDto> {
     if (!file) {
@@ -91,14 +99,36 @@ export class PostsController {
     }
 
     const userId = req.user?.id;
+    const aspectRatio = body.aspectRatio || '1:1';
 
-    const asset = await this.assetManagementService.createAsset(file, userId);
+    // Validate aspect ratio
+    if (!['1:1', '4:5', '16:9'].includes(aspectRatio)) {
+      throw new BadRequestException(
+        'Invalid aspect ratio. Must be 1:1, 4:5, or 16:9',
+      );
+    }
+
+    const asset = await this.assetManagementService.createAsset(
+      file,
+      userId,
+      aspectRatio,
+    );
+
+    // Generate URLs for all image variants
     const url = this.assetManagementService.getAssetUrl(asset.filePath);
+    const thumbnailUrl = asset.thumbnailPath
+      ? this.assetManagementService.getAssetUrl(asset.thumbnailPath)
+      : null;
+    const mediumUrl = asset.mediumPath
+      ? this.assetManagementService.getAssetUrl(asset.mediumPath)
+      : null;
 
     return {
       ...asset,
-      fileName: file.filename,
+      fileName: file.filename || file.originalname,
       url,
+      thumbnailUrl,
+      mediumUrl,
     };
   }
 
@@ -409,5 +439,76 @@ export class PostsController {
     const profileId = req.user?.profile?.id || '';
 
     return this.postsService.remove(id, userId, profileId);
+  }
+
+  /**
+   * Toggle like on a post
+   * POST /api/posts/:id/like
+   */
+  @Post(':id/like')
+  @ApiOperation({
+    summary: 'Toggle like on a post',
+    description:
+      'Like a post if not already liked, or unlike if already liked. Returns the new like state and count.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Post ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Like toggled successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        liked: {
+          type: 'boolean',
+          description: 'Whether the post is now liked',
+        },
+        likesCount: {
+          type: 'number',
+          description: 'Total number of likes',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Post not found' })
+  async toggleLike(
+    @Param('id', UuidValidationPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user?.id || '';
+    const profileId = req.user?.profile?.id || '';
+
+    return this.postsService.toggleLike(id, userId, profileId);
+  }
+
+  /**
+   * Get post likes
+   * GET /api/posts/:id/likes
+   */
+  @Get(':id/likes')
+  @ApiOperation({
+    summary: 'Get users who liked a post',
+    description: 'Get a paginated list of users who liked a post.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Post ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Post likes retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Post not found' })
+  async getPostLikes(
+    @Param('id', UuidValidationPipe) id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.postsService.getPostLikes(id, { page, limit });
   }
 }

@@ -19,7 +19,7 @@ const NavNextIcon: React.FC<NavNextIconProps> = ({
       fill="white"
       className={className}
     >
-      <circle cx="15" cy="15" r="15" fillOpacity="0.8" />
+      <circle cx="15" cy="15" r="15" fillOpacity="0.4" />
       <path d="M12 9L18 15L12 21" stroke="black" strokeWidth="2" fill="none" />
     </svg>
   );

@@ -4,6 +4,8 @@ interface GridIconProps {
   width?: number;
   height?: number;
   className?: string;
+  /** preferred stroke color */
+  color?: string;
   stroke?: string;
 }
 
@@ -11,8 +13,10 @@ const GridIcon: React.FC<GridIconProps> = ({
   width = 24,
   height = 24,
   className,
-  stroke = 'currentColor'
+  color,
+  stroke,
 }) => {
+  const strokeColor = color ?? stroke ?? 'currentColor';
   return (
     <svg
       width={width}
@@ -24,7 +28,7 @@ const GridIcon: React.FC<GridIconProps> = ({
       <title>Posts</title>
       <path
         fill="none"
-        stroke={stroke}
+        stroke={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
@@ -32,7 +36,7 @@ const GridIcon: React.FC<GridIconProps> = ({
       />
       <path
         fill="none"
-        stroke={stroke}
+        stroke={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
@@ -40,7 +44,7 @@ const GridIcon: React.FC<GridIconProps> = ({
       />
       <path
         fill="none"
-        stroke={stroke}
+        stroke={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
@@ -48,7 +52,7 @@ const GridIcon: React.FC<GridIconProps> = ({
       />
       <path
         fill="none"
-        stroke={stroke}
+        stroke={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
@@ -56,7 +60,7 @@ const GridIcon: React.FC<GridIconProps> = ({
       />
       <path
         fill="none"
-        stroke={stroke}
+        stroke={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"

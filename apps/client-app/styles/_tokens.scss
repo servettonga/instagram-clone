@@ -1,0 +1,83 @@
+// Semantic tokens built from existing design variables.
+// Import this file inside CSS modules via `@use '@/styles/index.scss' as *;`
+// to access the `$color-*` values. Runtime CSS variables are emitted from
+// `app/global.scss` to avoid injecting global selectors in CSS modules.
+
+@use './variables' as v;
+
+// Core semantic colors (map to primitive variables)
+$color-text: v.$base-text;
+$color-muted: v.$base-text-muted;
+$color-border: v.$base-border;
+$color-bg: v.$base-surface;
+$color-white: v.$base-white;
+$color-black: v.$base-black;
+$color-primary: v.$base-primary;
+$color-primary-contrast: v.$base-primary-contrast;
+$color-error: v.$base-error;
+$color-success: v.$base-success;
+
+// Additional surface and utility tokens (fall back to reasonable literals)
+$color-surface: #efefef; // used for light separators/backgrounds where present
+$color-muted-alt: #999999; // slightly different muted tone used in placeholders
+$color-overlay: v.$base-overlay-strong;
+
+// Additional small variants used by some form controls/messages
+$color-primary-disabled: #b2dffc; // used for disabled primary buttons
+$color-success-bg: #d4edda;
+$color-success-border: #c3e6cb;
+$color-error-bg: #f8d7da;
+$color-error-border: #f5c6cb;
+
+// Danger variants (used where UIs show soft red backgrounds / borders)
+$color-danger-bg: #ffe5e5;
+$color-danger-border: #ffb3b3;
+
+// Informational / neutral UI variants (used for tips, info boxes)
+$color-info-bg: #e7f3ff;
+$color-info-border: #b3d7ff;
+
+// Background highlight used for subtle surfaces
+$color-bg-highlight: v.$base-surface-highlight;
+
+// Gradients and composite tokens (limit gradients to avatar + skeleton shimmer)
+$skeleton-gradient: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+
+// Avatar placeholder gradient (light grey subtle gradient)
+$gradient-avatar: linear-gradient(135deg, #eeeeee 0%, #d1d1d1 100%);
+
+// Shadows are already provided in variables; re-export for convenience
+$shadow-sm: v.$shadow-sm;
+$shadow-md: v.$shadow-md;
+$shadow-lg: v.$shadow-lg;
+
+// Helper mixin to export CSS custom properties in global scope when needed.
+@mixin export-css-variables() {
+	:root {
+		--color-text: #{$color-text};
+		--color-muted: #{$color-muted};
+		--color-border: #{$color-border};
+		--color-bg: #{$color-bg};
+		--color-white: #{$color-white};
+		--color-black: #{$color-black};
+		--color-primary: #{$color-primary};
+		--color-primary-contrast: #{$color-primary-contrast};
+		--color-error: #{$color-error};
+		--color-success: #{$color-success};
+		--color-surface: #{$color-surface};
+		--color-muted-alt: #{$color-muted-alt};
+		--color-overlay: #{$color-overlay};
+		--color-primary-disabled: #{$color-primary-disabled};
+		--color-success-bg: #{$color-success-bg};
+		--color-success-border: #{$color-success-border};
+		--color-error-bg: #{$color-error-bg};
+		--color-error-border: #{$color-error-border};
+		--color-danger-bg: #{$color-danger-bg};
+		--color-danger-border: #{$color-danger-border};
+		--color-info-bg: #{$color-info-bg};
+		--color-info-border: #{$color-info-border};
+		--color-bg-highlight: #{$color-bg-highlight};
+		--gradient-avatar: #{$gradient-avatar};
+		--skeleton-gradient: #{$skeleton-gradient};
+	}
+}

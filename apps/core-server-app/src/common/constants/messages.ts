@@ -59,6 +59,13 @@ export const ERROR_MESSAGES = {
   // Profile errors
   PROFILE_NOT_FOUND: 'Profile not found',
 
+  // Follow/Following errors
+  ALREADY_FOLLOWING: 'Already following this user',
+  NOT_FOLLOWING: 'Not following this user',
+  FOLLOW_REQUEST_NOT_FOUND: 'Follow request not found',
+  CANNOT_FOLLOW_YOURSELF: 'Cannot follow yourself',
+  FOLLOW_RELATIONSHIP_NOT_FOUND: 'Follow relationship not found',
+
   // Post errors
   POST_NOT_FOUND: (id: string) => `Post with ID ${id} not found`,
   POST_ALREADY_ARCHIVED: 'Post is already archived',
@@ -101,6 +108,16 @@ export const SUCCESS_MESSAGES = {
   // Info messages
   NO_USERS_FOUND: 'No users found',
 
+  // Follow/Following messages
+  FOLLOW_SUCCESS: 'Successfully followed user',
+  FOLLOW_REQUEST_SENT: 'Follow request sent',
+  UNFOLLOW_SUCCESS: 'Successfully unfollowed user',
+  FOLLOW_REQUEST_APPROVED: 'Follow request approved',
+  FOLLOW_REQUEST_REJECTED: 'Follow request rejected',
+  FOLLOWERS_RETRIEVED: 'Followers retrieved successfully',
+  FOLLOWING_RETRIEVED: 'Following list retrieved successfully',
+  FOLLOW_REQUESTS_RETRIEVED: 'Follow requests retrieved successfully',
+
   // Post messages
   POST_CREATED: 'Post created successfully',
   POST_UPDATED: 'Post updated successfully',
@@ -110,6 +127,20 @@ export const SUCCESS_MESSAGES = {
   POST_RETRIEVED: 'Post retrieved successfully',
   POSTS_RETRIEVED: 'Posts retrieved successfully',
   FEED_RETRIEVED: 'Feed retrieved successfully',
+  POST_LIKED: 'Post liked successfully',
+  POST_UNLIKED: 'Post unliked successfully',
+  POST_ALREADY_LIKED: 'You have already liked this post',
+  POST_NOT_LIKED: 'You have not liked this post',
+
+  // Comment messages
+  COMMENT_CREATED: 'Comment created successfully',
+  COMMENT_UPDATED: 'Comment updated successfully',
+  COMMENT_DELETED: 'Comment deleted successfully',
+  COMMENT_LIKED: 'Comment liked successfully',
+  COMMENT_UNLIKED: 'Comment unliked successfully',
+  COMMENT_ALREADY_LIKED: 'You have already liked this comment',
+  COMMENT_NOT_LIKED: 'You have not liked this comment',
+  COMMENTS_RETRIEVED: 'Comments retrieved successfully',
 
   // Asset messages
   ASSET_UPLOADED: 'Asset uploaded successfully',

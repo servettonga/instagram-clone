@@ -3,55 +3,38 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { memoryStorage } from 'multer';
+import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ImageProcessingService } from './image-processing.service';
 import { ERROR_MESSAGES } from '../constants/messages';
 
 @Injectable()
 export class AssetManagementService {
-  private uploadPath = process.env.UPLOAD_DIR || './uploads';
-  private maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '10485760'); // 10MB
   private maxImageSize = parseInt(process.env.MAX_IMAGE_SIZE || '10485760'); // 10MB
-  // For video support:
-  // private maxVideoSize = parseInt(process.env.MAX_VIDEO_SIZE || '104857600'); // 100MB
 
-  constructor(private prisma: PrismaService) {
-    // Ensure upload directory exists
-    if (!existsSync(this.uploadPath)) {
-      mkdirSync(this.uploadPath, { recursive: true });
-    }
-  }
+  constructor(
+    private prisma: PrismaService,
+    private imageProcessing: ImageProcessingService,
+  ) {}
 
   /**
    * Get multer options for post image uploads
+   * Using memory storage so Sharp can process the buffer
    */
   getPostImageMulterOptions() {
     return {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const uploadPath = `${this.uploadPath}/posts`;
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-          // Generate unique filename: post-timestamp-randomstring.ext
-          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          const ext = extname(file.originalname);
-          cb(null, `post-${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: this.maxImageSize,
       },
-      fileFilter: (req, file, cb) => {
+      fileFilter: (
+        _req: Request,
+        file: Express.Multer.File,
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
         // Only allow image files
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           cb(
             new BadRequestException(
               'Only image files (jpg, jpeg, png, gif, webp) are allowed',
@@ -60,77 +43,79 @@ export class AssetManagementService {
           );
           return;
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         cb(null, true);
       },
     };
   }
 
   /**
-   * Save asset metadata to database
+   * Save asset metadata to database and process image
    */
   async createAsset(
     file: Express.Multer.File,
     userId: string | undefined,
+    aspectRatio: string = '1:1',
   ): Promise<{
     id: string;
     fileName: string;
     filePath: string;
+    thumbnailPath: string | null;
+    mediumPath: string | null;
     fileType: string;
     fileSize: number;
+    aspectRatio: string | null;
   }> {
     // Ensure user is authenticated
     if (!userId) {
-      // Delete uploaded file if user is not authenticated
-      try {
-        const fullPath = `${this.uploadPath}/posts/${file.filename}`;
-        if (existsSync(fullPath)) {
-          unlinkSync(fullPath);
-        }
-      } catch (error) {
-        console.error('Failed to delete unauthorized upload:', error);
-      }
       throw new BadRequestException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    // Store relative path from uploads directory
-    const relativePath = `/uploads/posts/${file.filename}`;
+    // Process image with Sharp - generates 3 optimized versions
+    const processedImages = await this.imageProcessing.processPostImage(
+      file,
+      aspectRatio,
+    );
 
-    try {
-      const asset = await this.prisma.asset.create({
-        data: {
-          fileName: file.originalname,
-          filePath: relativePath,
-          fileType: file.mimetype,
-          fileSize: file.size,
-          orderIndex: 0,
-          createdBy: userId,
-        },
-        select: {
-          id: true,
-          fileName: true,
-          filePath: true,
-          fileType: true,
-          fileSize: true,
-        },
-      });
+    // Get URLs for all versions
+    const fullUrl = this.imageProcessing.getImageUrl(
+      processedImages.full,
+      'posts',
+    );
+    const thumbnailUrl = this.imageProcessing.getImageUrl(
+      processedImages.thumbnail,
+      'posts',
+    );
+    const mediumUrl = this.imageProcessing.getImageUrl(
+      processedImages.medium,
+      'posts',
+    );
 
-      return asset;
-    } catch (error) {
-      // Delete uploaded file if Prisma operation fails
-      try {
-        const fullPath = `${this.uploadPath}/posts/${file.filename}`;
-        if (existsSync(fullPath)) {
-          unlinkSync(fullPath);
-        }
-      } catch (deleteError) {
-        console.error(
-          'Failed to cleanup file after failed asset creation:',
-          deleteError,
-        );
-      }
-      throw error;
-    }
+    // Save to database
+    const asset = await this.prisma.asset.create({
+      data: {
+        fileName: file.originalname,
+        filePath: fullUrl,
+        thumbnailPath: thumbnailUrl,
+        mediumPath: mediumUrl,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        aspectRatio: aspectRatio,
+        orderIndex: 0,
+        createdBy: userId,
+      },
+      select: {
+        id: true,
+        fileName: true,
+        filePath: true,
+        thumbnailPath: true,
+        mediumPath: true,
+        fileType: true,
+        fileSize: true,
+        aspectRatio: true,
+      },
+    });
+
+    return asset;
   }
 
   /**
@@ -141,6 +126,8 @@ export class AssetManagementService {
       where: { id: assetId },
       select: {
         filePath: true,
+        thumbnailPath: true,
+        mediumPath: true,
         postAssets: {
           select: { postId: true },
         },
@@ -164,15 +151,23 @@ export class AssetManagementService {
       where: { id: assetId },
     });
 
-    // Delete from filesystem
-    try {
-      const fullPath = `${this.uploadPath}${asset.filePath.replace('/uploads', '')}`;
-      if (existsSync(fullPath)) {
-        unlinkSync(fullPath);
-      }
-    } catch (error) {
-      console.error('Failed to delete file from filesystem:', error);
-      // Don't throw error here, as database deletion was successful
+    // Delete all image variants from filesystem
+    const filenames: string[] = [];
+    if (asset.filePath) {
+      const filename = asset.filePath.split('/').pop();
+      if (filename) filenames.push(filename);
+    }
+    if (asset.thumbnailPath && typeof asset.thumbnailPath === 'string') {
+      const filename = asset.thumbnailPath.split('/').pop();
+      if (filename) filenames.push(filename);
+    }
+    if (asset.mediumPath && typeof asset.mediumPath === 'string') {
+      const filename = asset.mediumPath.split('/').pop();
+      if (filename) filenames.push(filename);
+    }
+
+    if (filenames.length > 0) {
+      this.imageProcessing.deleteImages(filenames);
     }
   }
 
@@ -225,6 +220,8 @@ export class AssetManagementService {
       select: {
         id: true,
         filePath: true,
+        thumbnailPath: true,
+        mediumPath: true,
       },
     });
 
@@ -237,10 +234,24 @@ export class AssetManagementService {
           where: { id: asset.id },
         });
 
+        // Extract all filenames for deletion
+        const filenames: string[] = [];
+        const fullFilename = asset.filePath.split('/').pop();
+        if (fullFilename) filenames.push(fullFilename);
+
+        if (asset.thumbnailPath && typeof asset.thumbnailPath === 'string') {
+          const thumbFilename = asset.thumbnailPath.split('/').pop();
+          if (thumbFilename) filenames.push(thumbFilename);
+        }
+
+        if (asset.mediumPath && typeof asset.mediumPath === 'string') {
+          const mediumFilename = asset.mediumPath.split('/').pop();
+          if (mediumFilename) filenames.push(mediumFilename);
+        }
+
         // Delete from filesystem
-        const fullPath = `${this.uploadPath}${asset.filePath.replace('/uploads', '')}`;
-        if (existsSync(fullPath)) {
-          unlinkSync(fullPath);
+        if (filenames.length > 0) {
+          this.imageProcessing.deleteImages(filenames);
         }
 
         deletedCount++;

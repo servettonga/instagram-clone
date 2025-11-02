@@ -11,7 +11,7 @@ const ChevronDownIcon: React.FC<ChevronDownIconProps> = ({
   width = 12,
   height = 12,
   className,
-  fill = '#8E8E8E'
+  fill = 'currentColor'
 }) => {
   return (
     <svg

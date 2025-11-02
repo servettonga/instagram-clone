@@ -1,5 +1,6 @@
-// Instagram-style Mixins - Reusable SCSS patterns
-@use './variables' as *;
+// Mixins - Reusable SCSS patterns
+@use './variables' as v;
+@use './tokens' as *;
 
 // Flexbox shortcuts
 @mixin flex-center {
@@ -21,25 +22,25 @@
 
 // Responsive breakpoints
 @mixin mobile {
-  @media (max-width: #{$breakpoint-mobile - 1px}) {
+  @media (max-width: #{v.$breakpoint-mobile - 1px}) {
     @content;
   }
 }
 
 @mixin tablet {
-  @media (min-width: $breakpoint-tablet) {
+  @media (min-width: v.$breakpoint-tablet) {
     @content;
   }
 }
 
 @mixin desktop {
-  @media (min-width: $breakpoint-desktop) {
+  @media (min-width: v.$breakpoint-desktop) {
     @content;
   }
 }
 
 @mixin wide {
-  @media (min-width: $breakpoint-wide) {
+  @media (min-width: v.$breakpoint-wide) {
     @content;
   }
 }
@@ -58,17 +59,17 @@
   overflow: hidden;
 }
 
-// Instagram button styles
+// Button styles
 @mixin button-base {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: $radius-md;
-  font-weight: $font-medium;
-  font-size: $font-sm;
+  border-radius: v.$radius-md;
+  font-weight: v.$font-medium;
+  font-size: v.$font-sm;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: all v.$transition-fast;
   text-decoration: none;
 
   &:disabled {
@@ -79,38 +80,38 @@
 
 @mixin button-primary {
   @include button-base;
-  background: $ig-blue;
-  color: $ig-white;
-  padding: $spacing-sm $spacing-md;
+  background: $color-primary;
+  color: $color-white;
+  padding: v.$spacing-sm v.$spacing-md;
 
   &:hover:not(:disabled) {
-    background: $ig-blue-hover;
+    background: $color-primary-contrast;
   }
 }
 
 @mixin button-secondary {
   @include button-base;
   background: transparent;
-  color: $ig-text-primary;
-  border: 1px solid $ig-border;
-  padding: $spacing-sm $spacing-md;
+  color: $color-text;
+  border: 1px solid $color-border;
+  padding: v.$spacing-sm v.$spacing-md;
 
   &:hover:not(:disabled) {
-    background: $ig-background;
+    background: $color-bg;
   }
 }
 
-// Instagram card/post styles
+// Card/post styles
 @mixin card {
-  background: $ig-white;
-  border: 1px solid $ig-border;
-  border-radius: $radius-md;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: v.$radius-md;
   overflow: hidden;
 }
 
 @mixin post-card {
   @include card;
-  margin-bottom: $spacing-lg;
+  margin-bottom: v.$spacing-lg;
 
   @include mobile {
     border-left: none;
@@ -123,19 +124,19 @@
 @mixin avatar($size: 32px) {
   width: $size;
   height: $size;
-  border-radius: $radius-round;
+  border-radius: v.$radius-round;
   object-fit: cover;
 }
 
 @mixin avatar-border {
   padding: 2px;
-  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-  border-radius: $radius-round;
+  background: $color-primary;
+  border-radius: v.$radius-round;
 }
 
 // Hover effects
 @mixin hover-scale($scale: 1.05) {
-  transition: transform $transition-fast;
+  transition: transform v.$transition-fast;
 
   &:hover {
     transform: scale($scale);
@@ -143,7 +144,7 @@
 }
 
 @mixin hover-opacity($opacity: 0.6) {
-  transition: opacity $transition-fast;
+  transition: opacity v.$transition-fast;
 
   &:hover {
     opacity: $opacity;
@@ -152,7 +153,7 @@
 
 // Loading skeleton
 @mixin skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: $skeleton-gradient;
   background-size: 200% 100%;
   animation: loading 1.5s ease-in-out infinite;
 }
@@ -182,7 +183,7 @@
   bottom: 0;
 }
 
-// Scrollbar styling (Instagram-like)
+// Scrollbar styling
 @mixin custom-scrollbar {
   &::-webkit-scrollbar {
     width: 6px;
@@ -194,11 +195,68 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: $ig-border;
+    background: $color-border;
     border-radius: 3px;
 
     &:hover {
-      background: $ig-text-secondary;
+      background: $color-muted;
     }
+  }
+}
+
+
+// Comment / input related mixins to reduce duplicated rules across components
+@mixin comment-input {
+  width: 100%;
+  padding: v.$spacing-sm;
+  border: 1px solid $color-border;
+  border-radius: v.$radius-sm;
+  font-size: v.$font-sm;
+  font-family: inherit;
+  color: $color-text;
+  outline: none;
+
+  &:focus {
+    border-color: $color-primary;
+  }
+
+  &::placeholder {
+    color: $color-muted;
+  }
+}
+
+@mixin icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+@mixin menu-button-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s linear;
+  border-radius: 50%;
+}
+
+// Adds a vertical reply line using a ::before pseudo element
+@mixin reply-line($left: 12px, $width: 2px, $top: 0, $bottom: 0) {
+  &::before {
+    content: '';
+    position: absolute;
+    left: $left;
+    top: $top;
+    bottom: $bottom;
+    width: $width;
+    background: $color-border;
   }
 }

@@ -3,6 +3,8 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -19,6 +21,12 @@ describe('AuthController', () => {
     findOrCreateOAuthUser: jest.fn(),
   };
 
+  const mockJwtService = {
+    sign: jest.fn(),
+    verify: jest.fn(),
+    decode: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -27,6 +35,11 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: mockAuthService,
         },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
+        },
+        Reflector,
       ],
     }).compile();
 
@@ -66,7 +79,10 @@ describe('AuthController', () => {
 
   describe('login', () => {
     it('should call handleLogin', async () => {
-      const credentials = { identifier: 'test@example.com', password: 'password123' };
+      const credentials = {
+        identifier: 'test@example.com',
+        password: 'password123',
+      };
 
       const mockResponse = {
         user: { id: 'user-id', email: 'test@example.com' },

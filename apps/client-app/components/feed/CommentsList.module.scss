@@ -1,0 +1,41 @@
+@use '@/styles/index.scss' as *;
+
+.loadingComments {
+  padding: 24px;
+  text-align: center;
+  color: $color-muted;
+  font-size: $font-sm;
+}
+
+.replyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  margin-left: 56px;
+  padding-top: 4px;
+  border-top: 1px solid $color-border;
+}
+
+.replyInput {
+  @include comment-input;
+}
+
+.replyButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  @include button-secondary;
+}
+
+.postButton {
+  @include button-primary;
+
+  &:disabled {
+    background: $color-bg-highlight;
+    cursor: not-allowed;
+  }
+}

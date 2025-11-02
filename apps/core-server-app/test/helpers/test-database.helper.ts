@@ -7,8 +7,10 @@ import { join } from 'path';
 export class TestDatabase {
   private static readonly POSTGRES_CONTAINER =
     process.env.POSTGRES_CONTAINER || 'intern_project_postgres_dev';
-  private static readonly POSTGRES_USER = process.env.POSTGRES_USER || 'postgres';
-  private static readonly POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'password';
+  private static readonly POSTGRES_USER =
+    process.env.POSTGRES_USER || 'postgres';
+  private static readonly POSTGRES_PASSWORD =
+    process.env.POSTGRES_PASSWORD || 'password';
   private static readonly APP_DB_PASSWORD =
     process.env.APP_DB_PASSWORD || 'innogram_app_password';
 
@@ -19,10 +21,11 @@ export class TestDatabase {
     // Create unique database name per test suite
     const suffix = randomBytes(4).toString('hex');
     this.databaseName = `test_${testSuiteName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${suffix}`;
-    this.databaseUrl = process.env.DATABASE_URL?.replace(
-      '/innogram?',
-      `/${this.databaseName}?`,
-    ) || '';
+    this.databaseUrl =
+      process.env.DATABASE_URL?.replace(
+        '/innogram?',
+        `/${this.databaseName}?`,
+      ) || '';
   }
 
   /**
@@ -76,7 +79,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO innogram_use
 `;
 
       // Write SQL to temporary file
-      const tempSqlPath = join(tmpdir(), `test-db-setup-${this.databaseName}.sql`);
+      const tempSqlPath = join(
+        tmpdir(),
+        `test-db-setup-${this.databaseName}.sql`,
+      );
       writeFileSync(tempSqlPath, sqlContent);
 
       // Copy to container
@@ -135,7 +141,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO innogram_use
       );
       console.log(`✓ Database cleaned up: ${this.databaseName}`);
     } catch (error) {
-      console.error(`Warning: Could not clean up database ${this.databaseName}:`, error);
+      console.error(
+        `Warning: Could not clean up database ${this.databaseName}:`,
+        error,
+      );
     }
   }
 

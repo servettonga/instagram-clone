@@ -4,7 +4,7 @@
 /* Main container - two column layout */
 .feedContainer {
   width: 100%;
-  background-color: $ig-background;
+  background-color: $color-bg;
 }
 
 .feedContent {
@@ -12,8 +12,9 @@
   margin: 0 auto;
   padding: 30px 20px;
   display: grid;
-  grid-template-columns: 1fr 319px;
+  grid-template-columns: 1fr 280px;
   gap: 64px;
+  justify-content: center;
 }
 
 /* Posts column (left side) */
@@ -39,24 +40,24 @@
   padding: $spacing-sm;
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   cursor: pointer;
   transition: all $transition-fast;
   position: relative;
 }
 
 .feedTab:hover {
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 .feedTabActive {
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 /* Individual post card */
 .post {
   background: white;
-  border: 1px solid var(--ig-border);
+  border: 1px solid $color-border;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -99,7 +100,7 @@
 .username {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -116,7 +117,7 @@
 
 .timeAgo {
   font-size: $font-sm;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 .moreButton {
@@ -124,7 +125,7 @@
   border: none;
   cursor: pointer;
   padding: $spacing-sm;
-  color: var(--ig-text-primary);
+  color: $color-text;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,8 +139,8 @@
 .postImageWrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 4/5; /* Instagram's typical portrait ratio */
-  background: #EFEFEF;
+  aspect-ratio: 4/5;
+  background: $color-surface;
   overflow: hidden;
 }
 
@@ -165,7 +166,7 @@
   border: none;
   cursor: pointer;
   padding: $spacing-sm;
-  color: var(--ig-text-primary);
+  color: $color-text;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,20 +185,20 @@
 .likes {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
   margin-bottom: 8px;
 }
 
 .caption {
   font-size: $font-sm;
-  color: var(--ig-text-primary);
+  color: $color-text;
   margin-bottom: 4px;
   line-height: 18px;
 }
 
 .captionUsername {
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -215,7 +216,7 @@
   border: none;
   padding: 0;
   font-size: $font-sm;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
   cursor: pointer;
   margin: $spacing-sm 0;
 }
@@ -225,7 +226,7 @@
 }
 
 .addComment {
-  border-top: 1px solid var(--ig-border);
+  border-top: 1px solid $color-border;
   padding-top: 16px;
   margin-top: 8px;
 }
@@ -235,11 +236,11 @@
   border: none;
   outline: none;
   font-size: $font-sm;
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 .commentInput::placeholder {
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 /* Sidebar (right side) */
@@ -291,13 +292,13 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: $color-surface;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: $font-xxl;
   font-weight: $font-bold;
-  color: white;
+  color: $color-text;
 }
 
 .sidebarUserInfo {
@@ -307,12 +308,12 @@
 .sidebarUsername {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 .sidebarDisplayName {
   font-size: $font-sm;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 /* Suggestions section */
@@ -330,7 +331,7 @@
 .suggestionsTitle {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 .seeAllButton {
@@ -338,12 +339,12 @@
   border: none;
   font-size: $font-xs;
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
   cursor: pointer;
 }
 
 .seeAllButton:hover {
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 .suggestionsList {
@@ -372,12 +373,12 @@
 .suggestionUsername {
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 .suggestionNote {
   font-size: $font-xs;
-  color: var(--ig-text-secondary);
+  color: $color-muted;
 }
 
 .followButton {
@@ -385,12 +386,12 @@
   border: none;
   font-size: $font-xs;
   font-weight: $font-bold;
-  color: var(--ig-blue);
+  color: $color-primary;
   cursor: pointer;
 }
 
 .followButton:hover {
-  color: var(--ig-text-primary);
+  color: $color-text;
 }
 
 /* Sidebar footer */
@@ -401,14 +402,14 @@
 
 .footerLinks {
   font-size: 11px;
-  color: var(--ig-text-placeholder);
+  color: $color-muted;
   line-height: 16px;
   margin-bottom: 16px;
 }
 
 .copyright {
   font-size: 11px;
-  color: var(--ig-text-placeholder);
+  color: $color-muted;
   text-transform: uppercase;
 }
 

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { BackArrowIcon, UploadMediaIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/icons';
+import UploadMediaIcon from '@/components/ui/icons/UploadMediaIcon';
+import ChevronLeftIcon from '@/components/ui/icons/ChevronLeftIcon';
+import ChevronRightIcon from '@/components/ui/icons/ChevronRightIcon';
 import { postsAPI } from '@/lib/api/posts';
-import type { UploadAssetResponseDto } from '@repo/shared-types';
+import ImageCropper from './ImageCropper';
 import styles from './CreatePostModal.module.scss';
 
 interface CreatePostModalProps {
@@ -12,39 +14,50 @@ interface CreatePostModalProps {
   onPostCreated?: () => void;
 }
 
-type ModalStep = 'upload' | 'details';
+type ModalStep = 'upload' | 'edit';
+
+interface ImageData {
+  originalFile: File;
+  preview: string;
+  croppedBlob: Blob | null;
+}
 
 export default function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef2 = useRef<HTMLInputElement>(null);
+  const additionalFileInputRef = useRef<HTMLInputElement>(null);
 
   // State
   const [step, setStep] = useState<ModalStep>('upload');
-  const [uploadedAssets, setUploadedAssets] = useState<UploadAssetResponseDto[]>([]);
+  const [images, setImages] = useState<ImageData[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [content, setContent] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
 
   // Reset state when modal closes
   useEffect(() => {
-    if (!isOpen) {
-      setStep('upload');
-      setUploadedAssets([]);
+    if (!isOpen && images.length > 0) {
+      // Clean up when closing
+      images.forEach(img => {
+        if (img.preview) {
+          URL.revokeObjectURL(img.preview);
+        }
+      });
+      setImages([]);
       setCurrentImageIndex(0);
+      setStep('upload');
       setContent('');
       setAspectRatio('1:1');
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, images]);
 
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isUploading && !isCreating) {
+      if (event.key === 'Escape' && !isCreating) {
         onClose();
       }
     };
@@ -56,109 +69,103 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, isUploading, isCreating, onClose]);
+  }, [isOpen, isCreating, onClose]);
 
   const handleClose = () => {
-    if (isUploading || isCreating) return;
+    if (isCreating) return;
     onClose();
   };
 
-  // Handle file selection
+  // Handle file selection - go directly to edit/crop step
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    setError('');
-    setIsUploading(true);
+    const file = files[0];
+    if (!file) return;
 
-    try {
-      const newAssets: UploadAssetResponseDto[] = [];
-
-      for (let i = 0; i < Math.min(files.length, 10 - uploadedAssets.length); i++) {
-        const file = files[i];
-
-        if (!file) continue;
-
-        // Validate file
-        if (!file.type.startsWith('image/')) {
-          setError('Only image files are allowed');
-          continue;
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-          setError('File size must be less than 10MB');
-          continue;
-        }
-
-        // Upload file
-        const asset = await postsAPI.uploadAsset(file);
-        newAssets.push(asset);
-      }
-
-      if (newAssets.length > 0) {
-        setUploadedAssets(prev => {
-          const updated = [...prev, ...newAssets];
-
-          // If this is the first upload, go to details step
-          if (prev.length === 0) {
-            setStep('details');
-          }
-
-          return updated;
-        });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload images');
-    } finally {
-      setIsUploading(false);
-      // Reset file input to allow selecting the same files again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      return;
     }
-  }, [uploadedAssets.length]);
 
-  // Handle drag and drop
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB');
+      return;
+    }
 
-    if (isUploading || uploadedAssets.length >= 10) return;
+    setError('');
 
-    handleFileSelect(e.dataTransfer.files);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUploading, uploadedAssets.length]);
+    // Create preview and add to images array
+    const preview = URL.createObjectURL(file);
+    const newImage: ImageData = {
+      originalFile: file,
+      preview,
+      croppedBlob: null,
+    };
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    setImages(prev => {
+      const newImages = [...prev, newImage];
+      setCurrentImageIndex(newImages.length - 1); // Set to new image index
+      return newImages;
+    });
+    setStep('edit');
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (additionalFileInputRef.current) {
+      additionalFileInputRef.current.value = '';
+    }
   }, []);
 
-  // Remove image
-  const handleRemoveImage = (index: number) => {
-    const newAssets = uploadedAssets.filter((_, i) => i !== index);
-    setUploadedAssets(newAssets);
+  // Handle crop complete - store the cropped blob for current image
+  const handleCropComplete = useCallback((croppedBlob: Blob) => {
+    setImages(prev => {
+      const updated = [...prev];
+      if (updated[currentImageIndex]) {
+        updated[currentImageIndex] = {
+          ...updated[currentImageIndex],
+          croppedBlob,
+        };
+      }
+      return updated;
+    });
+  }, [currentImageIndex]);
 
-    // If no images left, go back to upload step
-    if (newAssets.length === 0) {
-      setStep('upload');
-    } else if (currentImageIndex >= newAssets.length) {
-      setCurrentImageIndex(newAssets.length - 1);
-    }
-  };
+  // Handle remove image
+  const handleRemoveImage = useCallback(() => {
+    setImages(prev => {
+      // Clean up the preview URL
+      if (prev[currentImageIndex]?.preview) {
+        URL.revokeObjectURL(prev[currentImageIndex].preview);
+      }
 
-  // Navigate images
-  const handlePrevImage = () => {
-    setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : uploadedAssets.length - 1));
-  };
+      const updated = prev.filter((_, index) => index !== currentImageIndex);
 
-  const handleNextImage = () => {
-    setCurrentImageIndex(prev => (prev < uploadedAssets.length - 1 ? prev + 1 : 0));
-  };
+      // If no images left, go back to upload step
+      if (updated.length === 0) {
+        setStep('upload');
+        setCurrentImageIndex(0);
+        return [];
+      }
 
-  // Create post
+      // Adjust current index if needed
+      if (currentImageIndex >= updated.length) {
+        setCurrentImageIndex(updated.length - 1);
+      }
+
+      return updated;
+    });
+  }, [currentImageIndex]);
+
+  // Create post - upload all cropped images and create post
   const handleCreatePost = async () => {
-    if (uploadedAssets.length === 0) {
-      setError('Please upload at least one image');
+    // Check if all images have been cropped
+    const allCropped = images.every(img => img.croppedBlob);
+    if (!allCropped) {
+      setError('Please wait for all images to be processed');
       return;
     }
 
@@ -166,9 +173,22 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
     setError('');
 
     try {
+      // Upload all cropped images
+      const uploadPromises = images.map(async (img) => {
+        const croppedFile = new File(
+          [img.croppedBlob!],
+          img.originalFile.name,
+          { type: 'image/jpeg' }
+        );
+        return postsAPI.uploadAsset(croppedFile, aspectRatio);
+      });
+
+      const assets = await Promise.all(uploadPromises);
+
+      // Create post with all asset IDs
       await postsAPI.createPost({
         content: content.trim() || undefined,
-        assetIds: uploadedAssets.map(asset => asset.id),
+        assetIds: assets.map(asset => asset.id),
         aspectRatio,
       });
 
@@ -184,173 +204,226 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
     }
   };
 
+  // Handle drag and drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isCreating) return;
+
+    handleFileSelect(e.dataTransfer.files);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreating]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
   if (!isOpen) return null;
 
+  const currentImage = images[currentImageIndex];
+
+  // Render edit/crop view
+  if (step === 'edit' && currentImage) {
+    const allCropped = images.every(img => img.croppedBlob);
+
+    return (
+      <div className={styles.modalBackdrop} onClick={handleClose}>
+        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.createPanel} ref={modalRef}>
+            {/* Header */}
+            <div className={styles.header}>
+              <button
+                className={styles.backButton}
+                onClick={() => {
+                  images.forEach(img => {
+                    if (img.preview) {
+                      URL.revokeObjectURL(img.preview);
+                    }
+                  });
+                  setStep('upload');
+                  setImages([]);
+                  setCurrentImageIndex(0);
+                  setContent('');
+                }}
+                disabled={isCreating}
+                aria-label="Cancel"
+              >
+                Cancel
+              </button>
+
+              <h2 className={styles.title}>
+                Edit post {images.length > 1 && `(${currentImageIndex + 1}/${images.length})`}
+              </h2>
+
+              <button
+                className={styles.shareButton}
+                onClick={handleCreatePost}
+                disabled={isCreating || !allCropped}
+              >
+                {isCreating ? 'Sharing...' : 'Share'}
+              </button>
+            </div>
+
+            {/* Main content area with cropper and caption */}
+            <div className={styles.editContainer}>
+              {/* Left: Image cropper */}
+              <div className={styles.cropperSection}>
+                <ImageCropper
+                  imageSrc={currentImage.preview}
+                  onCropComplete={handleCropComplete}
+                  aspectRatio={aspectRatio}
+                  imagesCount={images.length}
+                  currentIndex={currentImageIndex}
+                  onNavigate={(i) => setCurrentImageIndex(i)}
+                />
+
+                {/* Remove image button */}
+                <button
+                  className={styles.removeImageButton}
+                  onClick={handleRemoveImage}
+                  disabled={isCreating}
+                  aria-label="Remove image"
+                  title="Remove image"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Right: Caption and options */}
+              <div className={styles.detailsSection}>
+                <div className={styles.captionArea}>
+                  <textarea
+                    className={styles.captionInput}
+                    placeholder="Write a caption..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    maxLength={2200}
+                    disabled={isCreating}
+                  />
+                  <div className={styles.characterCount}>
+                    {content.length}/2200
+                  </div>
+                </div>
+
+                {/* Aspect Ratio Selector - Tab style (no label) */}
+                <div className={styles.aspectRatioTabs}>
+                  <button
+                    type="button"
+                    className={`${styles.aspectRatioTab} ${aspectRatio === '1:1' ? styles.active : ''}`}
+                    onClick={() => setAspectRatio('1:1')}
+                  >
+                    1:1
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.aspectRatioTab} ${aspectRatio === '4:5' ? styles.active : ''}`}
+                    onClick={() => setAspectRatio('4:5')}
+                  >
+                    4:5
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.aspectRatioTab} ${aspectRatio === '16:9' ? styles.active : ''}`}
+                    onClick={() => setAspectRatio('16:9')}
+                  >
+                    16:9
+                  </button>
+                </div>
+
+                {/* Image navigation with icons */}
+                <div className={styles.imageNav}>
+                  {images.length > 1 && (
+                    <button
+                      className={`${styles.imageNavDot} ${styles.arrowButton} ${styles.arrowLeft}`}
+                      onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
+                      disabled={currentImageIndex === 0}
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeftIcon />
+                    </button>
+                  )}
+                  {/* Numbered buttons removed — navigation handled by dots over the image */}
+                  {images.length < 10 && (
+                    <>
+                      <input
+                        ref={additionalFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileSelect(e.target.files)}
+                        style={{ display: 'none' }}
+                      />
+                      <button
+                        className={`${styles.imageNavDot} ${styles.addImageButton}`}
+                        onClick={() => additionalFileInputRef.current?.click()}
+                        disabled={isCreating}
+                        aria-label="Add more images"
+                        title={`Add photo (${images.length}/10)`}
+                      >
+                        +
+                      </button>
+                    </>
+                  )}
+                  {images.length > 1 && (
+                    <button
+                      className={`${styles.imageNavDot} ${styles.arrowButton} ${styles.arrowRight}`}
+                      onClick={() => setCurrentImageIndex(Math.min(images.length - 1, currentImageIndex + 1))}
+                      disabled={currentImageIndex === images.length - 1}
+                      aria-label="Next image"
+                    >
+                      <ChevronRightIcon />
+                    </button>
+                  )}
+                </div>
+
+                {error && <div className={styles.error}>{error}</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Upload step - simple file selection
   return (
     <div className={styles.modalBackdrop} onClick={handleClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.createPanel} ref={modalRef}>
           {/* Header */}
           <div className={styles.header}>
-            {step === 'details' && (
-              <button
-                className={styles.backButton}
-                onClick={() => setStep('upload')}
-                disabled={isCreating}
-              >
-                <BackArrowIcon />
-              </button>
-            )}
-
-            <h2 className={styles.title}>
-              {step === 'upload' ? 'Create new post' : 'Create new post'}
-            </h2>
-
-            {step === 'details' && (
-              <button
-                className={styles.shareButton}
-                onClick={handleCreatePost}
-                disabled={isCreating || uploadedAssets.length === 0}
-              >
-                {isCreating ? 'Sharing...' : 'Share'}
-              </button>
-            )}
+            <h2 className={styles.title}>Create new post</h2>
           </div>
 
-          {/* Content */}
-          {step === 'upload' && (
-            <div
-              className={styles.uploadArea}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
+          {/* Upload area */}
+          <div
+            className={styles.uploadArea}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+          >
+            <UploadMediaIcon />
+
+            <p className={styles.uploadText}>Drag photos and videos here</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileSelect(e.target.files)}
+              style={{ display: 'none' }}
+            />
+
+            <button
+              className={styles.selectButton}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isCreating}
             >
-              <UploadMediaIcon />
+              Select from computer
+            </button>
 
-              <p className={styles.uploadText}>Drag photos and videos here</p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => handleFileSelect(e.target.files)}
-                style={{ display: 'none' }}
-              />
-
-              <button
-                className={styles.selectButton}
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? 'Uploading...' : 'Select from computer'}
-              </button>
-
-              {error && <p className={styles.error}>{error}</p>}
-            </div>
-          )}
-
-          {step === 'details' && uploadedAssets.length > 0 && uploadedAssets[currentImageIndex] && (
-            <div className={styles.detailsContainer}>
-              {/* Image Preview */}
-              <div
-                key={`preview-${aspectRatio}`}
-                className={styles.imagePreview}
-                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={uploadedAssets[currentImageIndex].url}
-                  alt={`Upload ${currentImageIndex + 1}`}
-                  className={styles.previewImage}
-                />
-
-                {/* Navigation arrows */}
-                {uploadedAssets.length > 1 && (
-                  <>
-                    <button className={styles.navButton} style={{ left: 12 }} onClick={handlePrevImage}>
-                      <ChevronLeftIcon />
-                    </button>
-                    <button className={styles.navButton} style={{ right: 12 }} onClick={handleNextImage}>
-                      <ChevronRightIcon />
-                    </button>
-                  </>
-                )}
-
-                {/* Image indicators */}
-                {uploadedAssets.length > 1 && (
-                  <div className={styles.imageIndicators}>
-                    {uploadedAssets.map((_, index) => (
-                      <div
-                        key={index}
-                        className={`${styles.indicator} ${index === currentImageIndex ? styles.active : ''}`}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Remove button */}
-                <button
-                  className={styles.removeImageButton}
-                  onClick={() => handleRemoveImage(currentImageIndex)}
-                >
-                  ✕
-                </button>
-
-                {/* Add more button */}
-                {uploadedAssets.length < 10 && (
-                  <button
-                    className={styles.addMoreButton}
-                    onClick={() => fileInputRef2.current?.click()}
-                    disabled={isUploading}
-                  >
-                    +
-                  </button>
-                )}
-              </div>
-
-              {/* Caption Form */}
-              <div className={styles.captionForm}>
-                <textarea
-                  className={styles.captionInput}
-                  placeholder="Write a caption..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  maxLength={5000}
-                />
-                <div className={styles.characterCount}>
-                  {content.length}/5000
-                </div>
-
-                {/* Aspect Ratio Selector */}
-                <div className={styles.aspectRatioSection}>
-                  <label className={styles.aspectRatioLabel}>Aspect Ratio</label>
-                  <div className={styles.aspectRatioButtons}>
-                    {['1:1', '4:5', '16:9'].map((ratio) => (
-                      <button
-                        key={ratio}
-                        className={`${styles.aspectRatioButton} ${aspectRatio === ratio ? styles.active : ''}`}
-                        onClick={() => setAspectRatio(ratio)}
-                      >
-                        {ratio}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {error && <p className={styles.error}>{error}</p>}
-
-                {/* Hidden file input for adding more images in details step */}
-                <input
-                  ref={fileInputRef2}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                  style={{ display: 'none' }}
-                />
-              </div>
-            </div>
-          )}
+            {error && <div className={styles.error}>{error}</div>}
+          </div>
         </div>
       </div>
     </div>

@@ -57,7 +57,7 @@ export class AccessGuard implements CanActivate {
 
       let payload: JwtPayload;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const decoded = this.jwtService.verify(token);
         payload = decoded as JwtPayload;
       } catch {

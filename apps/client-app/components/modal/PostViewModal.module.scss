@@ -1,4 +1,5 @@
 // Converted to SCSS
+@use 'sass:color';
 @use '@/styles/index.scss' as *;
 
 .modalBackdrop {
@@ -7,7 +8,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba($color-black, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,7 +18,7 @@
 
 .modalContent {
   position: relative;
-  width: 100%;
+  width: fit-content;
   max-width: 1400px;
   height: 90vh;
   max-height: 900px;
@@ -75,7 +76,7 @@
   display: flex;
   width: 100%;
   height: 100%;
-  border-radius: 4px;
+  border-radius: $radius-sm;
   overflow: hidden;
   justify-content: center;
 }
@@ -84,7 +85,7 @@
 .imageSection {
   position: relative;
   flex: 1;
-  background: #000000; /* Dark background for the entire section */
+  background: $color-black; /* Dark background for the entire section */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,27 +123,30 @@
   overflow: hidden;
   max-width: 100%;
   max-height: 100%;
+  /* Make this the positioning context for indicators */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Square wrapper for 1:1 images */
 .imageWrapperSquare {
   width: 100%;
   aspect-ratio: 1/1;
-  background: #EFEFEF;
+  background: $color-bg-highlight;
 }
 
 /* Wide wrapper for 16:9 images (with top/bottom bars in square container) */
 .imageWrapperWide {
   width: 100%;
   aspect-ratio: 16/9;
-  background: #EFEFEF;
+  background: $color-bg-highlight;
 }
 
 /* Tall wrapper for 4:5 images */
 .imageWrapperTall {
   height: 100%;
   aspect-ratio: 4/5;
-  background: #EFEFEF;
+  background: $color-bg-highlight;
 }
 
 .postImage {
@@ -150,6 +154,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  flex: 1;
 }
 
 .multipleIndicator {
@@ -157,7 +162,7 @@
   bottom: 12px;
   left: 12px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.80);
+  background: rgba($color-black, 0.80);
   border-radius: 20px;
   display: flex;
   align-items: center;
@@ -170,15 +175,16 @@
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 4px;
+  gap: $spacing-xs;
   z-index: 2;
+  pointer-events: none; /* Allow clicks to pass through */
 }
 
 .indicator {
   width: 6px;
   height: 6px;
   border-radius: 3px;
-  background: white;
+  background: $color-white;
   opacity: 0.4;
 }
 
@@ -188,7 +194,7 @@
 
 .navNext {
   position: absolute;
-  right: 8px;
+  right: $spacing-sm;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -203,7 +209,7 @@
 
 .navPrev {
   position: absolute;
-  left: 8px;
+  left: $spacing-sm;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -223,15 +229,15 @@
 
 /* Info Section */
 .infoSection {
-  background: white;
+  background: $color-white;
   width: 500px;
   min-width: 405px;
   max-width: 500px;
   display: flex;
   flex-direction: column;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  border-left: 1px solid #EFEFEF;
+  border-top-right-radius: $radius-sm;
+  border-bottom-right-radius: $radius-sm;
+  border-left: 1px solid $color-border;
   flex-shrink: 0;
 }
 
@@ -240,7 +246,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid #EFEFEF;
+  border-bottom: 1px solid $color-surface;
 }
 
 .userInfo {
@@ -260,7 +266,7 @@
 .avatar {
   border-radius: 12px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .collaboratorAvatar {
@@ -268,7 +274,7 @@
   right: -8px;
   bottom: -8px;
   padding: 1px;
-  background: white;
+  background: $color-white;
   border-radius: 13px;
 }
 
@@ -284,9 +290,9 @@
 }
 
 .usernameRow {
-  font-size: 14px;
-  font-weight: 600;
-  color: #262626;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $color-text;
   line-height: 18px;
 }
 
@@ -300,7 +306,7 @@
 
 .usernameLink {
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -310,8 +316,8 @@
 }
 
 .followersCount {
-  font-size: 11px;
-  color: #262626;
+  font-size: $font-xs;
+  color: $color-text;
   line-height: 16px;
 }
 
@@ -330,11 +336,11 @@
   position: absolute;
   top: 40px;
   right: 0;
-  background: white;
-  border: 1px solid #DBDBDB;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  box-shadow: $shadow-sm;
+  z-index: $z-dropdown;
   min-width: 140px;
   overflow: hidden;
 }
@@ -342,18 +348,18 @@
 .menuItem {
   display: block;
   width: 100%;
-  padding: 8px 16px;
+  padding: $spacing-sm $spacing-md;
   border: none;
   background: none;
   text-align: left;
-  font-size: 14px;
-  color: #262626;
+  font-size: $font-sm;
+  color: $color-text;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color $transition-fast;
 }
 
 .menuItem:hover {
-  background-color: #FAFAFA;
+  background-color: $color-bg;
 }
 
 .menuItem:disabled {
@@ -380,7 +386,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  border-left: 1px solid #EFEFEF;
+  border-left: 1px solid $color-surface;
 }
 
 .comment {
@@ -393,14 +399,14 @@
 .commentAvatar {
   border-radius: 16px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
   flex-shrink: 0;
   cursor: pointer;
 }
 
 .commentUsernameLink {
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -415,7 +421,7 @@
 
 .commentText {
   font-size: 14px;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
   margin-bottom: 6px;
   word-wrap: break-word;
@@ -424,7 +430,7 @@
 
 .commentUsernameLink {
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -432,7 +438,7 @@
 .seeMoreButton {
   background: none;
   border: none;
-  color: #8E8E8E;
+  color: $color-muted;
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -441,7 +447,7 @@
   transition: color 0.2s;
 
   &:hover {
-    color: #262626;
+    color: $color-text;
   }
 }
 
@@ -450,7 +456,7 @@
   align-items: center;
   gap: 11.55px;
   font-size: 12px;
-  color: #8E8E8E;
+  color: $color-muted;
 }
 
 .timeAgo {
@@ -465,19 +471,21 @@
 }
 
 .replyButton,
-.translateButton {
+.translateButton,
+.showRepliesButton {
   background: none;
   border: none;
   font-size: 12px;
   font-weight: 600;
-  color: #8E8E8E;
+  color: $color-muted;
   cursor: pointer;
   padding: 0;
 }
 
 .replyButton:hover,
-.translateButton:hover {
-  color: #262626;
+.translateButton:hover,
+.showRepliesButton:hover {
+  color: $color-text;
 }
 
 .likeButton {
@@ -490,11 +498,128 @@
   padding: 0;
 }
 
+/* Comment More Menu */
+.moreMenuWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.moreMenuButton {
+  @include icon-button;
+  @include menu-button-hidden;
+  padding: 4px;
+  color: $color-text;
+}
+
+/* Show icon only when the comment or reply row is hovered. */
+/* Use direct child selector to avoid affecting nested replies */
+.comment:hover > .commentContent > .commentMeta > .moreMenuWrapper > .moreMenuButton,
+.replyItem:hover > .commentContent > .commentMeta > .moreMenuWrapper > .moreMenuButton {
+  visibility: visible;
+  opacity: 0.9;
+  pointer-events: auto;
+}
+
+.commentMoreMenu {
+  position: absolute;
+  top: 20px;
+  left: -20px;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  box-shadow: $shadow-sm;
+  z-index: 10;
+  min-width: 100px;
+  overflow: hidden;
+}
+
+.commentMenuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  color: $color-text;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: $color-bg;
+  }
+}
+
+/* Comment Edit */
+.commentEditContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.commentEditInput {
+  @include comment-input;
+  min-height: 60px;
+  resize: vertical;
+}
+
+.commentEditButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Reply Container */
+.replyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid $color-border;
+}
+
+.replyInput {
+  @include comment-input;
+}
+
+.replyButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Replies Display */
+.repliesLoading {
+  margin-top: 12px;
+  padding-left: 44px;
+  font-size: $font-xs;
+  color: $color-muted;
+}
+
+.repliesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.replyItem {
+  display: flex;
+  gap: 12px;
+  padding-left: 24px;
+  position: relative;
+
+  @include reply-line(12px, 2px, 0, 0);
+}
+
 /* Post Actions */
 .postActions {
   padding: 0 16px;
-  border-top: 1px solid #EFEFEF;
-  border-left: 1px solid #EFEFEF;
+  border-top: 1px solid $color-border;
+  border-left: 1px solid $color-border;
 }
 
 .actionsRow {
@@ -526,18 +651,18 @@
 .likesSection {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $spacing-xs;
   padding: 8px 0;
 }
 
 .likerAvatar {
   border-radius: 10px;
-  border: 2px solid white;
+  border: 2px solid $color-white;
   object-fit: cover;
 }
 
 .likesText a {
-  color: #262626;
+  color: $color-text;
   text-decoration: none;
   cursor: pointer;
 }
@@ -551,8 +676,8 @@
 }
 
 .postTime {
-  font-size: 10px;
-  color: #8E8E8E;
+  font-size: $font-xs;
+  color: $color-muted;
   text-transform: uppercase;
   line-height: 12px;
   letter-spacing: 0.2px;
@@ -565,7 +690,7 @@
   align-items: center;
   gap: 12px;
   padding: 7px 16px 6px;
-  border-top: 1px solid #EFEFEF;
+  border-top: 1px solid $color-border;
   height: 53px;
 }
 
@@ -584,13 +709,13 @@
   flex: 1;
   border: none;
   outline: none;
-  font-size: 14px;
-  color: #262626;
+  font-size: $font-sm;
+  color: $color-text;
   line-height: 18px;
 }
 
 .commentInput::placeholder {
-  color: #262626;
+  color: $color-muted;
 }
 
 .postButton {
@@ -598,14 +723,21 @@
   border: none;
   font-size: 13px;
   font-weight: 600;
-  color: #B3DBFF;
+  color: $color-primary;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-}
+  transition: opacity 0.2s;
 
-.postButton:hover {
-  color: #0095F6;
+  &:disabled {
+    color: $color-bg-highlight;
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:not(:disabled):hover {
+    opacity: 0.7;
+  }
 }
 
 /* Edit Caption Styles */
@@ -614,8 +746,8 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: #FAFAFA;
-  border-radius: 4px;
+  background: $color-bg;
+  border-radius: $radius-sm;
   margin-bottom: 16px;
 }
 
@@ -623,20 +755,20 @@
   width: 100%;
   min-height: 100px;
   padding: 12px;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
-  color: #262626;
+  color: $color-text;
   resize: vertical;
   outline: none;
 
   &:focus {
-    border-color: #0095F6;
+    border-color: $color-primary;
   }
 
   &::placeholder {
-    color: #8E8E8E;
+    color: $color-muted;
   }
 }
 
@@ -647,151 +779,39 @@
 }
 
 .saveButton {
+  @include button-primary;
   padding: 8px 16px;
-  background-color: #0095F6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #0085E0;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 }
 
 .cancelButton {
+  @include button-secondary;
   padding: 8px 16px;
-  background-color: #EFEFEF;
-  color: #262626;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #DBDBDB;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 }
 
 /* Error and Success Messages */
 .errorMessage {
   padding: 12px 16px;
-  background-color: #FFE5E5;
-  border: 1px solid #FFB3B3;
-  border-radius: 4px;
-  color: #ED4956;
-  font-size: 14px;
+  background-color: color.adjust($color-error, $lightness: 40%);
+  border: 1px solid color.adjust($color-error, $lightness: 20%);
+  border-radius: $radius-sm;
+  color: $color-error;
+  font-size: $font-sm;
   font-weight: 500;
   margin-top: 8px;
 }
 
 .successMessage {
   padding: 12px 16px;
-  background-color: #E5F5E5;
-  border: 1px solid #B3FFB3;
-  border-radius: 4px;
-  color: #31A24C;
-  font-size: 14px;
+  background-color: color.adjust($color-success, $lightness: 40%);
+  border: 1px solid color.adjust($color-success, $lightness: 20%);
+  border-radius: $radius-sm;
+  color: $color-success;
+  font-size: $font-sm;
   font-weight: 500;
   margin-top: 8px;
 }
 
-/* Delete Confirmation Dialog */
-.confirmationDialog {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  z-index: 100;
-}
 
-.confirmationContent {
-  background-color: white;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.confirmationTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: #262626;
-  margin: 0 0 8px 0;
-}
-
-.confirmationText {
-  font-size: 14px;
-  color: #8E8E8E;
-  margin: 0 0 16px 0;
-}
-
-.confirmationButtons {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.confirmCancelButton {
-  padding: 10px 20px;
-  background-color: #EFEFEF;
-  color: #262626;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #DBDBDB;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-.confirmDeleteButton {
-  padding: 10px 20px;
-  background-color: #ED4956;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #DB3D4F;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
 
 @media (max-width: 1200px) {
   .modalBackdrop {

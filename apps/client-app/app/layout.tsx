@@ -2,7 +2,7 @@
 
 import { Metadata } from 'next';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import './global.css'
+import './global.scss'
 
 export const metadata: Metadata = {
   title: "Innogram Social Media App",

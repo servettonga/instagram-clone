@@ -1,0 +1,221 @@
+@use '@/styles/index.scss' as *;
+
+.cropperWrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $color-black;
+}
+
+.cropperHeader {
+  padding: $spacing-md 20px;
+  border-bottom: 1px solid rgba($color-white, 0.1);
+  background: rgba($color-black, 0.8);
+
+  h3 {
+    margin: 0;
+    font-size: $font-md;
+    font-weight: $font-bold;
+    color: $color-white;
+  }
+}
+
+.cropperArea {
+  position: relative;
+  flex: 1;
+  background: $color-black;
+  min-height: 400px;
+  min-width: 400px;
+}
+
+/* Indicators overlayed on the image area, above the zoom controls */
+.imageIndicators {
+  position: absolute;
+  bottom: 16px; /* sits above the lower controls area */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 20; /* above cropper canvas */
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba($color-white, 0.5);
+  transition: background-color $transition-fast, transform 0.12s;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+
+  &:focus {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+
+  &.active {
+    background: $color-white;
+  }
+}
+
+.controls {
+  padding: 16px 20px;
+  background: rgba($color-black, 0.8);
+  border-top: 1px solid rgba($color-white, 0.1);
+  border-bottom: 1px solid rgba($color-white, 0.1);
+}
+
+.zoomControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  label {
+    font-size: $font-sm;
+    font-weight: $font-bold;
+    color: $color-white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 50px;
+  }
+
+  input[type='range'] {
+    flex: 1;
+    height: 6px;
+    border-radius: $radius-sm;
+  background: rgba($color-white, 0.2);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    padding: 0;
+
+  &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: $radius-round;
+    background: $color-white;
+      cursor: pointer;
+      transition: all $transition-fast;
+  box-shadow: 0 2px 4px rgba($color-black, 0.3);
+      /* Center the thumb vertically relative to the 6px track
+         thumb height (20px) -> offset = (track - thumb)/2 = (6 - 20)/2 = -7px */
+      margin-top: -3px;
+      transform: translateY(-3px);
+
+      &:hover {
+        transform: translateY(-6px) scale(1.1);
+      }
+
+      &:active {
+        transform: translateY(-6px) scale(0.95);
+      }
+    }
+
+    &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: $radius-round;
+    background: $color-white;
+      cursor: pointer;
+      border: none;
+      transition: all $transition-fast;
+  box-shadow: 0 2px 4px rgba($color-black, 0.3);
+
+      /* Firefox needs a translate to vertically center the thumb */
+      transform: translateY(-3px);
+
+      &:hover {
+        transform: translateY(-6px) scale(1.1);
+      }
+
+      &:active {
+        transform: translateY(-6px) scale(0.95);
+      }
+    }
+
+    &::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: transparent;
+      border-radius: $radius-sm;
+    }
+
+    &::-moz-range-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+  background: rgba($color-white, 0.2);
+      border-radius: $radius-sm;
+    }
+  }
+}
+
+.zoomValue {
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $color-white;
+  min-width: 45px;
+  text-align: right;
+}
+
+.aspectRatioInfo {
+  text-align: center;
+  font-size: $font-xs;
+  color: rgba($color-white, 0.6);
+}
+
+.cropperActions {
+  padding: 16px 20px;
+  display: flex;
+  gap: $spacing-md;
+  justify-content: flex-end;
+  background: rgba($color-black, 0.8);
+  border-top: 1px solid rgba($color-white, 0.1);
+}
+
+.cancelButton,
+.doneButton {
+  padding: 10px 24px;
+  border-radius: $radius-md;
+  font-weight: $font-bold;
+  font-size: $font-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cancelButton {
+  background: transparent;
+  color: $color-white;
+  border: 1px solid rgba($color-white, 0.3);
+
+  &:hover:not(:disabled) {
+    background: rgba($color-white, 0.1);
+    border-color: rgba($color-white, 0.5);
+  }
+}
+
+.doneButton {
+  background: $color-primary;
+  color: $color-white;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-contrast;
+  }
+}

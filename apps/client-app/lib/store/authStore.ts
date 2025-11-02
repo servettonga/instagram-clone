@@ -15,22 +15,6 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-/**
- * Decode JWT and check if it's expired
- */
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expiryTime = payload.exp * 1000; // Convert to milliseconds
-    const now = Date.now();
-
-    // Consider token expired if less than 30 seconds remaining
-    return expiryTime - now < 30000;
-  } catch {
-    return true; // Invalid token format
-  }
-}
-
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: true,

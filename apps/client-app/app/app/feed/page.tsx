@@ -11,26 +11,7 @@ import FeedSidebar from '@/components/feed/FeedSidebar';
 import PostViewModal from '@/components/modal/PostViewModal';
 import styles from './feed.module.scss';
 import { transformPostsToFeedPosts, transformPostToFeedPost, transformPostForModal } from '@/lib/utils';
-
-// Mock comments for the modal (will be replaced with real comments API later)
-const MOCK_COMMENTS = [
-  {
-    id: 'comment-1',
-    username: 'user1',
-    avatarUrl: 'https://i.pravatar.cc/150?img=1',
-    text: 'Amazing post!',
-    timeAgo: '2h',
-    likes: 10,
-  },
-  {
-    id: 'comment-2',
-    username: 'user2',
-    avatarUrl: 'https://i.pravatar.cc/150?img=2',
-    text: 'Love this! 🔥',
-    timeAgo: '5h',
-    likes: 5,
-  },
-];
+import { usersApi } from '@/lib/api/users';
 
 const POSTS_PER_PAGE = 10;
 
@@ -140,13 +121,46 @@ export default function FeedPage() {
     };
   }, [loadPosts]);
 
-  const suggestions = [
-    { username: 'imkir', note: 'Follows you', avatar: 'https://i.pravatar.cc/150?img=45' },
-    { username: 'organic__al', note: 'Followed by chirag_singla17', avatar: 'https://i.pravatar.cc/150?img=46' },
-    { username: 'im_gr', note: 'Followed by chirag_singla17', avatar: 'https://i.pravatar.cc/150?img=47' },
-    { username: 'abh952', note: 'Follows you', avatar: 'https://i.pravatar.cc/150?img=48' },
-    { username: 'sakbrl', note: 'Follows you', avatar: 'https://i.pravatar.cc/150?img=49' },
-  ];
+
+
+  // null = not loaded yet; [] = loaded but empty / no suggestions
+  const [suggestionsState, setSuggestionsState] = useState<{
+    id?: string;
+    userId?: string;
+    username: string;
+    followersCount?: number;
+    followsYou?: boolean;
+    followedBy?: string[];
+    note: string;
+    avatar: string;
+  }[] | null>(null);
+
+  // Fetch suggestions from the server
+  const loadSuggestions = useCallback(async () => {
+    try {
+      const res = await usersApi.getSuggestions({ type: 'most_followers', limit: 5 });
+      const mapped = res.map((s) => ({
+        id: s.id,
+        userId: s.userId,
+        username: s.username,
+        followersCount: s.followersCount,
+        followsYou: s.followsYou,
+        followedBy: s.followedBy ?? [],
+        note: s.followsYou ? 'Follows you' : (s.followedBy && s.followedBy.length > 0 ? `Followed by ${s.followedBy.join(', ')}` : `${s.followersCount} followers`),
+        avatar: s.avatarUrl ?? '',
+      }));
+      setSuggestionsState(mapped);
+    } catch (err) {
+      console.error('Failed to load suggestions', err);
+      // mark as loaded but empty — do not show mock suggestions while loading
+      setSuggestionsState([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    loadSuggestions();
+  }, [user, loadSuggestions]);
 
   const handleOpenPostModal = (post: ReturnType<typeof transformPostToFeedPost>) => {
     setSelectedPost(post);
@@ -170,7 +184,7 @@ export default function FeedPage() {
 
           {/* Error state */}
           {error && !isLoading && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#ed4956' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-error)' }}>
               <p>{error}</p>
             </div>
           )}
@@ -179,7 +193,7 @@ export default function FeedPage() {
           {!isLoading && !error && posts.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <p>No posts to show</p>
-              {activeTab === 'following' && <p style={{ fontSize: '14px', color: '#8e8e8e', marginTop: '8px' }}>Start following people to see their posts here</p>}
+              {activeTab === 'following' && <p style={{ fontSize: '14px', color: 'var(--color-muted)', marginTop: '8px' }}>Start following people to see their posts here</p>}
             </div>
           )}
 
@@ -203,15 +217,15 @@ export default function FeedPage() {
               textAlign: 'center',
             }}
           >
-            {isLoadingMore && <p style={{ color: '#8e8e8e' }}>Loading more posts...</p>}
+            {isLoadingMore && <p style={{ color: 'var(--color-muted)' }}>Loading more posts...</p>}
             {!hasMore && posts.length > 0 && (
-              <p style={{ color: '#8e8e8e', fontSize: '14px' }}>No more posts to load</p>
+              <p style={{ color: 'var(--color-muted)', fontSize: '14px' }}>No more posts to load</p>
             )}
           </div>
         </div>
 
-        {/* Sidebar with user info and suggestions */}
-        <FeedSidebar profile={profile} suggestions={suggestions} />
+  {/* Sidebar with user info and suggestions */}
+  <FeedSidebar profile={profile} suggestions={suggestionsState} />
       </div>
 
       {/* Post View Modal */}
@@ -223,7 +237,7 @@ export default function FeedPage() {
             setSelectedPost(null);
             setIsEditMode(false);
           }}
-          post={transformPostForModal(selectedPost, MOCK_COMMENTS)}
+          post={transformPostForModal(selectedPost)}
           initialEditMode={isEditMode}
           onPostUpdated={() => loadPosts()}
         />

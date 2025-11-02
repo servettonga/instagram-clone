@@ -2,10 +2,10 @@
 @use '@/styles/index.scss' as *;
 
 .messagesContainer {
-  background: white;
+  background: $color-white;
   height: calc(100vh - 0px);
   display: flex;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -20,21 +20,21 @@
 .conversationsList {
   width: 349px;
   min-width: 349px;
-  border-right: 1px solid #DBDBDB;
+  border-right: 1px solid $color-border;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: $color-white;
   flex-shrink: 0;
 }
 
 .conversationsHeader {
   height: 60px;
   padding: 0 20px;
-  border-bottom: 1px solid #DBDBDB;
+  border-bottom: 1px solid $color-border;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: $color-white;
   flex-shrink: 0;
 }
 
@@ -47,7 +47,7 @@
 .username {
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 24px;
 }
 
@@ -77,7 +77,7 @@
 
 .tabs {
   height: 43px;
-  border-bottom: 1px solid #DBDBDB;
+  border-bottom: 1px solid $color-border;
   display: flex;
   flex-shrink: 0;
 }
@@ -92,12 +92,12 @@
   text-transform: uppercase;
   letter-spacing: 0;
   cursor: pointer;
-  color: #262626;
+  color: $color-text;
   padding: 12px 0 13px 0;
 }
 
 .tabActive {
-  border-bottom-color: #262626;
+  border-bottom-color: $color-text;
 }
 
 .tabInactive {
@@ -123,7 +123,7 @@
 }
 
 .conversationItemActive {
-  background: #EFEFEF;
+  background: $color-surface;
 }
 
 .conversationAvatar {
@@ -133,7 +133,7 @@
 .avatar {
   border-radius: 28px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .conversationInfo {
@@ -146,14 +146,14 @@
 .conversationUsername {
   font-size: 13px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
 }
 
 .conversationActive {
   font-size: 14px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 18px;
 }
 
@@ -162,7 +162,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: $color-white;
   position: relative;
   min-width: 0;
 }
@@ -184,7 +184,7 @@
 .emptyStateTitle {
   font-size: 19px;
   font-weight: 400;
-  color: #262626;
+  color: $color-text;
   line-height: 25px;
   margin: 0 0 8px 0;
 }
@@ -192,7 +192,7 @@
 .emptyStateText {
   font-size: 13px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 18px;
   text-align: center;
   margin: 0 0 24px 0;
@@ -201,10 +201,10 @@
 
 .sendMessageButton {
   padding: 7px 18px 7px 19px;
-  background: #0095F6;
+  background: $color-primary;
   border: none;
   border-radius: 8px;
-  color: white;
+  color: $color-white;
   font-size: 13px;
   font-weight: 600;
   line-height: 18px;
@@ -213,18 +213,18 @@
 }
 
 .sendMessageButton:hover {
-  background: #1877F2;
+  background: $color-primary-contrast;
 }
 
 /* Header when conversation selected */
 .messagesHeader {
   height: 60px;
   padding: 9.5px 20px;
-  border-bottom: 1px solid #DBDBDB;
+  border-bottom: 1px solid $color-border;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: $color-white;
   flex-shrink: 0;
 }
 
@@ -237,7 +237,7 @@
 .recipientAvatar {
   border-radius: 12px;
   object-fit: cover;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba($color-black, 0.10);
 }
 
 .recipientDetails {
@@ -249,14 +249,14 @@
 .recipientUsername {
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  color: $color-text;
   line-height: 24px;
 }
 
 .activeStatus {
   font-size: 12px;
   font-weight: 400;
-  color: #8E8E8E;
+  color: $color-muted;
   line-height: 16px;
 }
 
@@ -283,7 +283,7 @@
 
 .messageInput {
   padding: 20px;
-  border-top: 1px solid #DBDBDB;
+  border-top: 1px solid $color-border;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -305,11 +305,11 @@
 
 .messageInputField {
   flex: 1;
-  border: 1px solid #DBDBDB;
+  border: 1px solid $color-border;
   border-radius: 22px;
   padding: 10px 16px;
   font-size: 14px;
-  color: #262626;
+  color: $color-text;
   line-height: 18px;
 }
 
@@ -318,7 +318,7 @@
 }
 
 .messageInputField::placeholder {
-  color: #262626;
+  color: $color-text;
 }
 
 @media (max-width: 1024px) {
@@ -329,7 +329,7 @@
   .conversationsList {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #DBDBDB;
+  border-bottom: 1px solid $color-border;
     max-height: 50vh;
   }
 }

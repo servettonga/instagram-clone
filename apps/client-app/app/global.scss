@@ -1,3 +1,5 @@
+@use '@/styles/tokens' as tokens;
+
 /* Instagram Sans Font Family */
 @font-face {
   font-family: 'Instagram Sans';
@@ -40,14 +42,32 @@
 }
 
 :root {
-  /* Instagram colors */
-  --ig-blue: #0095F6;
-  --ig-blue-hover: #1877F2;
-  --ig-background: #FAFAFA;
-  --ig-border: #DBDBDB;
-  --ig-text-primary: #262626;
-  --ig-text-secondary: #8E8E8E;
-  --ig-text-placeholder: #8E8E8E;
+  /* Semantic color tokens */
+  --color-text: #{tokens.$color-text};
+  --color-muted: #{tokens.$color-muted};
+  --color-border: #{tokens.$color-border};
+  --color-bg: #{tokens.$color-bg};
+  --color-white: #{tokens.$color-white};
+  --color-black: #{tokens.$color-black};
+  --color-primary: #{tokens.$color-primary};
+  --color-primary-contrast: #{tokens.$color-primary-contrast};
+  --color-error: #{tokens.$color-error};
+  --color-success: #{tokens.$color-success};
+  --color-surface: #{tokens.$color-surface};
+  --color-muted-alt: #{tokens.$color-muted-alt};
+  --color-overlay: #{tokens.$color-overlay};
+  --color-primary-disabled: #{tokens.$color-primary-disabled};
+  --color-success-bg: #{tokens.$color-success-bg};
+  --color-success-border: #{tokens.$color-success-border};
+  --color-error-bg: #{tokens.$color-error-bg};
+  --color-error-border: #{tokens.$color-error-border};
+  --color-danger-bg: #{tokens.$color-danger-bg};
+  --color-danger-border: #{tokens.$color-danger-border};
+  --color-info-bg: #{tokens.$color-info-bg};
+  --color-info-border: #{tokens.$color-info-border};
+  --color-bg-highlight: #{tokens.$color-bg-highlight};
+  --gradient-avatar: #{tokens.$gradient-avatar};
+  --skeleton-gradient: #{tokens.$skeleton-gradient};
 }
 
 * {

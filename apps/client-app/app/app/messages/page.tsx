@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/lib/store/authStore';
 import {
   ChevronDownIcon,
@@ -70,14 +70,7 @@ export default function MessagesPage() {
                 onClick={() => setSelectedConversation(conversation.id)}
               >
                 <div className={styles.conversationAvatar}>
-                  <Image
-                    src={conversation.avatarUrl}
-                    alt={conversation.username}
-                    width={56}
-                    height={56}
-                    className={styles.avatar}
-                    unoptimized
-                  />
+                  <Avatar avatarUrl={conversation.avatarUrl} username={conversation.username} size="lg" unoptimized />
                 </div>
                 <div className={styles.conversationInfo}>
                   <span className={styles.conversationUsername}>{conversation.username}</span>
@@ -104,14 +97,7 @@ export default function MessagesPage() {
             <>
               <div className={styles.messagesHeader}>
                 <div className={styles.recipientInfo}>
-                  <Image
-                    src={activeConversation!.avatarUrl}
-                    alt={activeConversation!.username}
-                    width={24}
-                    height={24}
-                    className={styles.recipientAvatar}
-                    unoptimized
-                  />
+                  <Avatar avatarUrl={activeConversation!.avatarUrl} username={activeConversation!.username} size="sm" unoptimized />
                   <div className={styles.recipientDetails}>
                     <span className={styles.recipientUsername}>{activeConversation!.username}</span>
                     <span className={styles.activeStatus}>Active {activeConversation!.active}</span>

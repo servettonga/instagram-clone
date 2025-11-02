@@ -1,20 +1,22 @@
-// Instagram Design Tokens - SCSS Variables
-// Use these instead of CSS variables when you need to compute values
+// Design primitives - raw values that power semantic tokens.
+// Prefer using `$color-*` tokens via `@use '@/styles/index.scss' as *;`.
 
 // Colors
-$ig-blue: #0095f6;
-$ig-blue-hover: #1877f2;
-$ig-background: #fafafa;
-$ig-border: #dbdbdb;
-$ig-text-primary: #262626;
-$ig-text-secondary: #8e8e8e;
-$ig-text-placeholder: #8e8e8e;
-$ig-white: #ffffff;
-$ig-black: #000000;
-$ig-error: #ed4956;
-$ig-success: #00c853;
+$base-primary: #0095f6;
+$base-primary-contrast: #1877f2;
+$base-surface: #fafafa;
+$base-border: #dbdbdb;
+$base-text: #262626;
+$base-text-muted: #8e8e8e;
+$base-text-placeholder: #8e8e8e;
+$base-white: #ffffff;
+$base-black: #000000;
+$base-error: #ed4956;
+$base-success: #00c853;
+$base-overlay-strong: #262626;
+$base-surface-highlight: #e9e9e9;
 
-// Spacing (Instagram uses 8px grid system)
+// Spacing
 $spacing-xs: 4px;
 $spacing-sm: 8px;
 $spacing-md: 16px;
