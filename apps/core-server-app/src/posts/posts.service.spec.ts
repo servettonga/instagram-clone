@@ -3,6 +3,7 @@ import { PostsService } from './posts.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssetManagementService } from '../common/services/asset-management.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -40,6 +41,10 @@ describe('PostsService', () => {
     getImageUrl: jest.fn(),
   };
 
+  const mockNotificationProducerService = {
+    sendNotification: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +60,10 @@ describe('PostsService', () => {
         {
           provide: ImageProcessingService,
           useValue: mockImageProcessingService,
+        },
+        {
+          provide: NotificationProducerService,
+          useValue: mockNotificationProducerService,
         },
       ],
     }).compile();

@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 import * as bcrypt from 'bcrypt';
 import { AccountProvider } from '@prisma/client';
 import { getConfig } from '../config/config';
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly httpService: HttpService,
     private readonly usersService: UsersService,
     private readonly prisma: PrismaService,
+    private readonly notificationProducer: NotificationProducerService,
   ) {
     this.authServiceUrl = getConfig().authServiceUrl;
   }
@@ -557,5 +559,244 @@ export class AuthService {
         hasPassword: account.provider === 'LOCAL',
       })),
     };
+  }
+
+  /**
+   * Reset password by identifier (email or username) - internal use for password recovery
+   * No old password required
+   * Works for both LOCAL accounts (reset) and OAuth accounts (set password)
+   */
+  async resetPasswordByIdentifier(identifier: string, newPassword: string) {
+    console.log('[Password Reset] Looking for identifier:', identifier);
+
+    // Try to find user by email first (any provider)
+    let user = await this.prisma.user.findFirst({
+      where: {
+        accounts: {
+          some: {
+            email: identifier,
+          },
+        },
+      },
+      include: {
+        accounts: true,
+      },
+    });
+
+    console.log('[Password Reset] User found by email:', !!user);
+
+    // If not found by email, try username
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: {
+          profile: {
+            username: identifier,
+          },
+        },
+        include: {
+          accounts: true,
+        },
+      });
+
+      console.log('[Password Reset] User found by username:', !!user);
+      if (user) {
+        console.log('[Password Reset] User ID:', user.id);
+        console.log(
+          '[Password Reset] Accounts count:',
+          user.accounts?.length || 0,
+        );
+        console.log(
+          '[Password Reset] Account providers:',
+          user.accounts?.map((a) => a.provider).join(', '),
+        );
+      }
+    }
+
+    if (!user) {
+      console.log('[Password Reset] No user found for identifier:', identifier);
+      throw new NotFoundException(
+        `No user found with identifier: ${identifier}`,
+      );
+    }
+
+    // If user has no accounts at all, we need an email to create one
+    if (!user.accounts || user.accounts.length === 0) {
+      console.log(
+        '[Password Reset] User found but no accounts - need to create account:',
+        identifier,
+      );
+
+      // Try to get email from identifier if it's an email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(identifier);
+
+      if (!isEmail) {
+        throw new BadRequestException(
+          'Cannot reset password for this username. Please use your email address instead to reset your password.',
+        );
+      }
+
+      // Create a LOCAL account with the provided email
+      const passwordHash = await bcrypt.hash(newPassword, 6);
+      await this.prisma.account.create({
+        data: {
+          userId: user.id,
+          email: identifier,
+          passwordHash,
+          provider: AccountProvider.LOCAL,
+          createdBy: user.id,
+        },
+      });
+
+      console.log(
+        '[Password Reset] Created new LOCAL account for orphaned user:',
+        identifier,
+      );
+      return { message: 'Password reset successful' };
+    }
+
+    // Check if user has a LOCAL account
+    const localAccount = user.accounts.find(
+      (acc) => acc.provider === AccountProvider.LOCAL,
+    );
+
+    const passwordHash = await bcrypt.hash(newPassword, 6);
+
+    if (localAccount) {
+      // Update existing LOCAL account password
+      console.log('[Password Reset] Updating LOCAL account password');
+      await this.prisma.account.update({
+        where: { id: localAccount.id },
+        data: {
+          passwordHash,
+        },
+      });
+    } else {
+      // User has OAuth account(s) but no LOCAL account - create one
+      console.log('[Password Reset] Creating LOCAL account for OAuth user');
+      const primaryAccount = user.accounts[0];
+
+      if (!primaryAccount) {
+        throw new NotFoundException('No account found for user');
+      }
+
+      await this.prisma.account.create({
+        data: {
+          userId: user.id,
+          email: primaryAccount.email,
+          passwordHash,
+          provider: AccountProvider.LOCAL,
+          createdBy: user.id,
+        },
+      });
+    }
+
+    console.log('[Password Reset] Password set successfully for:', identifier);
+
+    return { message: 'Password reset successful' };
+  }
+
+  /**
+   * Forward forgot password request to Auth Service
+   */
+  async handleForgotPassword(identifier: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<{
+          message: string;
+          token?: string;
+          resetUrl?: string;
+        }>(`${this.authServiceUrl}/internal/auth/forgot-password`, {
+          identifier,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      throw new BadRequestException(
+        this.getErrorMessage(error, 'Failed to process password reset request'),
+      );
+    }
+  }
+
+  /**
+   * Forward reset password request to Auth Service
+   */
+  async handleResetPassword(token: string, newPassword: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<{ message: string }>(
+          `${this.authServiceUrl}/internal/auth/reset-password`,
+          { token, newPassword },
+        ),
+      );
+      return response.data;
+    } catch (error) {
+      throw new BadRequestException(
+        this.getErrorMessage(error, 'Failed to reset password'),
+      );
+    }
+  }
+
+  /**
+   * Send password reset email notification
+   */
+  async sendPasswordResetEmail(identifier: string, resetUrl: string) {
+    try {
+      // Find user by email or username to get their email
+      let user = await this.prisma.user.findFirst({
+        where: {
+          accounts: {
+            some: {
+              email: identifier,
+            },
+          },
+        },
+        include: {
+          accounts: true,
+          profile: true,
+        },
+      });
+
+      if (!user) {
+        user = await this.prisma.user.findFirst({
+          where: {
+            profile: {
+              username: identifier,
+            },
+          },
+          include: {
+            accounts: true,
+            profile: true,
+          },
+        });
+      }
+
+      if (!user || !user.accounts || user.accounts.length === 0) {
+        // Silently return (don't reveal if account exists)
+        console.log('Password reset email: User not found:', identifier);
+        return { message: 'Email sent if account exists' };
+      }
+
+      const primaryAccount = user.accounts[0];
+      if (!primaryAccount) {
+        return { message: 'Email sent if account exists' };
+      }
+
+      const email = primaryAccount.email;
+      const username = user.profile?.username || 'User';
+
+      // Send notification via RabbitMQ (will be handled by notification consumer)
+      await this.notificationProducer.sendPasswordResetEmail(
+        email,
+        username,
+        resetUrl,
+      );
+
+      return { message: 'Password reset email sent' };
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      // Don't throw error to prevent account enumeration
+      return { message: 'Email sent if account exists' };
+    }
   }
 }

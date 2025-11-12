@@ -4,6 +4,7 @@ import { VALIDATION_RULES, config } from '../config/config.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
 import { redisService, SessionData } from '../services/redisClient.js';
 import { JwtService } from '../utils/jwt.js';
+import { PasswordResetService } from '../services/password-reset.service.js';
 import type {
   AuthResponse,
   LoginCredentials,
@@ -12,6 +13,9 @@ import type {
   RefreshTokenResponse,
   TokenValidationResponse,
 } from '@repo/shared-types';
+
+// Singleton instance for password reset service
+const passwordResetService = new PasswordResetService();
 
 export class AuthController {
   /**
@@ -273,6 +277,96 @@ export class AuthController {
       res.redirect(
         `${config.coreServiceUrl}/api/auth/google/callback?error=internal_error`,
       );
+    }
+  }
+
+  /**
+   * POST /internal/auth/forgot-password
+   * Request a password reset token
+   */
+  static async forgotPassword(
+    req: Request<object, object, { identifier: string }>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { identifier } = req.body;
+
+      if (!identifier) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.IDENTIFIER_REQUIRED,
+        });
+        return;
+      }
+
+      // Generate reset token (works for both email and username)
+      const token = passwordResetService.generateResetToken(identifier);
+      const resetUrl = `${config.frontendUrl}/auth/reset-password?token=${token}`;
+
+      // Send password reset email via Core Service
+      await AuthService.sendPasswordResetEmail(identifier, resetUrl);
+
+      // Return success message without token/url (security)
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.PASSWORD_RESET_EMAIL_SENT,
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      // Always return success message to prevent account enumeration
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.PASSWORD_RESET_EMAIL_SENT,
+      });
+    }
+  }
+
+  /**
+   * POST /internal/auth/reset-password
+   * Reset password using token
+   */
+  static async resetPassword(
+    req: Request<object, object, { token: string; newPassword: string }>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.TOKEN_AND_PASSWORD_REQUIRED,
+        });
+        return;
+      }
+
+      if (newPassword.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.PASSWORD_MIN_LENGTH,
+        });
+        return;
+      }
+
+      // Validate token
+      const identifier = passwordResetService.validateResetToken(token);
+
+      if (!identifier) {
+        res.status(400).json({
+          error: AUTH_MESSAGES.ERRORS.INVALID_RESET_TOKEN,
+        });
+        return;
+      }
+
+      // Reset password via Core Service (identifier can be email or username)
+      await AuthService.resetPassword(identifier, newPassword);
+
+      // Consume token
+      passwordResetService.consumeResetToken(token);
+
+      res.status(200).json({
+        message: AUTH_MESSAGES.SUCCESS.PASSWORD_RESET_SUCCESS,
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({
+        error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+      });
     }
   }
 }

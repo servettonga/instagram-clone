@@ -23,6 +23,7 @@
     "auth:dev": "cd apps/auth-service && NODE_ENV=development npm run dev",
     "core:dev": "cd apps/core-server-app && NODE_ENV=development npm run dev",
     "client:dev": "cd apps/client-app && NODE_ENV=development npm run dev",
+    "notifications:dev": "cd apps/notifications-consumer && NODE_ENV=development npm run dev",
     "shared-types:dev": "cd packages/shared-types && npm run dev",
 
     "// Production - Everything in Docker": "",
@@ -34,9 +35,11 @@
 
     "// Database Management": "",
     "db:push": "cd apps/core-server-app && npx prisma db push",
-    "db:generate": "cd apps/core-server-app && npx prisma generate",
+    "db:generate": "cd apps/core-server-app && npx prisma generate && cd ../notifications-consumer && npx prisma generate",
     "db:studio": "cd apps/core-server-app && npx prisma studio",
     "db:reset": "cd apps/core-server-app && npx prisma db push --force-reset",
+    "db:migrate": "cd apps/core-server-app && npx prisma migrate dev",
+    "db:migrate:deploy": "cd apps/core-server-app && npx prisma migrate deploy",
 
     "// Debug Commands": "",
     "docker:check:ports": "docker compose --env-file .env.production ps && echo '--- Networks ---' && docker network ls | grep intern_project",

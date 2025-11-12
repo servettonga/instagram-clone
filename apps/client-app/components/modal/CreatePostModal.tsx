@@ -6,6 +6,7 @@ import ChevronLeftIcon from '@/components/ui/icons/ChevronLeftIcon';
 import ChevronRightIcon from '@/components/ui/icons/ChevronRightIcon';
 import { postsAPI } from '@/lib/api/posts';
 import ImageCropper from './ImageCropper';
+import MentionInput from '@/components/ui/MentionInput';
 import styles from './CreatePostModal.module.scss';
 
 interface CreatePostModalProps {
@@ -294,12 +295,13 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
               {/* Right: Caption and options */}
               <div className={styles.detailsSection}>
                 <div className={styles.captionArea}>
-                  <textarea
-                    className={styles.captionInput}
-                    placeholder="Write a caption..."
+                  <MentionInput
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    maxLength={2200}
+                    onChange={setContent}
+                    placeholder="Write a caption... Type @ to mention someone"
+                    multiline={true}
+                    rows={6}
+                    className={styles.captionInput}
                     disabled={isCreating}
                   />
                   <div className={styles.characterCount}>

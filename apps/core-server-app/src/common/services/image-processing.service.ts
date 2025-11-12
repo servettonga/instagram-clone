@@ -11,8 +11,10 @@ export interface ProcessedImages {
 
 @Injectable()
 export class ImageProcessingService {
-  private readonly logger = new Logger(ImageProcessingService.name);
+  private readonly logContext = ImageProcessingService.name;
   private uploadPath = process.env.UPLOAD_DIR || './uploads';
+
+  constructor(private readonly logger: Logger) {}
 
   /**
    * Process uploaded image and generate three optimized versions
@@ -65,7 +67,10 @@ export class ImageProcessingService {
           .toFile(join(outputPath, `${baseFilename}-full.webp`)),
       ]);
 
-      this.logger.log(`Successfully processed image: ${baseFilename}`);
+      this.logger.log(
+        `Successfully processed image: ${baseFilename}`,
+        this.logContext,
+      );
 
       return {
         thumbnail: `${baseFilename}-thumb.webp`,
@@ -76,7 +81,11 @@ export class ImageProcessingService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Error processing image: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Error processing image: ${errorMessage}`,
+        errorStack,
+        this.logContext,
+      );
       throw new Error('Failed to process image');
     }
   }
@@ -100,14 +109,21 @@ export class ImageProcessingService {
         .webp({ quality: 85 })
         .toFile(join(outputPath, filename));
 
-      this.logger.log(`Successfully processed avatar: ${filename}`);
+      this.logger.log(
+        `Successfully processed avatar: ${filename}`,
+        this.logContext,
+      );
 
       return filename;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Error processing avatar: ${errorMessage}`, errorStack);
+      this.logger.error(
+        `Error processing avatar: ${errorMessage}`,
+        errorStack,
+        this.logContext,
+      );
       throw new Error('Failed to process avatar');
     }
   }
@@ -156,12 +172,16 @@ export class ImageProcessingService {
         const filePath = join(outputPath, filename);
         if (existsSync(filePath)) {
           unlinkSync(filePath);
-          this.logger.log(`Deleted image: ${filename}`);
+          this.logger.log(`Deleted image: ${filename}`, this.logContext);
         }
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Error deleting image ${filename}: ${errorMessage}`);
+        this.logger.error(
+          `Error deleting image ${filename}: ${errorMessage}`,
+          undefined,
+          this.logContext,
+        );
       }
     }
   }

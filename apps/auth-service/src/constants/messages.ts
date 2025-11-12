@@ -9,6 +9,9 @@ export const AUTH_MESSAGES = {
     TOKEN_VALID: 'Token is valid',
     OAUTH_INITIATED: 'OAuth flow initiated successfully',
     OAUTH_CALLBACK_SUCCESS: 'OAuth authentication successful',
+    PASSWORD_RESET_EMAIL_SENT:
+      'If an account exists with this identifier, a password reset link has been sent to the associated email address.',
+    PASSWORD_RESET_SUCCESS: 'Password reset successful',
   },
 
   // Error messages
@@ -17,17 +20,20 @@ export const AUTH_MESSAGES = {
     ALL_FIELDS_REQUIRED: 'All fields are required',
     EMAIL_PASSWORD_REQUIRED: 'Email and password are required',
     IDENTIFIER_PASSWORD_REQUIRED: 'Email/username and password are required',
+    IDENTIFIER_REQUIRED: 'Email or username is required',
     PASSWORD_MIN_LENGTH: 'Password must be at least 6 characters long',
     INVALID_EMAIL_FORMAT: 'Invalid email format',
     REFRESH_TOKEN_REQUIRED: 'Refresh token is required',
     ACCESS_TOKEN_REQUIRED: 'Access token required',
     TOKEN_REQUIRED: 'Token is required',
+    TOKEN_AND_PASSWORD_REQUIRED: 'Token and new password are required',
 
     // Authentication errors
     USER_EXISTS: 'User with this email already exists',
     INVALID_CREDENTIALS: 'Invalid email or password',
     INVALID_REFRESH_TOKEN: 'Invalid refresh token',
     INVALID_TOKEN: 'Invalid or expired token',
+    INVALID_RESET_TOKEN: 'Invalid or expired reset token',
     USER_NOT_AUTHENTICATED: 'User not authenticated',
     USER_NOT_FOUND: 'User not found',
 

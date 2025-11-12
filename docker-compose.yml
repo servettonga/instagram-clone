@@ -58,6 +58,30 @@ services:
       retries: 5
       start_period: 20s
 
+  # RabbitMQ (for message broker / notifications)
+  rabbitmq:
+    image: rabbitmq:4.2-management-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-intern_project}_rabbitmq
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-rabbitmq_password}
+      - RABBITMQ_DEFAULT_VHOST=/
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"      # AMQP protocol port
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
   # Authentication Microservice
   auth-service:
     build:
@@ -92,6 +116,7 @@ services:
       - MONGODB_URL=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/innogram_messages?authSource=admin
       - DATABASE_URL=postgresql://${APP_DB_USER:-innogram_user}:${APP_DB_PASSWORD:-innogram_app_password}@postgres:5432/${POSTGRES_DB:-innogram}?schema=public
       - AUTH_SERVICE_URL=http://auth-service:4000
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_password}@rabbitmq:5672
     ports:
       - "${CORE_SERVER_PORT:-8000}:8000"
     volumes:
@@ -100,6 +125,8 @@ services:
       postgres:
         condition: service_healthy
       mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       auth-service:
         condition: service_healthy
@@ -111,6 +138,25 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  # Notifications Consumer Microservice
+  notifications-consumer:
+    build:
+      context: .
+      dockerfile: apps/notifications-consumer/Dockerfile
+    container_name: innogram_notifications_consumer
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - DATABASE_URL=postgresql://${APP_DB_USER:-innogram_user}:${APP_DB_PASSWORD:-innogram_app_password}@postgres:5432/${POSTGRES_DB:-innogram}?schema=public
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_password}@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
 
   # Client Application (Next.js)
   client-app:
@@ -140,6 +186,8 @@ volumes:
   mongodb_data:
     driver: local
   redis_data:
+    driver: local
+  rabbitmq_data:
     driver: local
   uploads_data:
     driver: local

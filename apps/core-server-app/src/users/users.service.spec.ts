@@ -4,6 +4,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileUploadService } from '../common/services/file-upload.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ERROR_MESSAGES } from '../common/constants/messages';
@@ -92,6 +93,10 @@ describe('UsersService', () => {
     getFilePath: jest.fn(),
   };
 
+  const mockNotificationProducerService = {
+    sendNotification: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -103,6 +108,10 @@ describe('UsersService', () => {
         {
           provide: FileUploadService,
           useValue: mockFileUploadService,
+        },
+        {
+          provide: NotificationProducerService,
+          useValue: mockNotificationProducerService,
         },
       ],
     }).compile();

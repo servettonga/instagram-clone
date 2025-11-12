@@ -44,23 +44,16 @@ app.use('/health', healthRoutes);
 app.use('/internal/auth', authRoutes);
 
 // Error handling middleware
-app.use(
-  (
-    err: Error,
-    req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction,
-  ) => {
-    console.error(err.stack);
-    res.status(500).json({
-      error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
-      message:
-        config.nodeEnv === 'development'
-          ? err.message
-          : AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
-    });
-  },
-);
+app.use((err: Error, _req: express.Request, res: express.Response) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+    message:
+      config.nodeEnv === 'development'
+        ? err.message
+        : AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+  });
+});
 
 // 404 handler
 app.use((req, res) => {

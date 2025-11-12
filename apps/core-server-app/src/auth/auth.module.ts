@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { HttpModule } from '@nestjs/axios';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     }),
     UsersModule,
     PrismaModule,
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

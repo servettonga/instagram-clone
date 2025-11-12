@@ -244,6 +244,97 @@ export class AuthController {
     return this.authService.getLinkedAccounts(req.user!.id);
   }
 
+  @Post('internal-reset-password')
+  @Public()
+  @ApiExcludeEndpoint()
+  @ApiOperation({
+    summary:
+      'Reset password by identifier (internal endpoint for auth service)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string' },
+        newPassword: { type: 'string' },
+      },
+      required: ['identifier', 'newPassword'],
+    },
+  })
+  async internalResetPassword(
+    @Body() body: { identifier: string; newPassword: string },
+  ) {
+    return this.authService.resetPasswordByIdentifier(
+      body.identifier,
+      body.newPassword,
+    );
+  }
+
+  @Post('forgot-password')
+  @Public()
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        identifier: {
+          type: 'string',
+          example: 'john@example.com or johndoe',
+        },
+      },
+      required: ['identifier'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Reset link sent' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async forgotPassword(@Body() body: { identifier: string }) {
+    return this.authService.handleForgotPassword(body.identifier);
+  }
+
+  @Post('reset-password')
+  @Public()
+  @ApiOperation({ summary: 'Reset password with token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string' },
+        newPassword: { type: 'string', example: 'NewSecurePass123!' },
+      },
+      required: ['token', 'newPassword'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.handleResetPassword(body.token, body.newPassword);
+  }
+
+  @Post('send-password-reset-email')
+  @Public()
+  @ApiExcludeEndpoint()
+  @ApiOperation({
+    summary: 'Send password reset email (internal endpoint for auth service)',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string' },
+        resetUrl: { type: 'string' },
+      },
+      required: ['identifier', 'resetUrl'],
+    },
+  })
+  async sendPasswordResetEmail(
+    @Body() body: { identifier: string; resetUrl: string },
+  ) {
+    return this.authService.sendPasswordResetEmail(
+      body.identifier,
+      body.resetUrl,
+    );
+  }
+
   /**
    * Used by: AuthProvider on app initialization
    */

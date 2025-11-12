@@ -80,6 +80,21 @@ export const authApi = {
     return data;
   },
 
+  // Forgot password
+  forgotPassword: async (identifier: string): Promise<{ message: string; token?: string; resetUrl?: string }> => {
+    const { data } = await apiClient.post('/api/auth/forgot-password', { identifier });
+    return data;
+  },
+
+  // Reset password
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const { data } = await apiClient.post('/api/auth/reset-password', {
+      token,
+      newPassword,
+    });
+    return data;
+  },
+
   // OAuth login URLs
   getGoogleAuthUrl: (): string => {
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login/google`;

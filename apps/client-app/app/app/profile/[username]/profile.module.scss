@@ -4,6 +4,8 @@
 .profileContainer {
   background: $color-white;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .profileWrapper {
@@ -13,6 +15,9 @@
   max-width: 935px;
   margin-left: auto;
   margin-right: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .profileHeader {
@@ -26,8 +31,8 @@
 }
 
 .avatarWrapper {
-  width: 150px;
-  height: 150px;
+  width: 112px;
+  height: 112px;
   position: relative;
   background: $color-surface;
   border-radius: 75px;
@@ -37,20 +42,6 @@
 .avatar {
   border-radius: 75px;
   object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-}
-
-.avatarPlaceholder {
-  width: 150px;
-  height: 150px;
-  border-radius: 75px;
-  background: $color-surface;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 64px;
-  font-weight: 700;
-  color: $color-muted;
   border: 1px solid rgba($color-black, 0.10);
 }
 
@@ -110,21 +101,6 @@
 
 .followButton:hover {
   background: $color-primary-contrast;
-}
-
-.settingsButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  color: $color-text;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.settingsButton:hover {
-  opacity: 0.7;
 }
 
 .profileStats {
@@ -308,14 +284,6 @@
   gap: 8px;
 }
 
-.multiIcon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 18px;
-  height: 18px;
-}
-
 .footer {
   background: $color-white;
   padding: 24px 16px 52px 16px;
@@ -365,6 +333,75 @@
   line-height: 16px;
 }
 
+.notFoundContainer {
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 400px;
+}
+
+.notFoundContainer h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: $color-text;
+  margin-bottom: 16px;
+}
+
+.notFoundContainer p {
+  font-size: 16px;
+  color: $color-muted;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.primaryButton {
+  padding: 10px 24px;
+  background: $color-primary;
+  color: $color-white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primaryButton:hover {
+  background: $color-primary-contrast;
+}
+
+.privateProfileContainer {
+  text-align: center;
+  padding: 80px 20px;
+  border-top: 1px solid $color-border;
+  margin-top: 44px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.privateProfileContainer h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: $color-text;
+  margin-bottom: 12px;
+}
+
+.privateProfileContainer p {
+  font-size: 14px;
+  color: $color-muted;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
   .profileContainer {
     padding-left: 20px;
@@ -382,12 +419,6 @@
   .avatarWrapper {
     width: 80px;
     height: 80px;
-  }
-
-  .avatarPlaceholder {
-    width: 80px;
-    height: 80px;
-    font-size: 32px;
   }
 
   .profileStats {

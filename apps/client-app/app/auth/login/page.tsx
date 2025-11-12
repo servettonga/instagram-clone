@@ -130,6 +130,13 @@ export default function LoginPage() {
           <button type='submit' className={styles.submitButton} disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+
+          {/* Forgot password link */}
+          <div className={styles.forgotPassword}>
+            <Link href={ROUTES.AUTH.FORGOT_PASSWORD} className={styles.link}>
+              Forgot password?
+            </Link>
+          </div>
         </form>
 
         {/* Divider */}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Avatar from '@/components/ui/Avatar';
 import { HeartIcon, MoreIcon } from '@/components/ui/icons';
+import { MentionText } from '@/lib/utils/mentions';
 import type { Comment } from '@repo/shared-types';
 import styles from './CommentItem.module.scss';
 
@@ -119,7 +120,7 @@ export default function CommentItem({
                 >
                   {comment.profile.username}
                 </Link>{' '}
-                {comment.content}
+                <MentionText text={comment.content} />
               </div>
               <div className={styles.commentMeta}>
                 <span className={styles.timeAgo}>{formatTimeAgo(comment.createdAt)}</span>
@@ -131,10 +132,10 @@ export default function CommentItem({
                     Reply
                   </button>
                 )}
-                {!isReply && comment._count?.replies && comment._count.replies > 0 && onToggleShowReplies && (
+                {!isReply && (comment._count?.replies ?? 0) > 0 && onToggleShowReplies && (
                   <button className={styles.showRepliesButton} onClick={() => onToggleShowReplies(comment.id)}>
-                    {showReplies ? 'Hide' : 'Show'} {comment._count.replies}{' '}
-                    {comment._count.replies === 1 ? 'reply' : 'replies'}
+                    {showReplies ? 'Hide' : 'Show'} {comment._count?.replies}{' '}
+                    {(comment._count?.replies ?? 0) === 1 ? 'reply' : 'replies'}
                   </button>
                 )}
                 <div className={styles.moreMenuWrapper}>

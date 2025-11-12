@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { commentsAPI } from '@/lib/api/comments';
 import CommentItem from './CommentItem';
 import ConfirmModal from '@/components/modal/ConfirmModal';
+import MentionPicker from '@/components/ui/MentionPicker';
 import type { Comment } from '@repo/shared-types';
 import styles from './CommentsList.module.scss';
 
@@ -35,6 +36,13 @@ export default function CommentsList({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
+  // Mention picker state
+  const [showMentionPicker, setShowMentionPicker] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPickerPosition, setMentionPickerPosition] = useState({ top: 0, left: 0 });
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const replyInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRepliesForComment = useCallback(async (commentId: string) => {
     setLoadingReplies((prev) => {
@@ -84,11 +92,73 @@ export default function CommentsList({
   const handleReply = (commentId: string) => {
     setReplyingToCommentId(commentId);
     setReplyText('');
+    setShowMentionPicker(false);
+    setMentionQuery('');
   };
 
   const handleCancelReply = () => {
     setReplyingToCommentId(null);
     setReplyText('');
+    setShowMentionPicker(false);
+    setMentionQuery('');
+  };
+
+  const handleReplyTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart || 0;
+
+    setReplyText(value);
+
+    // Check if there's an '@' before cursor
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      // Check if there's whitespace between @ and cursor
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+
+      if (!/\s/.test(textAfterAt)) {
+        // No whitespace, show mention picker
+        setMentionStartIndex(lastAtIndex);
+        setMentionQuery(textAfterAt);
+        setShowMentionPicker(true);
+
+        // Calculate position for mention picker
+        if (replyInputRef.current) {
+          const rect = replyInputRef.current.getBoundingClientRect();
+          setMentionPickerPosition({
+            top: rect.bottom + window.scrollY,
+            left: rect.left + window.scrollX,
+          });
+        }
+      } else {
+        setShowMentionPicker(false);
+      }
+    } else {
+      setShowMentionPicker(false);
+    }
+  };
+
+  const handleMentionSelect = (username: string) => {
+    if (mentionStartIndex === -1) return;
+
+    const beforeMention = replyText.substring(0, mentionStartIndex);
+    const afterCursor = replyText.substring(replyInputRef.current?.selectionStart || replyText.length);
+    const newText = `${beforeMention}@${username} ${afterCursor}`;
+
+    setReplyText(newText);
+    setShowMentionPicker(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+
+    // Focus back on input
+    setTimeout(() => {
+      if (replyInputRef.current) {
+        const newCursorPos = beforeMention.length + username.length + 2;
+        replyInputRef.current.focus();
+        replyInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
   };
 
   const handleSubmitReply = async (parentCommentId: string) => {
@@ -226,21 +296,32 @@ export default function CommentsList({
 
               {isReplying && (
                 <div className={styles.replyContainer}>
-                  <input
-                    type="text"
-                    className={styles.replyInput}
-                    placeholder="Add a reply..."
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmitReply(comment.id);
-                      }
-                    }}
-                    autoFocus
-                    disabled={isSubmittingReply}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      ref={replyInputRef}
+                      type="text"
+                      className={styles.replyInput}
+                      placeholder="Add a reply..."
+                      value={replyText}
+                      onChange={handleReplyTextChange}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !showMentionPicker) {
+                          e.preventDefault();
+                          handleSubmitReply(comment.id);
+                        }
+                      }}
+                      autoFocus
+                      disabled={isSubmittingReply}
+                    />
+                    {showMentionPicker && (
+                      <MentionPicker
+                        searchQuery={mentionQuery}
+                        position={mentionPickerPosition}
+                        onSelect={handleMentionSelect}
+                        onClose={() => setShowMentionPicker(false)}
+                      />
+                    )}
+                  </div>
                   <div className={styles.replyButtons}>
                     <button
                       className={styles.cancelButton}

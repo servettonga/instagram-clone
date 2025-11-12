@@ -19,9 +19,9 @@ export const API_ENDPOINTS = {
     FOLLOWING: (id: string) => `/api/users/${id}/following`,
     FOLLOW: (id: string) => `/api/users/${id}/follow`,
     FOLLOW_STATUS: (id: string) => `/api/users/${id}/follow-status`,
-    FOLLOW_REQUESTS: '/api/users/follow-requests',
-    APPROVE_FOLLOW_REQUEST: (id: string) => `/api/users/follow-requests/${id}/approve`,
-    REJECT_FOLLOW_REQUEST: (id: string) => `/api/users/follow-requests/${id}/reject`,
+    FOLLOW_REQUESTS: '/api/users/me/follow-requests',
+    APPROVE_FOLLOW_REQUEST: (userId: string) => `/api/users/me/follow-requests/${userId}/approve`,
+    REJECT_FOLLOW_REQUEST: (userId: string) => `/api/users/me/follow-requests/${userId}/reject`,
   },
 
   // Post endpoints
@@ -42,5 +42,14 @@ export const API_ENDPOINTS = {
     REPLIES: (id: string) => `/api/comments/${id}/replies`,
     LIKE: (id: string) => `/api/comments/${id}/like`,
     LIKES: (id: string) => `/api/comments/${id}/likes`,
+  },
+
+  // Notification endpoints
+  NOTIFICATIONS: {
+    BASE: '/api/notifications',
+    PREFERENCES: '/api/notifications/preferences',
+    UNREAD_STATUS: '/api/notifications/unread/status',
+    MARK_READ: (id: string) => `/api/notifications/${id}/read`,
+    MARK_ALL_READ: '/api/notifications/read-all',
   }
 } as const;

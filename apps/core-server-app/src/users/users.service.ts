@@ -12,6 +12,8 @@ import { Prisma, AccountProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { FileUploadService } from '../common/services/file-upload.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   SafeUser,
   SafeProfile,
@@ -27,6 +29,8 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private fileUploadService: FileUploadService,
+    private notificationProducer: NotificationProducerService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -477,6 +481,23 @@ export class UsersService {
       },
     });
 
+    // Send notification to the followed user - fire and forget
+    if (accepted === null) {
+      // Private account: send follow request notification
+      void this.notificationProducer.notifyFollowRequest(
+        followedUserId,
+        followerUserId,
+        followerProfile.username,
+      );
+    } else {
+      // Public account: notify user they have a new follower
+      void this.notificationProducer.notifyNewFollower(
+        followedUserId,
+        followerUserId,
+        followerProfile.username,
+      );
+    }
+
     return follow;
   }
 
@@ -510,6 +531,18 @@ export class UsersService {
     }
 
     try {
+      // First, check if this is a pending request to delete the notification
+      const existingFollow = await this.prisma.profileFollow.findUnique({
+        where: {
+          followerProfileId_followedProfileId: {
+            followerProfileId: followerProfile.id,
+            followedProfileId: followedProfile.id,
+          },
+        },
+      });
+
+      const wasPending = existingFollow?.accepted === null;
+
       await this.prisma.profileFollow.delete({
         where: {
           followerProfileId_followedProfileId: {
@@ -518,6 +551,14 @@ export class UsersService {
           },
         },
       });
+
+      // If it was a pending request, delete the follow request notification
+      if (wasPending) {
+        void this.notificationsService.deleteFollowRequestNotification(
+          followedUserId,
+          followerUserId,
+        );
+      }
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -573,6 +614,19 @@ export class UsersService {
           updatedBy: profileOwnerId,
         },
       });
+
+      // Delete the follow request notification from the profile owner's notifications
+      void this.notificationsService.deleteFollowRequestNotification(
+        profileOwnerId,
+        followerUserId,
+      );
+
+      // Notify the follower that their request was accepted
+      void this.notificationProducer.notifyFollowAccepted(
+        followerUserId,
+        profileOwnerId,
+        profileOwner.username,
+      );
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -622,6 +676,12 @@ export class UsersService {
           accepted: null, // Only delete if it's pending
         },
       });
+
+      // Delete the follow request notification from the profile owner's notifications
+      void this.notificationsService.deleteFollowRequestNotification(
+        profileOwnerId,
+        followerUserId,
+      );
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -637,6 +697,7 @@ export class UsersService {
    */
   async getFollowers(
     userId: string,
+    currentUserId?: string,
     options: { page?: number; limit?: number } = {},
   ) {
     const page = options.page || 1;
@@ -650,6 +711,59 @@ export class UsersService {
 
     if (!profile) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(userId));
+    }
+
+    // Privacy check: if profile is private, check access permissions
+    if (!profile.isPublic) {
+      // If no current user, deny access
+      if (!currentUserId) {
+        return {
+          followers: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        };
+      }
+
+      // Check if current user is viewing their own profile
+      const isOwnProfile = userId === currentUserId;
+      if (!isOwnProfile) {
+        // Check if current user is following this profile
+        const currentUserProfile = await this.prisma.profile.findFirst({
+          where: { userId: currentUserId, deleted: false },
+        });
+
+        if (currentUserProfile) {
+          const follow = await this.prisma.profileFollow.findUnique({
+            where: {
+              followerProfileId_followedProfileId: {
+                followerProfileId: currentUserProfile.id,
+                followedProfileId: profile.id,
+              },
+            },
+          });
+
+          // If not following or follow not accepted, deny access
+          if (!follow || !follow.accepted) {
+            return {
+              followers: [],
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            };
+          }
+        } else {
+          return {
+            followers: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          };
+        }
+      }
     }
 
     // Get followers where accepted is true
@@ -707,6 +821,7 @@ export class UsersService {
    */
   async getFollowing(
     userId: string,
+    currentUserId?: string,
     options: { page?: number; limit?: number } = {},
   ) {
     const page = options.page || 1;
@@ -720,6 +835,59 @@ export class UsersService {
 
     if (!profile) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND(userId));
+    }
+
+    // Privacy check: if profile is private, check access permissions
+    if (!profile.isPublic) {
+      // If no current user, deny access
+      if (!currentUserId) {
+        return {
+          following: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        };
+      }
+
+      // Check if current user is viewing their own profile
+      const isOwnProfile = userId === currentUserId;
+      if (!isOwnProfile) {
+        // Check if current user is following this profile
+        const currentUserProfile = await this.prisma.profile.findFirst({
+          where: { userId: currentUserId, deleted: false },
+        });
+
+        if (currentUserProfile) {
+          const follow = await this.prisma.profileFollow.findUnique({
+            where: {
+              followerProfileId_followedProfileId: {
+                followerProfileId: currentUserProfile.id,
+                followedProfileId: profile.id,
+              },
+            },
+          });
+
+          // If not following or follow not accepted, deny access
+          if (!follow || !follow.accepted) {
+            return {
+              following: [],
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            };
+          }
+        } else {
+          return {
+            following: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          };
+        }
+      }
     }
 
     // Get users this profile is following where accepted is true

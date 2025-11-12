@@ -333,8 +333,10 @@ export class UsersController {
   async getFollowers(
     @Param('id', UuidValidationPipe) id: string,
     @Query() paginationDto: PaginationQueryDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.usersService.getFollowers(id, {
+    const currentUserId = req.user?.id;
+    return this.usersService.getFollowers(id, currentUserId, {
       page: paginationDto.page,
       limit: paginationDto.limit,
     });
@@ -360,8 +362,10 @@ export class UsersController {
   async getFollowing(
     @Param('id', UuidValidationPipe) id: string,
     @Query() paginationDto: PaginationQueryDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.usersService.getFollowing(id, {
+    const currentUserId = req.user?.id;
+    return this.usersService.getFollowing(id, currentUserId, {
       page: paginationDto.page,
       limit: paginationDto.limit,
     });

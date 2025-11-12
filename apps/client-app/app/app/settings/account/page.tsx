@@ -11,14 +11,11 @@ import styles from './account.module.scss';
 export default function AccountSettingsPage() {
   const { user, setUser } = useAuthStore();
   const profile = user?.profile;
-  const userEmail = user?.accounts?.[0]?.email || '';
   const [formData, setFormData] = useState({
     displayName: profile?.displayName || '',
     username: profile?.username || '',
     bio: profile?.bio || '',
-    email: userEmail,
     birthday: profile?.birthday ? new Date(profile.birthday).toISOString().split('T')[0] : '',
-    isPublic: profile?.isPublic ?? true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -31,6 +28,24 @@ export default function AccountSettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  const defaultHandle =
+    profile?.username ||
+    user?.profile?.username ||
+    user?.accounts?.[0]?.email ||
+    '';
+
+  const formattedHandle = defaultHandle
+    ? defaultHandle.includes('@') && !defaultHandle.startsWith('@')
+      ? defaultHandle
+      : `@${defaultHandle.replace(/^@/, '')}`
+    : '';
+
+  const displayName = profile?.displayName || user?.profile?.displayName || '';
+  const originalUsername = profile?.username || '';
+  const revertUsernameCopy = originalUsername
+    ? `@${originalUsername.replace(/^@/, '')}`
+    : 'your previous username';
+
   // Update form when user data changes
   useEffect(() => {
     if (profile) {
@@ -38,15 +53,13 @@ export default function AccountSettingsPage() {
         displayName: profile.displayName || '',
         username: profile.username || '',
         bio: profile.bio || '',
-        email: userEmail,
         birthday: profile.birthday ? new Date(profile.birthday).toISOString().split('T')[0] : '',
-        isPublic: profile.isPublic ?? true,
       });
       // Reset username validation when profile loads
       setUsernameStatus('idle');
       setUsernameMessage('');
     }
-  }, [profile, userEmail]);
+  }, [profile]);
 
   // Debounced username availability check
   useEffect(() => {
@@ -191,10 +204,6 @@ export default function AccountSettingsPage() {
         updateData.birthday = formData.birthday ? new Date(formData.birthday).toISOString() : '';
       }
 
-      if (formData.isPublic !== profile?.isPublic) {
-        updateData.isPublic = formData.isPublic;
-      }
-
       // Only send request if there are changes
       if (Object.keys(updateData).length === 0) {
         setSubmitMessage({ type: 'success', text: 'No changes to save' });
@@ -219,183 +228,157 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.editProfileForm}>
-              {/* Profile Photo Section */}
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Profile Photo</label>
-                <div className={styles.formInputWrapper}>
-                  <div className={styles.profilePhotoSection}>
-                    <div className={styles.avatarWrapper}>
-                      <Avatar
-                        avatarUrl={avatarPreview ?? profile?.avatarUrl ?? undefined}
-                        username={profile?.displayName || profile?.username}
-                        size="md"
-                        unoptimized
-                      />
-                    </div>
-                    <div className={styles.profilePhotoInfo}>
-                      <div className={styles.currentUsername}>{profile?.username}</div>
-                      <label htmlFor="avatar-upload" className={styles.changePhotoButton}>
-                        {isUploadingAvatar ? 'Uploading...' : 'Change profile photo'}
-                      </label>
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarChange}
-                        className={styles.fileInput}
-                        disabled={isUploadingAvatar}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Edit Profile</h1>
+        <p className={styles.pageDescription}>
+          Update your basic profile details and how others see you across the app.
+        </p>
+      </div>
 
-              {/* Form Fields */}
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Name</label>
-                <div className={styles.formInputWrapper}>
-                  <input
-                    type="text"
-                    name="displayName"
-                    value={formData.displayName}
-                    onChange={handleInputChange}
-                    className={styles.formInput}
-                  />
-                  <p className={styles.formHelp}>
-                    Help people discover your account by using the name you&apos;re known by: either your full name, nickname, or business name.
-                  </p>
-                </div>
-              </div>
+      <form onSubmit={handleSubmit} className={styles.editProfileForm}>
+        <div className={styles.avatarSection}>
+          <div className={styles.avatarWrapper}>
+            <Avatar
+              avatarUrl={avatarPreview ?? profile?.avatarUrl ?? undefined}
+              username={
+                profile?.displayName ||
+                profile?.username ||
+                user?.profile?.displayName ||
+                user?.profile?.username ||
+                user?.accounts?.[0]?.email
+              }
+              size="lg"
+              unoptimized
+            />
+          </div>
+          <div className={styles.profilePhotoInfo}>
+            {formattedHandle && (
+              <span className={styles.avatarUsername}>{formattedHandle}</span>
+            )}
+            {displayName && displayName !== formattedHandle && (
+              <span className={styles.avatarDisplayName}>{displayName}</span>
+            )}
+            <label htmlFor="avatar-upload" className={styles.changePhotoButton}>
+              {isUploadingAvatar ? 'Uploading...' : 'Change photo'}
+            </label>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className={styles.fileInput}
+              disabled={isUploadingAvatar}
+            />
+          </div>
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Username</label>
-                <div className={styles.formInputWrapper}>
-                  <div className={styles.inputWithValidation}>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className={`${styles.formInput} ${
-                        usernameStatus === 'available' ? styles.inputValid :
-                        usernameStatus === 'taken' || usernameStatus === 'error' ? styles.inputInvalid : ''
-                      }`}
-                    />
-                    {usernameStatus === 'checking' && (
-                      <span className={styles.validationIcon}>⏳</span>
-                    )}
-                    {usernameStatus === 'available' && (
-                      <span className={styles.validationIcon}>✓</span>
-                    )}
-                    {(usernameStatus === 'taken' || usernameStatus === 'error') && (
-                      <span className={styles.validationIcon}>✗</span>
-                    )}
-                  </div>
-                  {usernameMessage && (
-                    <p className={`${styles.validationMessage} ${
-                      usernameStatus === 'available' ? styles.validationSuccess :
-                      usernameStatus === 'checking' ? styles.validationInfo :
-                      styles.validationError
-                    }`}>
-                      {usernameMessage}
-                    </p>
-                  )}
-                  <p className={styles.formHelp}>
-                    In most cases, you&apos;ll be able to change your username back to {profile?.username} for another 14 days.
-                  </p>
-                </div>
-              </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="displayName" className={styles.formLabel}>Name</label>
+          <div className={styles.formInputWrapper}>
+            <input
+              id="displayName"
+              type="text"
+              name="displayName"
+              value={formData.displayName}
+              onChange={handleInputChange}
+              className={styles.formInput}
+              autoComplete="name"
+            />
+            <p className={styles.formHelp}>
+              Help people discover your account by using the name you&apos;re known by: either your full name, nickname, or business name.
+            </p>
+          </div>
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Bio</label>
-                <div className={styles.formInputWrapper}>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    className={styles.formTextarea}
-                    maxLength={150}
-                  />
-                  <p className={styles.charCount}>{formData.bio.length} / 150</p>
-                </div>
-              </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="username" className={styles.formLabel}>Username</label>
+          <div className={styles.formInputWrapper}>
+            <div className={styles.inputWithValidation}>
+              <input
+                id="username"
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                className={`${styles.formInput} ${
+                  usernameStatus === 'available' ? styles.inputValid :
+                  usernameStatus === 'taken' || usernameStatus === 'error' ? styles.inputInvalid : ''
+                }`}
+                autoComplete="username"
+              />
+              {usernameStatus === 'checking' && (
+                <span className={styles.validationIcon}>⏳</span>
+              )}
+              {usernameStatus === 'available' && (
+                <span className={styles.validationIcon}>✓</span>
+              )}
+              {(usernameStatus === 'taken' || usernameStatus === 'error') && (
+                <span className={styles.validationIcon}>✗</span>
+              )}
+            </div>
+            {usernameMessage && (
+              <p className={`${styles.validationMessage} ${
+                usernameStatus === 'available' ? styles.validationSuccess :
+                usernameStatus === 'checking' ? styles.validationInfo :
+                styles.validationError
+              }`}>
+                {usernameMessage}
+              </p>
+            )}
+            <p className={styles.formHelp}>
+              In most cases, you&apos;ll be able to change your username back to {revertUsernameCopy} for another 14 days.
+            </p>
+          </div>
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Birthday</label>
-                <div className={styles.formInputWrapper}>
-                  <input
-                    type="date"
-                    name="birthday"
-                    value={formData.birthday}
-                    onChange={handleInputChange}
-                    className={styles.formInput}
-                  />
-                  <p className={styles.formHelp}>
-                    Your birthday helps personalize your experience.
-                  </p>
-                </div>
-              </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="bio" className={styles.formLabel}>Bio</label>
+          <div className={styles.formInputWrapper}>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              className={styles.formTextarea}
+              maxLength={150}
+            />
+            <p className={styles.charCount}>{formData.bio.length} / 150</p>
+          </div>
+        </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Email</label>
-                <div className={styles.formInputWrapper}>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className={styles.formInput}
-                    disabled
-                  />
-                  <p className={styles.formHelp}>
-                    Email is managed through your account settings and cannot be changed here.
-                  </p>
-                </div>
-              </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="birthday" className={styles.formLabel}>Birthday</label>
+          <div className={styles.formInputWrapper}>
+            <input
+              id="birthday"
+              type="date"
+              name="birthday"
+              value={formData.birthday}
+              onChange={handleInputChange}
+              className={styles.formInput}
+            />
+            <p className={styles.formHelp}>
+              Your birthday helps personalize your experience.
+            </p>
+          </div>
+        </div>
 
-              {/* Privacy Settings */}
-              <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>Privacy</h3>
-                <p className={styles.sectionDescription}>
-                  Manage who can see your content and connect with you.
-                </p>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Account Privacy</label>
-                <div className={styles.formInputWrapper}>
-                  <div className={styles.checkboxWrapper}>
-                    <input
-                      type="checkbox"
-                      className={styles.checkbox}
-                      checked={formData.isPublic}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-                    />
-                    <div className={styles.checkboxLabel}>
-                      <p className={styles.checkboxText}>
-                        Public account - Anyone can see your profile and posts
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Actions */}
-              <div className={styles.formActions}>
-                <button
-                  type="submit"
-                  className={styles.submitButton}
-                  disabled={isSubmitting || usernameStatus === 'taken' || usernameStatus === 'checking' || usernameStatus === 'error'}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </button>
-                {submitMessage && (
-                  <div className={`${styles.submitMessage} ${styles[submitMessage.type]}`}>
-                    {submitMessage.text}
-                  </div>
-                )}
-              </div>
-            </form>
+        <div className={styles.formActions}>
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isSubmitting || usernameStatus === 'taken' || usernameStatus === 'checking' || usernameStatus === 'error'}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </button>
+          {submitMessage && (
+            <div className={`${styles.submitMessage} ${styles[submitMessage.type]}`}>
+              {submitMessage.text}
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }

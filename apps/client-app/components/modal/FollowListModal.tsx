@@ -193,6 +193,13 @@ export default function FollowListModal({ isOpen, onClose, userId, type }: Follo
                   <div className={styles.actions}>
                     {(() => {
                       const isOwner = currentUser?.id === userId;
+                      const isSelf = currentUser?.profile?.username === item.profile.username;
+                      
+                      // Don't show any button for yourself
+                      if (isSelf) {
+                        return null;
+                      }
+
                       const status = followStatusMap[item.profile.id];
                       let action: 'follow' | 'unfollow' | 'remove' = 'unfollow';
                       if (type === 'followers') {

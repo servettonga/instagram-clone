@@ -96,11 +96,11 @@ export default function PasswordSettingsPage() {
       } else {
         // Set new password for OAuth user
         await authApi.setPassword(formData.newPassword);
-        
+
         // Refresh user data to update accounts
         const updatedUser = await authApi.getCurrentUser();
         setUser(updatedUser);
-        
+
         setSubmitMessage({
           type: 'success',
           text: 'Password set successfully! You can now login with email and password.',
@@ -129,100 +129,112 @@ export default function PasswordSettingsPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.passwordForm}>
-      {!hasLocalAccount && (
-        <div className={styles.infoBox}>
-          <p className={styles.infoText}>
-            You signed in with OAuth (Google/GitHub). Set a password to enable email/password login.
-          </p>
-        </div>
-      )}
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Password &amp; Security</h1>
+        <p className={styles.pageDescription}>
+          Manage your password and keep your account secure.
+        </p>
+      </div>
 
-      {hasLocalAccount && (
+      <form onSubmit={handleSubmit} className={styles.passwordForm}>
+        {!hasLocalAccount && (
+          <div className={styles.infoBox}>
+            <p className={styles.infoText}>
+              You signed in with OAuth (Google/GitHub). Set a password to enable email/password login.
+            </p>
+          </div>
+        )}
+
+        {hasLocalAccount && (
+          <div className={styles.formGroup}>
+            <label htmlFor="oldPassword" className={styles.formLabel}>Current Password</label>
+            <div className={styles.formInputWrapper}>
+              <input
+                id="oldPassword"
+                type="password"
+                name="oldPassword"
+                value={formData.oldPassword}
+                onChange={handleInputChange}
+                className={styles.formInput}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+        )}
+
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Current Password</label>
+          <label htmlFor="newPassword" className={styles.formLabel}>New Password</label>
           <div className={styles.formInputWrapper}>
             <input
+              id="newPassword"
               type="password"
-              name="oldPassword"
-              value={formData.oldPassword}
+              name="newPassword"
+              value={formData.newPassword}
               onChange={handleInputChange}
               className={styles.formInput}
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
+            />
+            {passwordErrors.length > 0 && (
+              <div className={styles.passwordRequirements}>
+                {passwordErrors.map((error, index) => (
+                  <p key={index} className={styles.validationError}>
+                    {error}
+                  </p>
+                ))}
+              </div>
+            )}
+            <p className={styles.formHelp}>
+              Password must be at least 6 characters and include uppercase,
+              lowercase, and numbers.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="confirmPassword" className={styles.formLabel}>Confirm New Password</label>
+          <div className={styles.formInputWrapper}>
+            <input
+              id="confirmPassword"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className={styles.formInput}
+              required
+              autoComplete="new-password"
             />
           </div>
         </div>
-      )}
 
-      <div className={styles.formGroup}>
-        <label className={styles.formLabel}>New Password</label>
-        <div className={styles.formInputWrapper}>
-          <input
-            type="password"
-            name="newPassword"
-            value={formData.newPassword}
-            onChange={handleInputChange}
-            className={styles.formInput}
-            required
-            autoComplete="new-password"
-          />
-          {passwordErrors.length > 0 && (
-            <div className={styles.passwordRequirements}>
-              {passwordErrors.map((error, index) => (
-                <p key={index} className={styles.validationError}>
-                  {error}
-                </p>
-              ))}
+        <div className={styles.formActions}>
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={
+              isSubmitting ||
+              passwordErrors.length > 0 ||
+              (hasLocalAccount && !formData.oldPassword) ||
+              !formData.newPassword ||
+              !formData.confirmPassword
+            }
+          >
+            {isSubmitting
+              ? (hasLocalAccount ? 'Changing Password...' : 'Setting Password...')
+              : (hasLocalAccount ? 'Change Password' : 'Set Password')
+            }
+          </button>
+          {submitMessage && (
+            <div
+              className={`${styles.submitMessage} ${styles[submitMessage.type]}`}
+            >
+              {submitMessage.text}
             </div>
           )}
-          <p className={styles.formHelp}>
-            Password must be at least 6 characters and include uppercase,
-            lowercase, and numbers.
-          </p>
         </div>
-      </div>
-
-      <div className={styles.formGroup}>
-        <label className={styles.formLabel}>Confirm New Password</label>
-        <div className={styles.formInputWrapper}>
-          <input
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            className={styles.formInput}
-            required
-            autoComplete="new-password"
-          />
-        </div>
-      </div>
-
-      <div className={styles.formActions}>
-        <button
-          type="submit"
-          className={styles.submitButton}
-          disabled={
-            isSubmitting ||
-            passwordErrors.length > 0 ||
-            (hasLocalAccount && !formData.oldPassword) ||
-            !formData.newPassword ||
-            !formData.confirmPassword
-          }
-        >
-          {isSubmitting
-            ? (hasLocalAccount ? 'Changing Password...' : 'Setting Password...')
-            : (hasLocalAccount ? 'Change Password' : 'Set Password')
-          }
-        </button>
-        {submitMessage && (
-          <div
-            className={`${styles.submitMessage} ${styles[submitMessage.type]}`}
-          >
-            {submitMessage.text}
-          </div>
-        )}
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

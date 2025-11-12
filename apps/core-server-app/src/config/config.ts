@@ -24,6 +24,13 @@ export const getConfig = () => {
       ? `redis://:${process.env.REDIS_PASSWORD || 'password'}@localhost:${process.env.REDIS_PORT || 6380}`
       : `redis://:${process.env.REDIS_PASSWORD || 'password'}@redis:6379`,
 
+    // RabbitMQ
+    rabbitmqUrl: isDevelopment
+      ? process.env.RABBITMQ_URL ||
+        'amqp://admin:rabbitmq_password@localhost:5672'
+      : process.env.RABBITMQ_URL ||
+        'amqp://admin:rabbitmq_password@rabbitmq:5672',
+
     // Auth Service
     authServiceUrl: isDevelopment
       ? process.env.AUTH_SERVICE_URL || 'http://localhost:4000'

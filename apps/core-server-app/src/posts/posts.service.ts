@@ -11,13 +11,98 @@ import { ERROR_MESSAGES } from '../common/constants/messages';
 import { Prisma } from '@prisma/client';
 import { postWithDetailsSelect, toPostResponse } from './payloads/post.payload';
 import { AssetManagementService } from '../common/services/asset-management.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 
 @Injectable()
 export class PostsService {
   constructor(
     private prisma: PrismaService,
     private assetManagementService: AssetManagementService,
+    private notificationProducer: NotificationProducerService,
   ) {}
+
+  /**
+   * Extract @username mentions from post content
+   * Returns array of unique usernames (without @ symbol)
+   */
+  private extractMentions(content: string): string[] {
+    // Match @username pattern (alphanumeric, underscore, period)
+    // Must be at start, after whitespace, or after punctuation
+    const mentionRegex = /(?:^|[\s.,!?])@([a-zA-Z0-9_.]+)/g;
+    const mentions = new Set<string>();
+    let match: RegExpExecArray | null;
+
+    while ((match = mentionRegex.exec(content)) !== null) {
+      if (match[1]) {
+        mentions.add(match[1].toLowerCase()); // Store lowercase for case-insensitive comparison
+      }
+    }
+
+    return Array.from(mentions);
+  }
+
+  /**
+   * Send mention notifications to users mentioned in post
+   * Optimized to fetch profiles + preferences in a single query
+   */
+  private async notifyMentionedUsers(
+    mentionedUsernames: string[],
+    postId: string,
+    actorId: string,
+    actorUsername: string,
+  ): Promise<void> {
+    if (mentionedUsernames.length === 0) return;
+
+    try {
+      // Fetch profiles AND preferences in a single query (optimization for many mentions)
+      const mentionedProfiles = await this.prisma.profile.findMany({
+        where: {
+          username: { in: mentionedUsernames },
+          deleted: false,
+        },
+        select: {
+          userId: true,
+          username: true,
+          user: {
+            select: {
+              notificationPreferences: {
+                select: {
+                  mentionWeb: true,
+                  mentionEmail: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Filter users who want mention notifications (check preferences early)
+      for (const profile of mentionedProfiles) {
+        // Skip self-mentions
+        if (profile.userId === actorId) continue;
+
+        // Check if user wants ANY mention notifications (web or email)
+        const prefs = profile.user.notificationPreferences;
+        const shouldNotify = prefs
+          ? prefs.mentionWeb || prefs.mentionEmail
+          : true;
+
+        // Only send if user has at least one channel enabled
+        if (shouldNotify) {
+          void this.notificationProducer.notifyMention(
+            profile.userId,
+            'post',
+            postId,
+            actorId,
+            actorUsername,
+          );
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail the post creation
+      console.error('Failed to send mention notifications:', error);
+    }
+  }
 
   /**
    * Create a new post
@@ -30,7 +115,7 @@ export class PostsService {
     // Validate profile exists and belongs to the user
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
-      select: { id: true, userId: true, deleted: true },
+      select: { id: true, userId: true, deleted: true, username: true },
     });
 
     if (!profile || profile.deleted) {
@@ -69,6 +154,19 @@ export class PostsService {
       select: postWithDetailsSelect,
     });
 
+    // Extract and notify mentioned users
+    if (createPostDto.content) {
+      const mentionedUsernames = this.extractMentions(createPostDto.content);
+      if (mentionedUsernames.length > 0) {
+        void this.notifyMentionedUsers(
+          mentionedUsernames,
+          post.id,
+          userId,
+          profile.username,
+        );
+      }
+    }
+
     return toPostResponse(post, profileId);
   }
 
@@ -84,6 +182,100 @@ export class PostsService {
 
     const skip = (page - 1) * limit;
     const take = limit;
+
+    // If filtering by profileId, enforce privacy check
+    if (profileId) {
+      const profile = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { id: true, deleted: true, isPublic: true, userId: true },
+      });
+
+      if (!profile || profile.deleted) {
+        // Profile not found or deleted, return empty result
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        };
+      }
+
+      // If profile is private, check access
+      if (!profile.isPublic) {
+        // If no current user, deny access
+        if (!currentUserId) {
+          return {
+            data: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 0,
+              hasNext: false,
+              hasPrev: false,
+            },
+          };
+        }
+
+        // Check if viewing own profile
+        const currentUserProfile = await this.prisma.profile.findFirst({
+          where: { id: currentUserId, deleted: false },
+          select: { userId: true },
+        });
+
+        const isOwnProfile = currentUserProfile?.userId === profile.userId;
+
+        if (!isOwnProfile) {
+          // Check if current user is following this profile
+          const follow = await this.prisma.profileFollow.findUnique({
+            where: {
+              followerProfileId_followedProfileId: {
+                followerProfileId: currentUserId,
+                followedProfileId: profileId,
+              },
+            },
+            select: { accepted: true },
+          });
+
+          // If not following or follow not accepted, deny access
+          if (!follow || !follow.accepted) {
+            return {
+              data: [],
+              pagination: {
+                page,
+                limit,
+                total: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrev: false,
+              },
+            };
+          }
+        }
+      }
+    }
+
+    // For "For You" feed (when no profileId is specified), we need to filter out
+    // posts from private accounts that the current user is not following
+    let allowedPrivateProfileIds: string[] = [];
+    if (!profileId && currentUserId) {
+      // Get profiles the current user is following (accepted follows only)
+      const following = await this.prisma.profileFollow.findMany({
+        where: {
+          followerProfileId: currentUserId,
+          accepted: true,
+        },
+        select: {
+          followedProfileId: true,
+        },
+      });
+      allowedPrivateProfileIds = following.map((f) => f.followedProfileId);
+    }
 
     // Build where clause
     const where: Prisma.PostWhereInput = {
@@ -107,6 +299,23 @@ export class PostsService {
             deleted: false,
           },
         },
+        // Filter out private profiles that user is not following (for "For You" feed)
+        !profileId && currentUserId
+          ? {
+              OR: [
+                // Include posts from public profiles
+                { profile: { isPublic: true } },
+                // Include posts from private profiles the user is following
+                { profileId: { in: allowedPrivateProfileIds } },
+                // Include user's own posts (if they have a profile)
+                {
+                  profile: {
+                    userId: currentUserId,
+                  },
+                },
+              ],
+            }
+          : {},
       ],
     };
 
@@ -422,13 +631,70 @@ export class PostsService {
     // Find profile by username
     const profile = await this.prisma.profile.findUnique({
       where: { username },
-      select: { id: true, deleted: true, isPublic: true },
+      select: { id: true, deleted: true, isPublic: true, userId: true },
     });
 
     if (!profile || profile.deleted) {
       throw new NotFoundException(
         ERROR_MESSAGES.PROFILE_USERNAME_NOT_FOUND(username),
       );
+    }
+
+    // If profile is private, check if current user is following
+    if (!profile.isPublic) {
+      // If no current user, return empty list for private profiles
+      if (!currentUserId) {
+        return {
+          posts: [],
+          total: 0,
+          page: queryDto?.page || 1,
+          limit: queryDto?.limit || 10,
+          totalPages: 0,
+        };
+      }
+
+      // If viewing own profile, allow access
+      const isOwnProfile = profile.userId === currentUserId;
+
+      if (!isOwnProfile) {
+        // Get current user's profile ID
+        const currentUserProfile = await this.prisma.profile.findFirst({
+          where: { userId: currentUserId, deleted: false },
+          select: { id: true },
+        });
+
+        if (!currentUserProfile) {
+          return {
+            posts: [],
+            total: 0,
+            page: queryDto?.page || 1,
+            limit: queryDto?.limit || 10,
+            totalPages: 0,
+          };
+        }
+
+        // Check if current user is following this profile
+        const follow = await this.prisma.profileFollow.findUnique({
+          where: {
+            followerProfileId_followedProfileId: {
+              followerProfileId: currentUserProfile.id,
+              followedProfileId: profile.id,
+            },
+          },
+          select: { accepted: true },
+        });
+
+        // If not following or follow not accepted, return empty list
+        if (!follow || !follow.accepted) {
+          return {
+            posts: [],
+            total: 0,
+            page: queryDto?.page || 1,
+            limit: queryDto?.limit || 10,
+            totalPages: 0,
+          };
+        }
+      }
     }
 
     // Use findAll with profileId filter
@@ -445,10 +711,33 @@ export class PostsService {
    * Toggle like on a post (like if not liked, unlike if already liked)
    */
   async toggleLike(postId: string, userId: string, profileId: string) {
-    // Verify post exists
+    // Verify post exists and get owner info
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, isArchived: true },
+      select: {
+        id: true,
+        isArchived: true,
+        assets: {
+          select: {
+            asset: {
+              select: {
+                thumbnailPath: true,
+              },
+            },
+          },
+          take: 1,
+          orderBy: {
+            orderIndex: 'asc',
+          },
+        },
+        profile: {
+          select: {
+            id: true,
+            userId: true,
+            username: true,
+          },
+        },
+      },
     });
 
     if (!post || post.isArchived) {
@@ -458,7 +747,7 @@ export class PostsService {
     // Verify profile exists and belongs to user
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
-      select: { id: true, userId: true, deleted: true },
+      select: { id: true, userId: true, deleted: true, username: true },
     });
 
     if (!profile || profile.deleted || profile.userId !== userId) {
@@ -509,6 +798,16 @@ export class PostsService {
       const likesCount = await this.prisma.postLike.count({
         where: { postId },
       });
+
+      // Notify post owner (if not liking own post)
+      if (post.profile.userId !== userId) {
+        void this.notificationProducer.notifyPostLike(
+          post.profile.userId,
+          postId,
+          userId,
+          profile.username,
+        );
+      }
 
       return {
         liked: true,

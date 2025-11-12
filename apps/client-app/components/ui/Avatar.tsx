@@ -7,7 +7,6 @@ import styles from './Avatar.module.scss';
 interface AvatarProps {
   avatarUrl?: string | null;
   username?: string;
-  // size token: sm | md | lg | xl
   size?: 'sm' | 'md' | 'lg' | 'xl';
   alt?: string;
   unoptimized?: boolean;
@@ -32,7 +31,7 @@ export default function Avatar({ avatarUrl, username, size = 'md', alt = '', uno
     sm: 24,
     md: 32,
     lg: 56,
-    xl: 150,
+    xl: 112,
   };
   const px = tokenToPx[size] || tokenToPx['md'];
   const stylesMap = styles as unknown as Record<string, string>;

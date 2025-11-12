@@ -25,7 +25,7 @@ export interface OAuthUserRequest {
   avatarUrl?: string;
 }
 
-class CoreServiceClient {
+export class CoreServiceClient {
   private client: AxiosInstance;
   private readonly baseURL: string;
 
@@ -34,7 +34,7 @@ class CoreServiceClient {
 
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 5000,
+      timeout: 10000, // Increased timeout for password reset operations
       headers: {
         'Content-Type': 'application/json',
       },
@@ -149,6 +149,50 @@ class CoreServiceClient {
         throw new Error(AUTH_MESSAGES.ERRORS.CORE_SERVICE_UNAVAILABLE);
       }
       throw new Error(AUTH_MESSAGES.ERRORS.CORE_SERVICE_OAUTH_USER_FAILED);
+    }
+  }
+
+  /**
+   * Reset password by identifier (email or username) - internal endpoint
+   */
+  async resetPassword(identifier: string, newPassword: string): Promise<void> {
+    try {
+      await this.client.post('/api/auth/internal-reset-password', {
+        identifier,
+        newPassword,
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Pass through the error message from core service
+        if (error.response?.status === 404) {
+          const message: string =
+            (error.response.data as { message?: string })?.message ||
+            'No account found for this identifier';
+          throw new Error(message);
+        }
+        if (error.code === 'ECONNREFUSED') {
+          throw new Error(AUTH_MESSAGES.ERRORS.CORE_SERVICE_UNAVAILABLE);
+        }
+      }
+      throw new Error('Failed to reset password');
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(
+    identifier: string,
+    resetUrl: string,
+  ): Promise<void> {
+    try {
+      await this.client.post('/api/auth/send-password-reset-email', {
+        identifier,
+        resetUrl,
+      });
+    } catch (error) {
+      // Log error but don't throw to prevent account enumeration
+      console.error('Failed to send password reset email:', error);
     }
   }
 

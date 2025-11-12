@@ -258,13 +258,6 @@
   position: relative;
 }
 
-.commentAvatar {
-  border-radius: 16px;
-  object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-  flex-shrink: 0;
-}
-
 .commentContent { flex: 1; min-width: 0; }
 
 .commentUsernameLink {

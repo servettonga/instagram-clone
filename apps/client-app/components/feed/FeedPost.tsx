@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
 import { getImageSize } from '@/lib/utils/image';
+import { MentionText } from '@/lib/utils/mentions';
 import {
   VerifiedBadge,
   MoreIcon,
@@ -277,7 +278,7 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
             </Link>
             <span className={styles.captionText}>
               {' '}
-              {displayCaption}
+              <MentionText text={displayCaption || ''} />
             </span>
             {shouldTruncate && (
               <button

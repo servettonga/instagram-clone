@@ -8,19 +8,6 @@
   background: $color-black;
 }
 
-.cropperHeader {
-  padding: $spacing-md 20px;
-  border-bottom: 1px solid rgba($color-white, 0.1);
-  background: rgba($color-black, 0.8);
-
-  h3 {
-    margin: 0;
-    font-size: $font-md;
-    font-weight: $font-bold;
-    color: $color-white;
-  }
-}
-
 .cropperArea {
   position: relative;
   flex: 1;
@@ -167,55 +154,4 @@
   color: $color-white;
   min-width: 45px;
   text-align: right;
-}
-
-.aspectRatioInfo {
-  text-align: center;
-  font-size: $font-xs;
-  color: rgba($color-white, 0.6);
-}
-
-.cropperActions {
-  padding: 16px 20px;
-  display: flex;
-  gap: $spacing-md;
-  justify-content: flex-end;
-  background: rgba($color-black, 0.8);
-  border-top: 1px solid rgba($color-white, 0.1);
-}
-
-.cancelButton,
-.doneButton {
-  padding: 10px 24px;
-  border-radius: $radius-md;
-  font-weight: $font-bold;
-  font-size: $font-sm;
-  cursor: pointer;
-  transition: all $transition-fast;
-  border: none;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.cancelButton {
-  background: transparent;
-  color: $color-white;
-  border: 1px solid rgba($color-white, 0.3);
-
-  &:hover:not(:disabled) {
-    background: rgba($color-white, 0.1);
-    border-color: rgba($color-white, 0.5);
-  }
-}
-
-.doneButton {
-  background: $color-primary;
-  color: $color-white;
-
-  &:hover:not(:disabled) {
-    background: $color-primary-contrast;
-  }
 }

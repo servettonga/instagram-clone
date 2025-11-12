@@ -28,8 +28,8 @@
 }
 
 .avatarWrapper {
-  width: 150px;
-  height: 150px;
+  width: 112px;
+  height: 112px;
   position: relative;
   background: $color-surface;
   border-radius: 75px;
@@ -39,20 +39,6 @@
 .avatar {
   border-radius: 75px;
   object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-}
-
-.avatarPlaceholder {
-  width: 150px;
-  height: 150px;
-  border-radius: 75px;
-  background: $color-surface;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 64px;
-  font-weight: 700;
-  color: $color-muted;
   border: 1px solid rgba($color-black, 0.10);
 }
 
@@ -133,6 +119,25 @@
 
 .followButton:hover {
   background: $color-primary-contrast;
+}
+
+.requestedButton {
+  flex: 1;
+  padding: 7px 16px;
+  background: $color-surface;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: $color-black;
+  line-height: 18px;
+  transition: background-color 0.2s;
+}
+
+.requestedButton:hover {
+  background: $color-error;
+  color: $color-white
 }
 
 .profileStats {

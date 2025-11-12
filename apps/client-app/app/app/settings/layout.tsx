@@ -16,7 +16,8 @@ export default function SettingsLayout({
   const navItems = [
     { href: '/app/settings/account', label: 'Edit profile' },
     { href: '/app/settings/password', label: 'Change password' },
-    { href: '/app/settings/privacy', label: 'Privacy and security' },
+    { href: '/app/settings/privacy', label: 'Account & Privacy' },
+    { href: '/app/settings/notifications', label: 'Notifications' },
   ];
 
   return (
@@ -41,7 +42,9 @@ export default function SettingsLayout({
         </aside>
 
         {/* Main Content */}
-        <main className={styles.mainContent}>{children}</main>
+        <main className={styles.mainContent}>
+          <div className={styles.contentInner}>{children}</div>
+        </main>
       </div>
     </div>
   );

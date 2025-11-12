@@ -89,3 +89,17 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+// Mention links styling
+// Note: This is global because MentionText component renders string class names
+// that can't be scoped with CSS Modules. It ensures consistent styling across
+// all mentions (posts, comments, captions) throughout the app.
+.mention-link {
+  color: var(--color-primary);
+  font-weight: 500;
+  cursor: pointer;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}

@@ -181,12 +181,12 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+  justify-content: space-between;
 }
 
 .captionInput {
   width: 100%;
-  min-height: 0;
-  max-height: none;
   height: 100%;
   border: none;
   outline: none;
@@ -195,7 +195,7 @@
   line-height: 1.5;
   color: $color-text;
   font-family: inherit;
-  background: $color-white;
+  background: transparent;
 
   &::placeholder {
     color: $color-muted;
@@ -208,38 +208,6 @@
   color: $color-muted;
   margin-top: 8px;
   flex-shrink: 0;
-}
-
-.detailsContainer {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-  max-height: 100%;
-  gap: 0;
-}
-
-.imagePreview {
-  position: relative;
-  width: 442px;
-  background: $color-black;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  z-index: 1;
-  max-height: 60vh;
-  overflow: hidden;
-  /* Height is determined by aspect ratio via inline style */
-}
-
-.previewImage {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
 }
 
 .navButton {
@@ -338,88 +306,11 @@
   }
 }
 
-.addMoreButton {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background: rgba($color-black, 0.5);
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  color: white;
-  font-size: $font-xxl;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color $transition-fast;
-  z-index: 10;
-
-  &:hover {
-    background: rgba($color-black, 0.7);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.captionForm {
-  padding: $spacing-md;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
 .characterCount {
   text-align: right;
   font-size: 12px;
   color: $color-muted;
   margin-top: 8px;
-}
-
-.aspectRatioSection {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid $color-border;
-}
-
-.aspectRatioLabel {
-  display: block;
-  font-size: 12px;
-  font-weight: $font-bold;
-  color: $color-text;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-}
-
-.aspectRatioButtons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.aspectRatioButton {
-  padding: $spacing-sm 16px;
-  background: $color-surface;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $color-text;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &.active {
-    background: $color-primary;
-    color: $color-white;
-    border-color: $color-primary;
-  }
 }
 
 // Image Navigation Dots

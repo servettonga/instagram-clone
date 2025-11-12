@@ -35,6 +35,7 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
 
   // followState: 'loading' | 'not-following' | 'following' | 'pending'
   const [followState, setFollowState] = useState<'loading' | 'not-following' | 'following' | 'pending'>('loading');
+  const [isHoveringRequested, setIsHoveringRequested] = useState(false);
 
   const openModal = (type: 'followers' | 'following') => {
     setModalType(type);
@@ -67,7 +68,21 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
 
     check();
 
-    return () => { mounted = false; };
+    // Listen for follow:changed events to refresh status
+    const handleFollowChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      // If this profile's follow status changed, refresh
+      if (detail?.targetUserId === targetUserId) {
+        check();
+      }
+    };
+
+    window.addEventListener('follow:changed', handleFollowChanged as EventListener);
+
+    return () => { 
+      mounted = false;
+      window.removeEventListener('follow:changed', handleFollowChanged as EventListener);
+    };
   }, [currentUser, profile.userId, profile.id, isOwnProfile]);
 
   const targetUserId = profile.userId || profile.id || '';
@@ -113,6 +128,26 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
     } catch (err) {
       console.error('Failed to follow user', err);
       setFollowState('not-following');
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!targetUserId) return;
+    setFollowState('loading');
+    try {
+      await followAPI.unfollowUser(targetUserId);
+      setFollowState('not-following');
+      
+      try {
+        window.dispatchEvent(
+          new CustomEvent('follow:changed', { detail: { targetUserId, username: profile.username, action: 'cancel-request' } }),
+        );
+      } catch {
+        /* ignore */
+      }
+    } catch (err) {
+      console.error('Failed to cancel follow request', err);
+      setFollowState('pending');
     }
   };
 
@@ -240,7 +275,14 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
               <button className={styles.followButton} onClick={handleFollow}>Follow</button>
             )}
             {followState === 'pending' && (
-              <button className={styles.requestedButton} disabled>Requested</button>
+              <button 
+                className={styles.requestedButton}
+                onClick={handleCancelRequest}
+                onMouseEnter={() => setIsHoveringRequested(true)}
+                onMouseLeave={() => setIsHoveringRequested(false)}
+              >
+                {isHoveringRequested ? 'Cancel request' : 'Requested'}
+              </button>
             )}
             {followState === 'following' && (
               <button className={styles.messageButton} onClick={handleUnfollow}>Following</button>

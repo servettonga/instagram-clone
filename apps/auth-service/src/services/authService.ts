@@ -270,4 +270,24 @@ export class AuthService {
 
     await redisService.deleteAllUserSessions(userId);
   }
+
+  /**
+   * Reset password using identifier (email or username)
+   */
+  static async resetPassword(
+    identifier: string,
+    newPassword: string,
+  ): Promise<void> {
+    await coreServiceClient.resetPassword(identifier, newPassword);
+  }
+
+  /**
+   * Send password reset email via Core Service
+   */
+  static async sendPasswordResetEmail(
+    identifier: string,
+    resetUrl: string,
+  ): Promise<void> {
+    await coreServiceClient.sendPasswordResetEmail(identifier, resetUrl);
+  }
 }

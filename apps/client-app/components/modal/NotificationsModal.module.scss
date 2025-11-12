@@ -26,7 +26,7 @@
 }
 
 .header {
-  padding: 0 24px 24px;
+  padding: 0 24px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -36,6 +36,26 @@
   font-size: 24px;
   font-weight: 700;
   color: $color-text;
+}
+
+.markAllRead {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: $color-primary;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.markAllRead:hover {
+  opacity: 0.7;
+}
+
+.markAllRead:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .closeButton {
@@ -83,35 +103,38 @@
   padding: 8px 24px;
   transition: background-color 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .notificationItem:hover {
   background-color: rgba($color-black, 0.02);
 }
 
+.notificationItem.unread {
+  background-color: rgba($color-primary, 0.05);
+}
+
+.notificationItem.unread .notifContent {
+  padding-left: 16px;
+  position: relative;
+}
+
+.notificationItem.unread .notifContent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $color-primary;
+}
+
 .avatar {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
-}
-
-.avatarPlaceholder {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: $color-surface;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.multiAvatar {
-  width: 44px;
-  height: 44px;
-  position: relative;
   flex-shrink: 0;
 }
 
@@ -127,6 +150,11 @@
   flex: 1;
   font-size: 14px;
   line-height: 18px;
+
+  strong {
+    font-weight: 600;
+    color: $color-text;
+  }
 }
 
 .username {
@@ -175,11 +203,66 @@
   background: $color-primary-contrast;
 }
 
+.requestActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.acceptButton {
+  padding: 7px 16px;
+  background: $color-primary;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.acceptButton:hover {
+  background: $color-primary-contrast;
+}
+
+.acceptButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ignoreButton {
+  padding: 7px 16px;
+  background: $color-surface;
+  color: $color-text;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ignoreButton:hover {
+  background: rgba($color-black, 0.1);
+}
+
+.ignoreButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .postThumbnail {
   width: 44px;
   height: 44px;
-  object-fit: cover;
   flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 @media (max-width: 1024px) {

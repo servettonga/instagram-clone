@@ -1,0 +1,461 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String                          @id @default(uuid())
+  role                    UserRole                        @default(USER)
+  disabled                Boolean                         @default(false)
+  createdAt               DateTime                        @default(now()) @map("created_at")
+  updatedAt               DateTime                        @updatedAt @map("updated_at")
+  createdBy               String?                         @map("created_by")
+  updatedBy               String?                         @map("updated_by")
+  createdAccounts         Account[]                       @relation("AccountCreatedBy")
+  updatedAccounts         Account[]                       @relation("AccountUpdatedBy")
+  accounts                Account[]
+  createdAssets           Asset[]                         @relation("AssetCreatedBy")
+  updatedAssets           Asset[]                         @relation("AssetUpdatedBy")
+  createdAuditLogs        AuditLog[]                      @relation("AuditLogCreatedBy")
+  updatedAuditLogs        AuditLog[]                      @relation("AuditLogUpdatedBy")
+  auditLogs               AuditLog[]                      @relation("AuditLogUser")
+  createdChats            Chat[]                          @relation("ChatCreatedBy")
+  updatedChats            Chat[]                          @relation("ChatUpdatedBy")
+  createdChatParticipants ChatParticipant[]               @relation("ChatParticipantCreatedBy")
+  updatedChatParticipants ChatParticipant[]               @relation("ChatParticipantUpdatedBy")
+  createdComments         Comment[]                       @relation("CommentCreatedBy")
+  updatedComments         Comment[]                       @relation("CommentUpdatedBy")
+  createdCommentLikes     CommentLike[]                   @relation("CommentLikeCreatedBy")
+  updatedCommentLikes     CommentLike[]                   @relation("CommentLikeUpdatedBy")
+  createdMessages         Message[]                       @relation("MessageCreatedBy")
+  updatedMessages         Message[]                       @relation("MessageUpdatedBy")
+  createdMessageAssets    MessageAsset[]                  @relation("MessageAssetCreatedBy")
+  updatedMessageAssets    MessageAsset[]                  @relation("MessageAssetUpdatedBy")
+  createdNotifications    Notification[]                  @relation("NotificationCreatedBy")
+  updatedNotifications    Notification[]                  @relation("NotificationUpdatedBy")
+  createdPosts            Post[]                          @relation("PostCreatedBy")
+  updatedPosts            Post[]                          @relation("PostUpdatedBy")
+  createdPostAssets       PostAsset[]                     @relation("PostAssetCreatedBy")
+  updatedPostAssets       PostAsset[]                     @relation("PostAssetUpdatedBy")
+  createdPostLikes        PostLike[]                      @relation("PostLikeCreatedBy")
+  updatedPostLikes        PostLike[]                      @relation("PostLikeUpdatedBy")
+  createdProfileConfigs   ProfileConfiguration[]          @relation("ProfileConfigCreatedBy")
+  updatedProfileConfigs   ProfileConfiguration[]          @relation("ProfileConfigUpdatedBy")
+  createdProfiles         Profile[]                       @relation("ProfileCreatedBy")
+  updatedProfiles         Profile[]                       @relation("ProfileUpdatedBy")
+  profile                 Profile?
+  createdProfileFollows   ProfileFollow[]                 @relation("ProfileFollowCreatedBy")
+  updatedProfileFollows   ProfileFollow[]                 @relation("ProfileFollowUpdatedBy")
+  createdProfileToConfigs ProfileToProfileConfiguration[] @relation("ProfileToConfigCreatedBy")
+  updatedProfileToConfigs ProfileToProfileConfiguration[] @relation("ProfileToConfigUpdatedBy")
+  createdByUser           User?                           @relation("UserCreatedBy", fields: [createdBy], references: [id])
+  usersCreated            User[]                          @relation("UserCreatedBy")
+  updatedByUser           User?                           @relation("UserUpdatedBy", fields: [updatedBy], references: [id])
+  usersUpdated            User[]                          @relation("UserUpdatedBy")
+  notificationPreferences NotificationPreferences?
+
+  @@map("users")
+}
+
+model Account {
+  id            String          @id @default(uuid())
+  userId        String          @map("user_id")
+  email         String          @db.VarChar(255)
+  passwordHash  String?         @map("password_hash") @db.VarChar(255)
+  provider      AccountProvider @default(LOCAL)
+  providerId    String?         @map("provider_id") @db.VarChar(255)
+  lastLoginAt   DateTime?       @map("last_login_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  createdBy     String          @map("created_by")
+  updatedBy     String?         @map("updated_by")
+  createdByUser User            @relation("AccountCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?           @relation("AccountUpdatedBy", fields: [updatedBy], references: [id])
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+  @@unique([userId, provider])
+  @@index([email])
+}
+
+model Profile {
+  id                    String                          @id @default(uuid())
+  userId                String                          @unique @map("user_id")
+  username              String                          @unique @db.VarChar(50)
+  displayName           String                          @map("display_name") @db.VarChar(100)
+  birthday              DateTime                        @db.Date
+  bio                   String?
+  avatarUrl             String?                         @map("avatar_url")
+  isPublic              Boolean                         @default(true) @map("is_public")
+  deleted               Boolean                         @default(false)
+  createdAt             DateTime                        @default(now()) @map("created_at")
+  updatedAt             DateTime                        @updatedAt @map("updated_at")
+  createdBy             String                          @map("created_by")
+  updatedBy             String?                         @map("updated_by")
+  chatParticipants      ChatParticipant[]
+  comments              Comment[]
+  commentLikes          CommentLike[]
+  messages              Message[]
+  posts                 Post[]
+  postLikes             PostLike[]
+  createdByUser         User                            @relation("ProfileCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser         User?                           @relation("ProfileUpdatedBy", fields: [updatedBy], references: [id])
+  user                  User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  followers             ProfileFollow[]                 @relation("FollowedProfile")
+  following             ProfileFollow[]                 @relation("FollowerProfile")
+  profileConfigurations ProfileToProfileConfiguration[]
+
+  @@map("profiles")
+}
+
+model Post {
+  id            String      @id @default(uuid())
+  profileId     String      @map("profile_id")
+  content       String?
+  aspectRatio   String      @default("1:1") @map("aspect_ratio") @db.VarChar(10)
+  isArchived    Boolean     @default(false) @map("is_archived")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  createdBy     String      @map("created_by")
+  updatedBy     String?     @map("updated_by")
+  comments      Comment[]
+  createdByUser User        @relation("PostCreatedBy", fields: [createdBy], references: [id])
+  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser User?       @relation("PostUpdatedBy", fields: [updatedBy], references: [id])
+  assets        PostAsset[]
+  likes         PostLike[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id              String        @id @default(uuid())
+  postId          String        @map("post_id")
+  profileId       String        @map("profile_id")
+  parentCommentId String?       @map("parent_comment_id")
+  content         String
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  createdBy       String        @map("created_by")
+  updatedBy       String?       @map("updated_by")
+  createdByUser   User          @relation("CommentCreatedBy", fields: [createdBy], references: [id])
+  parentComment   Comment?      @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         Comment[]     @relation("CommentReplies")
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser   User?         @relation("CommentUpdatedBy", fields: [updatedBy], references: [id])
+  likes           CommentLike[]
+
+  @@map("comments")
+}
+
+model Asset {
+  id            String         @id @default(uuid())
+  fileName      String         @map("file_name") @db.VarChar(255)
+  filePath      String         @map("file_path") @db.VarChar(500)
+  thumbnailPath String?        @map("thumbnail_path") @db.VarChar(500)
+  mediumPath    String?        @map("medium_path") @db.VarChar(500)
+  fileType      String         @map("file_type") @db.VarChar(100)
+  fileSize      Int            @map("file_size")
+  aspectRatio   String?        @map("aspect_ratio") @db.VarChar(10)
+  orderIndex    Int            @default(0) @map("order_index")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  createdBy     String         @map("created_by")
+  updatedBy     String?        @map("updated_by")
+  createdByUser User           @relation("AssetCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?          @relation("AssetUpdatedBy", fields: [updatedBy], references: [id])
+  messageAssets MessageAsset[]
+  postAssets    PostAsset[]
+
+  @@map("assets")
+}
+
+model Chat {
+  id            String            @id @default(uuid())
+  name          String            @db.VarChar(100)
+  description   String?
+  type          ChatType          @default(PRIVATE)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  createdBy     String            @map("created_by")
+  updatedBy     String?           @map("updated_by")
+  createdByUser User              @relation("ChatCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?             @relation("ChatUpdatedBy", fields: [updatedBy], references: [id])
+  participants  ChatParticipant[]
+  messages      Message[]
+
+  @@map("chats")
+}
+
+model Message {
+  id               String         @id @default(uuid())
+  chatId           String         @map("chat_id")
+  profileId        String         @map("profile_id")
+  content          String
+  replyToMessageId String?        @map("reply_to_message_id")
+  isEdited         Boolean        @default(false) @map("is_edited")
+  deleted          Boolean        @default(false)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  createdBy        String         @map("created_by")
+  updatedBy        String?        @map("updated_by")
+  chat             Chat           @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdByUser    User           @relation("MessageCreatedBy", fields: [createdBy], references: [id])
+  profile          Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  replyToMessage   Message?       @relation("MessageReplies", fields: [replyToMessageId], references: [id])
+  replies          Message[]      @relation("MessageReplies")
+  updatedByUser    User?          @relation("MessageUpdatedBy", fields: [updatedBy], references: [id])
+  assets           MessageAsset[]
+
+  @@map("messages")
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  type          NotificationType
+  title         String           @db.VarChar(255)
+  message       String
+  data          Json?
+  isRead        Boolean          @default(false) @map("is_read")
+  readAt        DateTime?        @map("read_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  createdBy     String           @map("created_by")
+  updatedBy     String?          @map("updated_by")
+  createdByUser User             @relation("NotificationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?            @relation("NotificationUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("notifications")
+}
+
+model NotificationPreferences {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  // Web notifications (in-app)
+  followWeb    Boolean  @default(true) @map("follow_web")
+  likeWeb      Boolean  @default(true) @map("like_web")
+  commentWeb   Boolean  @default(true) @map("comment_web")
+  replyWeb     Boolean  @default(true) @map("reply_web")
+  mentionWeb   Boolean  @default(true) @map("mention_web")
+  // Email notifications
+  followEmail  Boolean  @default(true) @map("follow_email")
+  likeEmail    Boolean  @default(true) @map("like_email")
+  commentEmail Boolean  @default(true) @map("comment_email")
+  replyEmail   Boolean  @default(true) @map("reply_email")
+  mentionEmail Boolean  @default(true) @map("mention_email")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model ProfileConfiguration {
+  id                    String                          @id @default(uuid())
+  configKey             String                          @map("config_key") @db.VarChar(100)
+  isAdminAccessibleOnly Boolean                         @default(false) @map("is_admin_accessible_only")
+  createdAt             DateTime                        @default(now()) @map("created_at")
+  updatedAt             DateTime                        @updatedAt @map("updated_at")
+  createdBy             String                          @map("created_by")
+  updatedBy             String?                         @map("updated_by")
+  createdByUser         User                            @relation("ProfileConfigCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser         User?                           @relation("ProfileConfigUpdatedBy", fields: [updatedBy], references: [id])
+  profiles              ProfileToProfileConfiguration[]
+
+  @@map("profile_configurations")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  action        String   @db.VarChar(100)
+  resourceType  String   @map("resource_type") @db.VarChar(50)
+  resourceId    String   @map("resource_id")
+  oldValues     Json?    @map("old_values")
+  newValues     Json?    @map("new_values")
+  ipAddress     String?  @map("ip_address") @db.Inet
+  userAgent     String?  @map("user_agent")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  createdByUser User     @relation("AuditLogCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?    @relation("AuditLogUpdatedBy", fields: [updatedBy], references: [id])
+  user          User     @relation("AuditLogUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+model PostAsset {
+  id            String   @id @default(uuid())
+  postId        String   @map("post_id")
+  assetId       String   @map("asset_id")
+  orderIndex    Int      @default(0) @map("order_index")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("PostAssetCreatedBy", fields: [createdBy], references: [id])
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("PostAssetUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([postId, assetId])
+  @@map("posts_assets")
+}
+
+model ProfileFollow {
+  id                String   @id @default(uuid())
+  followerProfileId String   @map("follower_profile_id")
+  followedProfileId String   @map("followed_profile_id")
+  accepted          Boolean?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String   @map("created_by")
+  updatedBy         String?  @map("updated_by")
+  createdByUser     User     @relation("ProfileFollowCreatedBy", fields: [createdBy], references: [id])
+  followedProfile   Profile  @relation("FollowedProfile", fields: [followedProfileId], references: [id], onDelete: Cascade)
+  followerProfile   Profile  @relation("FollowerProfile", fields: [followerProfileId], references: [id], onDelete: Cascade)
+  updatedByUser     User?    @relation("ProfileFollowUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([followerProfileId, followedProfileId])
+  @@map("profiles_follows")
+}
+
+model ChatParticipant {
+  id            String              @id @default(uuid())
+  profileId     String              @map("profile_id")
+  chatId        String              @map("chat_id")
+  role          ChatParticipantRole @default(MEMBER)
+  joinedAt      DateTime            @default(now()) @map("joined_at")
+  leftAt        DateTime?           @map("left_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  createdBy     String              @map("created_by")
+  updatedBy     String?             @map("updated_by")
+  chat          Chat                @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdByUser User                @relation("ChatParticipantCreatedBy", fields: [createdBy], references: [id])
+  profile       Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser User?               @relation("ChatParticipantUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([profileId, chatId])
+  @@map("chats_participants")
+}
+
+model MessageAsset {
+  id            String   @id @default(uuid())
+  messageId     String   @map("message_id")
+  assetId       String   @map("asset_id")
+  orderIndex    Int      @default(0) @map("order_index")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("MessageAssetCreatedBy", fields: [createdBy], references: [id])
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("MessageAssetUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([messageId, assetId])
+  @@map("messages_assets")
+}
+
+model PostLike {
+  id            String   @id @default(uuid())
+  postId        String   @map("post_id")
+  profileId     String   @map("profile_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  createdByUser User     @relation("PostLikeCreatedBy", fields: [createdBy], references: [id])
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("PostLikeUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([postId, profileId])
+  @@map("posts_likes")
+}
+
+model CommentLike {
+  id            String   @id @default(uuid())
+  commentId     String   @map("comment_id")
+  profileId     String   @map("profile_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  comment       Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("CommentLikeCreatedBy", fields: [createdBy], references: [id])
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("CommentLikeUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([commentId, profileId])
+  @@map("comments_likes")
+}
+
+model ProfileToProfileConfiguration {
+  id                     String               @id @default(uuid())
+  profileId              String               @map("profile_id")
+  profileConfigurationId String               @map("profile_configuration_id")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+  createdBy              String               @map("created_by")
+  updatedBy              String?              @map("updated_by")
+  createdByUser          User                 @relation("ProfileToConfigCreatedBy", fields: [createdBy], references: [id])
+  profileConfiguration   ProfileConfiguration @relation(fields: [profileConfigurationId], references: [id], onDelete: Cascade)
+  profile                Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser          User?                @relation("ProfileToConfigUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([profileId, profileConfigurationId])
+  @@map("profiles_to_profiles_configurations")
+}
+
+enum UserRole {
+  USER  @map("user")
+  ADMIN @map("admin")
+
+  @@map("user_role")
+}
+
+enum AccountProvider {
+  LOCAL    @map("local")
+  GOOGLE   @map("google")
+  FACEBOOK @map("facebook")
+  GITHUB   @map("github")
+  TWITTER  @map("twitter")
+
+  @@map("account_provider")
+}
+
+enum ChatType {
+  PRIVATE @map("private")
+  GROUP   @map("group")
+
+  @@map("chat_type")
+}
+
+enum ChatParticipantRole {
+  ADMIN  @map("admin")
+  MEMBER @map("member")
+
+  @@map("chat_participant_role")
+}
+
+enum NotificationType {
+  FOLLOW_REQUEST  @map("follow_request")
+  FOLLOW_ACCEPTED @map("follow_accepted")
+  POST_LIKE       @map("post_like")
+  POST_COMMENT    @map("post_comment")
+  COMMENT_LIKE    @map("comment_like")
+  COMMENT_REPLY   @map("comment_reply")
+  MENTION         @map("mention")
+  SYSTEM          @map("system")
+
+  @@map("notification_type")
+}

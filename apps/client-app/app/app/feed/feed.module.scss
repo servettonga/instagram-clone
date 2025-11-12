@@ -263,12 +263,6 @@
   object-fit: cover;
 }
 
-.suggestionAvatar {
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-
 /* Current user section */
 .sidebarUser {
   display: flex;
@@ -286,19 +280,6 @@
 .sidebarUser .avatar {
   width: 56px;
   height: 56px;
-}
-
-.avatarPlaceholder {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: $color-surface;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: $font-xxl;
-  font-weight: $font-bold;
-  color: $color-text;
 }
 
 .sidebarUserInfo {
@@ -357,13 +338,6 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-}
-
-.suggestionAvatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
 }
 
 .suggestionInfo {

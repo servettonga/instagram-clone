@@ -26,15 +26,6 @@
   @include avatar(56px);
 }
 
-.avatarPlaceholder {
-  @include avatar(56px);
-  background: $color-surface;
-  @include flex-center;
-  font-size: 24px;
-  font-weight: $font-bold;
-  color: $color-text;
-}
-
 .sidebarUserInfo {
   flex: 1;
 }
@@ -95,10 +86,6 @@
 .suggestionItem {
   @include flex-center;
   gap: $spacing-sm;
-}
-
-.suggestionAvatar {
-  @include avatar(32px);
 }
 
 .suggestionInfo {

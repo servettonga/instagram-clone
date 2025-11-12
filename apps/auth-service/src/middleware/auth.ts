@@ -30,7 +30,7 @@ export const authenticateToken = (
     };
 
     next();
-  } catch (error) {
+  } catch {
     res.status(403).json({ error: AUTH_MESSAGES.ERRORS.INVALID_TOKEN });
   }
 };

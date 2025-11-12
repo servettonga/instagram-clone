@@ -7,10 +7,99 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { ERROR_MESSAGES } from '../common/constants/messages';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 
 @Injectable()
 export class CommentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationProducer: NotificationProducerService,
+  ) {}
+
+  /**
+   * Extract @username mentions from comment content
+   * Returns array of unique usernames (without @ symbol)
+   */
+  private extractMentions(content: string): string[] {
+    // Match @username pattern (alphanumeric, underscore, period)
+    // Must be at start, after whitespace, or after punctuation
+    const mentionRegex = /(?:^|[\s.,!?])@([a-zA-Z0-9_.]+)/g;
+    const mentions = new Set<string>();
+    let match: RegExpExecArray | null;
+
+    while ((match = mentionRegex.exec(content)) !== null) {
+      if (match[1]) {
+        mentions.add(match[1].toLowerCase()); // Store lowercase for case-insensitive comparison
+      }
+    }
+
+    return Array.from(mentions);
+  }
+
+  /**
+   * Send mention notifications to users mentioned in comment
+   * Optimized to fetch profiles + preferences in a single query
+   */
+  private async notifyMentionedUsers(
+    mentionedUsernames: string[],
+    commentId: string,
+    actorId: string,
+    actorUsername: string,
+    postId: string,
+  ): Promise<void> {
+    if (mentionedUsernames.length === 0) return;
+
+    try {
+      // Fetch profiles AND preferences in a single query (optimization for 10+ mentions)
+      const mentionedProfiles = await this.prisma.profile.findMany({
+        where: {
+          username: { in: mentionedUsernames },
+          deleted: false,
+        },
+        select: {
+          userId: true,
+          username: true,
+          user: {
+            select: {
+              notificationPreferences: {
+                select: {
+                  mentionWeb: true,
+                  mentionEmail: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Filter users who want mention notifications (check preferences early)
+      for (const profile of mentionedProfiles) {
+        // Skip self-mentions
+        if (profile.userId === actorId) continue;
+
+        // Check if user wants ANY mention notifications (web or email)
+        const prefs = profile.user.notificationPreferences;
+        const shouldNotify = prefs
+          ? prefs.mentionWeb || prefs.mentionEmail
+          : true;
+
+        // Only send if user has at least one channel enabled
+        if (shouldNotify) {
+          void this.notificationProducer.notifyMention(
+            profile.userId,
+            'comment',
+            commentId,
+            actorId,
+            actorUsername,
+            postId,
+          );
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail the comment creation
+      console.error('Failed to send mention notifications:', error);
+    }
+  }
 
   /**
    * Create a new comment on a post
@@ -21,10 +110,32 @@ export class CommentsService {
     userId: string,
     profileId: string,
   ) {
-    // Verify post exists
+    // Verify post exists and get owner info
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, isArchived: true },
+      select: {
+        id: true,
+        isArchived: true,
+        assets: {
+          select: {
+            asset: {
+              select: {
+                thumbnailPath: true,
+              },
+            },
+          },
+          take: 1,
+          orderBy: {
+            orderIndex: 'asc',
+          },
+        },
+        profile: {
+          select: {
+            userId: true,
+            username: true,
+          },
+        },
+      },
     });
 
     if (!post || post.isArchived) {
@@ -34,7 +145,7 @@ export class CommentsService {
     // Verify profile exists and belongs to user
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
-      select: { id: true, userId: true, deleted: true },
+      select: { id: true, userId: true, deleted: true, username: true },
     });
 
     if (!profile || profile.deleted || profile.userId !== userId) {
@@ -42,10 +153,20 @@ export class CommentsService {
     }
 
     // If parentCommentId provided, verify it exists and belongs to the same post
+    let parentCommentOwner: { userId: string; username: string } | null = null;
     if (createCommentDto.parentCommentId) {
       const parentComment = await this.prisma.comment.findUnique({
         where: { id: createCommentDto.parentCommentId },
-        select: { id: true, postId: true },
+        select: {
+          id: true,
+          postId: true,
+          profile: {
+            select: {
+              userId: true,
+              username: true,
+            },
+          },
+        },
       });
 
       if (!parentComment) {
@@ -57,6 +178,8 @@ export class CommentsService {
           'Parent comment does not belong to this post',
         );
       }
+
+      parentCommentOwner = parentComment.profile;
     }
 
     const comment = await this.prisma.comment.create({
@@ -84,6 +207,44 @@ export class CommentsService {
         },
       },
     });
+
+    // Send notifications
+    if (createCommentDto.parentCommentId && parentCommentOwner) {
+      // This is a reply - notify parent comment owner if different user
+      if (parentCommentOwner.userId !== userId) {
+        void this.notificationProducer.notifyCommentReply(
+          parentCommentOwner.userId,
+          createCommentDto.parentCommentId,
+          comment.id,
+          userId,
+          profile.username,
+          postId,
+        );
+      }
+    } else {
+      // This is a top-level comment - notify post owner if different user
+      if (post.profile.userId !== userId) {
+        void this.notificationProducer.notifyPostComment(
+          post.profile.userId,
+          postId,
+          comment.id,
+          userId,
+          profile.username,
+        );
+      }
+    }
+
+    // Extract and notify mentioned users
+    const mentionedUsernames = this.extractMentions(createCommentDto.content);
+    if (mentionedUsernames.length > 0) {
+      void this.notifyMentionedUsers(
+        mentionedUsernames,
+        comment.id,
+        userId,
+        profile.username,
+        postId,
+      );
+    }
 
     return {
       id: comment.id,
@@ -412,10 +573,36 @@ export class CommentsService {
    * Toggle like on a comment (like if not liked, unlike if already liked)
    */
   async toggleLike(commentId: string, userId: string, profileId: string) {
-    // Verify comment exists
+    // Verify comment exists and get owner info
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
-      select: { id: true },
+      select: {
+        id: true,
+        postId: true,
+        post: {
+          select: {
+            assets: {
+              select: {
+                asset: {
+                  select: {
+                    thumbnailPath: true,
+                  },
+                },
+              },
+              take: 1,
+              orderBy: {
+                orderIndex: 'asc',
+              },
+            },
+          },
+        },
+        profile: {
+          select: {
+            userId: true,
+            username: true,
+          },
+        },
+      },
     });
 
     if (!comment) {
@@ -425,7 +612,7 @@ export class CommentsService {
     // Verify profile exists and belongs to user
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
-      select: { id: true, userId: true, deleted: true },
+      select: { id: true, userId: true, deleted: true, username: true },
     });
 
     if (!profile || profile.deleted || profile.userId !== userId) {
@@ -476,6 +663,17 @@ export class CommentsService {
       const likesCount = await this.prisma.commentLike.count({
         where: { commentId },
       });
+
+      // Notify comment owner (if not liking own comment)
+      if (comment.profile.userId !== userId) {
+        void this.notificationProducer.notifyCommentLike(
+          comment.profile.userId,
+          commentId,
+          userId,
+          profile.username,
+          comment.postId,
+        );
+      }
 
       return {
         liked: true,

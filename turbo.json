@@ -11,7 +11,14 @@
     },
     "lint": {
       "dependsOn": ["^lint"],
-      "env": ["NODE_ENV", "AUTH_PORT", "FRONTEND_URL"]
+      "env": [
+        "NODE_ENV",
+        "AUTH_PORT",
+        "FRONTEND_URL",
+        "AUTH_SERVICE_URL",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
     },
     "check-types": {
       "dependsOn": ["^check-types"],

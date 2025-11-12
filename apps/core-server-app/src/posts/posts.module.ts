@@ -1,31 +1,41 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { AssetManagementService } from '../common/services/asset-management.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
+    NotificationsModule,
     MulterModule.registerAsync({
-      useFactory: () => {
-        // Create a temporary instance just for the multer options
-        // The actual service will be properly injected via providers
-        const imageProcessing = new ImageProcessingService();
+      imports: [PrismaModule],
+      useFactory: (prisma: PrismaService) => {
+        // Create temporary instances for multer configuration
+        const mockLogger = new Logger('MulterConfig');
+        const imageProcessing = new ImageProcessingService(mockLogger);
         const assetService = new AssetManagementService(
-          null as any,
+          prisma,
           imageProcessing,
         );
         return assetService.getPostImageMulterOptions();
       },
+      inject: [PrismaService],
     }),
   ],
   controllers: [PostsController],
-  providers: [PostsService, AssetManagementService, ImageProcessingService],
+  providers: [
+    PostsService,
+    AssetManagementService,
+    ImageProcessingService,
+    Logger,
+  ],
   exports: [PostsService, AssetManagementService, ImageProcessingService],
 })
 export class PostsModule {}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
 import { usersApi } from '@/lib/api/users';
@@ -15,6 +15,7 @@ import { transformPostForModal } from '@/lib/utils';
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const username = params.username as string;
   const { user: currentUser } = useAuthStore();
 
@@ -27,6 +28,8 @@ export default function ProfilePage() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedPostIndex, setSelectedPostIndex] = useState<number>(0);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [userNotFound, setUserNotFound] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   // Get profile ID based on profile type
   const getProfileId = useCallback(() => isOwnProfile ? profile?.id : otherUserData?.profile?.id, [isOwnProfile, profile?.id, otherUserData?.profile?.id]);
@@ -64,11 +67,20 @@ export default function ProfilePage() {
     if (isOwnProfile || !username) return;
 
     const loadOtherUserData = async () => {
+      setIsLoadingUser(true);
+      setUserNotFound(false);
       try {
         const userData = await usersApi.getUserByUsername(username);
         setOtherUserData(userData);
       } catch (error) {
         console.error('Failed to load user data:', error);
+        // Check if it's a 404 error
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 404) {
+          setUserNotFound(true);
+        }
+      } finally {
+        setIsLoadingUser(false);
       }
     };
 
@@ -177,7 +189,46 @@ export default function ProfilePage() {
     website: '',
     category: '',
     avatarUrl: null,
+    isPublic: true,
   };
+
+  // Show loading state
+  if (isLoadingUser) {
+    return (
+      <div className={styles.profileContainer}>
+        <div className={styles.profileWrapper}>
+          <div className={styles.notFoundContainer}>
+            <p>Loading...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show 404 for non-existent users
+  if (userNotFound) {
+    return (
+      <div className={styles.profileContainer}>
+        <div className={styles.profileWrapper}>
+          <div className={styles.notFoundContainer}>
+            <h2>Profile isn&apos;t available</h2>
+            <p>The link may be broken, or the profile may have been removed.</p>
+            <button
+              className={styles.primaryButton}
+              onClick={() => router.push('/app/feed')}
+            >
+              See more on Innogram
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Check if profile is private and user is not following
+  const isPrivateProfile = !isOwnProfile && displayProfile.isPublic === false && userPosts.length === 0 && !isLoadingPosts;
 
   return (
     <div className={styles.profileContainer}>
@@ -189,16 +240,26 @@ export default function ProfilePage() {
           stats={{ ...profileStatsState, posts: userPosts.length }}
         />
 
-        {/* Profile Grid Component */}
-        {isLoadingPosts ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Loading posts...</p>
+        {/* Private Profile Message */}
+        {isPrivateProfile ? (
+          <div className={styles.privateProfileContainer}>
+            <h2>This account is private</h2>
+            <p>Follow to see their photos and videos.</p>
           </div>
         ) : (
-          <ProfileGrid
-            posts={gridPosts}
-            onPostClick={handlePostClick}
-          />
+          <>
+            {/* Profile Grid Component */}
+            {isLoadingPosts ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <p>Loading posts...</p>
+              </div>
+            ) : (
+              <ProfileGrid
+                posts={gridPosts}
+                onPostClick={handlePostClick}
+              />
+            )}
+          </>
         )}
       </div>
 

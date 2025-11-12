@@ -17,7 +17,8 @@ export class AuthServiceTestHelper {
   private readonly testUserIds: Set<string> = new Set();
 
   constructor(coreServiceUrl?: string) {
-    this.coreServiceUrl = coreServiceUrl || process.env.CORE_SERVICE_URL || 'http://localhost:8000';
+    this.coreServiceUrl =
+      coreServiceUrl || process.env.CORE_SERVICE_URL || 'http://localhost:8000';
   }
 
   /**

@@ -157,18 +157,6 @@
   flex: 1;
 }
 
-.multipleIndicator {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  padding: 8px;
-  background: rgba($color-black, 0.80);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .carouselIndicators {
   position: absolute;
   bottom: 15px;
@@ -267,20 +255,6 @@
   border-radius: 12px;
   object-fit: cover;
   border: 1px solid rgba($color-black, 0.10);
-}
-
-.collaboratorAvatar {
-  position: absolute;
-  right: -8px;
-  bottom: -8px;
-  padding: 1px;
-  background: $color-white;
-  border-radius: 13px;
-}
-
-.collaboratorAvatar .avatar {
-  width: 24px;
-  height: 24px;
 }
 
 .userDetails {
@@ -394,14 +368,6 @@
   gap: 18px;
   margin-bottom: 16px;
   position: relative;
-}
-
-.commentAvatar {
-  border-radius: 16px;
-  object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-  flex-shrink: 0;
-  cursor: pointer;
 }
 
 .commentUsernameLink {
@@ -653,12 +619,6 @@
   align-items: center;
   gap: $spacing-xs;
   padding: 8px 0;
-}
-
-.likerAvatar {
-  border-radius: 10px;
-  border: 2px solid $color-white;
-  object-fit: cover;
 }
 
 .likesText a {

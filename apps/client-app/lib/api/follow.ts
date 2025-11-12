@@ -81,9 +81,9 @@ class FollowAPI {
   /**
    * Approve a follow request
    */
-  async approveFollowRequest(requestId: string): Promise<{ message: string }> {
+  async approveFollowRequest(followerUserId: string): Promise<{ message: string }> {
     const { data } = await apiClient.post<{ message: string }>(
-      API_ENDPOINTS.USERS.APPROVE_FOLLOW_REQUEST(requestId),
+      API_ENDPOINTS.USERS.APPROVE_FOLLOW_REQUEST(followerUserId),
     );
     return data;
   }
@@ -91,9 +91,9 @@ class FollowAPI {
   /**
    * Reject a follow request
    */
-  async rejectFollowRequest(requestId: string): Promise<{ message: string }> {
+  async rejectFollowRequest(followerUserId: string): Promise<{ message: string }> {
     const { data } = await apiClient.post<{ message: string }>(
-      API_ENDPOINTS.USERS.REJECT_FOLLOW_REQUEST(requestId),
+      API_ENDPOINTS.USERS.REJECT_FOLLOW_REQUEST(followerUserId),
     );
     return data;
   }

@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/icons';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import CommentsList from '@/components/feed/CommentsList';
+import MentionPicker from '@/components/ui/MentionPicker';
+import { MentionText } from '@/lib/utils/mentions';
 import styles from './PostViewModal.module.scss';
 
 interface PostViewModalProps {
@@ -75,6 +77,13 @@ export default function PostViewModal({
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentsKey, setCommentsKey] = useState(0);
+
+  // Mention picker state for main comment input
+  const [showMentionPicker, setShowMentionPicker] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPickerPosition, setMentionPickerPosition] = useState({ top: 0, left: 0 });
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   // Post like state
   const [isLiked, setIsLiked] = useState(post.isLikedByUser || false);
@@ -267,6 +276,8 @@ export default function PostViewModal({
         content: commentText.trim(),
       });
       setCommentText('');
+      setShowMentionPicker(false);
+      setMentionQuery('');
       // Force CommentsList to refetch
       setCommentsKey(prev => prev + 1);
     } catch (error) {
@@ -274,6 +285,64 @@ export default function PostViewModal({
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  const handleCommentTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart || 0;
+
+    setCommentText(value);
+
+    // Check if there's an '@' before cursor
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      // Check if there's whitespace between @ and cursor
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+
+      if (!/\s/.test(textAfterAt)) {
+        // No whitespace, show mention picker
+        setMentionStartIndex(lastAtIndex);
+        setMentionQuery(textAfterAt);
+        setShowMentionPicker(true);
+
+        // Calculate position for mention picker
+        if (commentInputRef.current) {
+          const rect = commentInputRef.current.getBoundingClientRect();
+          setMentionPickerPosition({
+            top: rect.bottom + window.scrollY,
+            left: rect.left + window.scrollX,
+          });
+        }
+      } else {
+        setShowMentionPicker(false);
+      }
+    } else {
+      setShowMentionPicker(false);
+    }
+  };
+
+  const handleMentionSelect = (username: string) => {
+    if (mentionStartIndex === -1) return;
+
+    const beforeMention = commentText.substring(0, mentionStartIndex);
+    const afterCursor = commentText.substring(commentInputRef.current?.selectionStart || commentText.length);
+    const newText = `${beforeMention}@${username} ${afterCursor}`;
+
+    setCommentText(newText);
+    setShowMentionPicker(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+
+    // Focus back on input
+    setTimeout(() => {
+      if (commentInputRef.current) {
+        const newCursorPos = beforeMention.length + username.length + 2;
+        commentInputRef.current.focus();
+        commentInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
   };
 
   const handleTogglePostLike = async () => {
@@ -516,7 +585,7 @@ export default function PostViewModal({
                           {post.username}
                         </Link>
                         {' '}
-                        {displayCaption}
+                        <MentionText text={displayCaption || ''} />
                         {shouldTruncateCaption && (
                           <button
                             className={styles.seeMoreButton}
@@ -595,20 +664,31 @@ export default function PostViewModal({
                   </div>
                 </div>
               </button>
-              <input
-                type="text"
-                placeholder="Add a comment…"
-                className={styles.commentInput}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmitComment();
-                  }
-                }}
-                disabled={isSubmittingComment}
-              />
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  ref={commentInputRef}
+                  type="text"
+                  placeholder="Add a comment…"
+                  className={styles.commentInput}
+                  value={commentText}
+                  onChange={handleCommentTextChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !showMentionPicker) {
+                      e.preventDefault();
+                      handleSubmitComment();
+                    }
+                  }}
+                  disabled={isSubmittingComment}
+                />
+                {showMentionPicker && (
+                  <MentionPicker
+                    searchQuery={mentionQuery}
+                    position={mentionPickerPosition}
+                    onSelect={handleMentionSelect}
+                    onClose={() => setShowMentionPicker(false)}
+                  />
+                )}
+              </div>
               <button
                 className={styles.postButton}
                 onClick={handleSubmitComment}

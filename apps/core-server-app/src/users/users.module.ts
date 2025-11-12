@@ -4,6 +4,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { FileUploadService } from '../common/services/file-upload.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       },
     }),
     PrismaModule,
+    NotificationsModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, FileUploadService],

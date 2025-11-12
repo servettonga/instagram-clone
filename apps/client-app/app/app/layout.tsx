@@ -17,6 +17,7 @@ import {
   BookmarkSimpleIcon,
   MoreMenuIcon,
   ActivityIcon,
+  InnogramLogoIcon,
 } from "@/components/ui/icons";
 import { useAuthStore } from "@/lib/store/authStore";
 import { ROUTES } from "@/lib/routes";
@@ -25,6 +26,7 @@ import NotificationsModal from "@/components/modal/NotificationsModal";
 import CreatePostModal from "@/components/modal/CreatePostModal";
 import styles from "./layout.module.scss";
 import { initFollowCacheInvalidation } from '@/lib/utils/profileCacheListener';
+import { notificationsApi } from '@/lib/api/notifications';
 
 export default function AppLayout({ children }: { children: React.ReactNode; }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthStore();
@@ -34,6 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Check if sidebar should be collapsed
@@ -42,6 +45,37 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
     showNotificationsModal ||
     pathname === "/app/messages";
   const isFeedCollapsed = pathname === "/app/messages";
+
+  // Check for unread notifications periodically
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkUnreadStatus = async () => {
+      try {
+        const status = await notificationsApi.getUnreadStatus();
+        setHasUnreadNotifications(status.hasUnread);
+      } catch (err) {
+        console.error('Failed to check unread notifications:', err);
+      }
+    };
+
+    // Check immediately
+    checkUnreadStatus();
+
+    // Check every 30 seconds
+    const interval = setInterval(checkUnreadStatus, 30000);
+
+    // Listen for notification changes
+    const handleNotificationChange = () => {
+      checkUnreadStatus();
+    };
+    window.addEventListener('notifications:changed', handleNotificationChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications:changed', handleNotificationChange);
+    };
+  }, [isAuthenticated]);
 
   // Protect all /app routes - redirect to login if not authenticated
   useEffect(() => {
@@ -117,7 +151,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
               </div>
             </div>
           ) : (
-            "Innogram"
+            <InnogramLogoIcon width={120} height={45} />
           )}
         </Link>
 
@@ -216,6 +250,9 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
                   filled={showNotificationsModal}
                 />
               </div>
+              {hasUnreadNotifications && !showNotificationsModal && (
+                <div className={styles.notificationIndicator} />
+              )}
             </div>
             {!isNavbarCollapsed && <span>Notifications</span>}
           </button>

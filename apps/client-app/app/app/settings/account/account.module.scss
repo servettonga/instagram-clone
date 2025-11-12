@@ -1,55 +1,67 @@
-// Converted to SCSS
 @use '@/styles/index.scss' as *;
+
+/* Layout */
+.pageContainer {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+.pageHeader {
+  margin-bottom: 32px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: $color-text;
+  margin: 0 0 8px 0;
+}
+
+.pageDescription {
+  font-size: 14px;
+  color: $color-muted;
+  margin: 0;
+  line-height: 1.5;
+}
 
 /* Edit Profile Form */
 .editProfileForm {
-  max-width: 692px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.profilePhotoSection {
+.avatarSection {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  padding-bottom: 12px;
 }
 
 .avatarWrapper {
-  width: 38px;
-  height: 38px;
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 19px;
-  object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-}
-
-.avatarPlaceholder {
-  width: 38px;
-  height: 38px;
-  border-radius: 19px;
-  background: $color-bg;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: $color-text;
-  border: 1px solid rgba($color-black, 0.10);
 }
 
 .profilePhotoInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
-.currentUsername {
-  font-size: 16px;
-  font-weight: 400;
+.avatarUsername {
+  font-size: 18px;
+  font-weight: 600;
   color: $color-text;
+  line-height: 22px;
+}
+
+.avatarDisplayName {
+  font-size: 15px;
+  color: $color-muted;
   line-height: 20px;
 }
 
@@ -77,36 +89,33 @@
 /* Form Groups */
 .formGroup {
   display: flex;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .formLabel {
-  width: 124px;
-  padding-top: 6px;
-  text-align: right;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: $color-text;
   line-height: 18px;
-  flex-shrink: 0;
-  margin-right: 32px;
 }
 
 .formInputWrapper {
-  flex: 1;
-  max-width: 355px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
 }
 
 .formInput {
   width: 100%;
-  padding: 7.5px 11px 6.5px;
+  padding: 10px 12px;
   border: 1px solid $color-border;
-  border-radius: 3px;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: 400;
   color: $color-text;
-  line-height: 18px;
-  margin-bottom: 14px;
+  line-height: 20px;
 }
 
 .formInput:disabled {
@@ -116,18 +125,16 @@
 
 .formInput:focus {
   outline: none;
-  border-color: $color-text;
+  border-color: $color-primary;
 }
 
 /* Input validation styles */
 .inputWithValidation {
   position: relative;
-  margin-bottom: 0;
 }
 
 .inputWithValidation .formInput {
   padding-right: 40px;
-  margin-bottom: 8px;
 }
 
 .inputValid {
@@ -151,7 +158,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  margin: 0 0 8px 0;
+  margin: 4px 0 0 0;
 }
 
 .validationSuccess {
@@ -160,8 +167,6 @@
 
 .validationError {
   color: $color-error;
-  font-size: 12px;
-  margin: 2px 0;
 }
 
 .validationInfo {
@@ -169,7 +174,7 @@
 }
 
 .passwordRequirements {
-  margin-bottom: 8px;
+  margin: 8px 0;
   padding: 8px 12px;
   background: $color-danger-bg;
   border: 1px solid $color-danger-border;
@@ -178,57 +183,39 @@
 
 .formTextarea {
   width: 100%;
-  min-height: 60px;
-  padding: 11px;
+  min-height: 80px;
+  padding: 12px;
   border: 1px solid $color-border;
-  border-radius: 3px;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: 400;
   color: $color-text;
-  line-height: 18px;
+  line-height: 20px;
   resize: vertical;
-  margin-bottom: 8px;
 }
 
 .formTextarea:focus {
   outline: none;
-  border-color: $color-text;
+  border-color: $color-primary;
 }
 
 .formHelp {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: $color-muted;
   line-height: 16px;
-  margin: 0 0 11px 0;
+  margin: 4px 0 0 0;
 }
 
 .charCount {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: $color-muted;
   line-height: 16px;
+  margin: 0;
 }
 
-.inlineLink {
-  background: none;
-  border: none;
-  color: $color-primary;
-  font-size: 11px;
-  font-weight: 400;
-  cursor: pointer;
-  padding: 0;
-}
-
-.inlineLink:hover {
-  text-decoration: underline;
-}
-
-/* Section Header */
-.sectionHeader {
-  margin: 32px 0 16px 156px;
-}
-
+/* Section Header - Removed unused sectionHeader class */
 .sectionTitle {
   font-size: 14px;
   font-weight: 600;
@@ -245,12 +232,6 @@
 }
 
 /* Checkbox */
-.checkboxWrapper {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
 .checkbox {
   width: 16px;
   height: 16px;
@@ -258,7 +239,6 @@
   border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .checkboxLabel {
@@ -278,11 +258,11 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 48px 0 0 156px;
+  margin-top: 16px;
 }
 
 .submitButton {
-  padding: 7px 16px;
+  padding: 10px 24px;
   background: $color-primary;
   color: $color-white;
   border: none;
@@ -305,7 +285,7 @@
 
 .submitMessage {
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   line-height: 18px;
@@ -324,20 +304,22 @@
 }
 
 @media (max-width: 768px) {
-  .formGroup {
+  .avatarSection {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .formLabel {
-    text-align: left;
-    margin-bottom: 8px;
+  .avatarWrapper {
+    width: 120px;
+    height: 120px;
   }
 
-  .sectionHeader {
-    margin-left: 0;
+  .formInputWrapper {
+    max-width: 100%;
   }
 
   .formActions {
-    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

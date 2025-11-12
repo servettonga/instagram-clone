@@ -64,12 +64,36 @@ services:
       retries: 5
       start_period: 20s
 
+  rabbitmq_dev:
+    image: rabbitmq:4.2-management-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-intern_project}_rabbitmq_dev
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbitmq_password}
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"      # AMQP protocol port
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672" # Management UI port
+    volumes:
+      - rabbitmq_dev_data:/var/lib/rabbitmq
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
 volumes:
   postgres_dev_data:
     driver: local
   mongodb_dev_data:
     driver: local
   redis_dev_data:
+    driver: local
+  rabbitmq_dev_data:
     driver: local
 
 networks:

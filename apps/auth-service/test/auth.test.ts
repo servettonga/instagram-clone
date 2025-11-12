@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
@@ -58,9 +60,15 @@ describe('Authentication Endpoints', () => {
       expect(response.body).toHaveProperty('tokens');
       expect(response.body.user).toHaveProperty('id');
       expect(response.body.user).toHaveProperty('profile');
-      expect(response.body.user.profile).toHaveProperty('username', testUser.username);
+      expect(response.body.user.profile).toHaveProperty(
+        'username',
+        testUser.username,
+      );
       expect(response.body.user).toHaveProperty('accounts');
-      expect(response.body.user.accounts[0]).toHaveProperty('email', testUser.email);
+      expect(response.body.user.accounts[0]).toHaveProperty(
+        'email',
+        testUser.email,
+      );
       expect(response.body.user).not.toHaveProperty('passwordHash');
       expect(response.body.tokens).toHaveProperty('accessToken');
       expect(response.body.tokens).toHaveProperty('refreshToken');
@@ -136,7 +144,10 @@ describe('Authentication Endpoints', () => {
       expect(response.body).toHaveProperty('user');
       expect(response.body).toHaveProperty('tokens');
       expect(response.body.user).toHaveProperty('id');
-      expect(response.body.user.accounts[0]).toHaveProperty('email', testUser.email);
+      expect(response.body.user.accounts[0]).toHaveProperty(
+        'email',
+        testUser.email,
+      );
       expect(response.body.tokens).toHaveProperty('accessToken');
       expect(response.body.tokens).toHaveProperty('refreshToken');
 
