@@ -32,14 +32,22 @@ export class NotificationPreferencesService {
     });
 
     if (!preferences) {
-      // Create default preferences (all enabled)
-      preferences = await this.prisma.notificationPreferences.create({
-        data: { userId },
-      });
-      this.logger.log(
-        `Created default preferences for user ${userId}`,
-        this.logContext,
-      );
+      try {
+        // Create default preferences (all enabled)
+        preferences = await this.prisma.notificationPreferences.create({
+          data: { userId },
+        });
+      } catch (error) {
+        // Race condition: another request created it simultaneously
+        // Silently fetch the newly created preferences
+        preferences = await this.prisma.notificationPreferences.findUnique({
+          where: { userId },
+        });
+
+        if (!preferences) {
+          throw error; // Re-throw if it's a different error
+        }
+      }
     }
 
     return preferences;
@@ -58,10 +66,6 @@ export class NotificationPreferencesService {
       data: dto,
     });
 
-    this.logger.log(
-      `Updated notification preferences for user ${userId}`,
-      this.logContext,
-    );
     return updated;
   }
 

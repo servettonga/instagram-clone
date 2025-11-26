@@ -98,5 +98,19 @@ export const authApi = {
   // OAuth login URLs
   getGoogleAuthUrl: (): string => {
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login/google`;
-  }
+  },
+
+  // OAuth account selection
+  getOAuthSession: async (sessionId: string): Promise<{ email: string; multipleAccounts: Array<{ userId: string; username: string; displayName: string; avatarUrl: string | null }> }> => {
+    const { data } = await apiClient.get(`/api/auth/oauth/session/${sessionId}`);
+    return data;
+  },
+
+  linkOAuthAccount: async (sessionId: string, userId: string): Promise<{ tokens: { accessToken: string; refreshToken: string } }> => {
+    const { data } = await apiClient.post('/api/auth/oauth/link', {
+      sessionId,
+      userId,
+    });
+    return data;
+  },
 };

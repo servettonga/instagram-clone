@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { AUTH_MESSAGES } from '@/lib/constants/messages';
 import styles from './callback.module.scss';
 
 export default function ClientCallback() {
@@ -97,7 +98,7 @@ export default function ClientCallback() {
         {isProcessing ? (
           <>
             <div className={styles.spinner}></div>
-            <h2 className={styles.title}>Completing sign in...</h2>
+            <h2 className={styles.title}>{AUTH_MESSAGES.OAUTH.COMPLETING_SIGNIN}</h2>
             <p className={styles.subtitle}>Please wait while we authenticate your account.</p>
           </>
         ) : error ? (
@@ -106,7 +107,7 @@ export default function ClientCallback() {
             <h2 className={styles.title}>Authentication Failed</h2>
             <p className={styles.errorText}>{error}</p>
             <button onClick={() => router.push('/auth/login')} className={styles.button}>
-              Back to Login
+              {AUTH_MESSAGES.OAUTH.BACK_TO_LOGIN}
             </button>
           </>
         ) : null}

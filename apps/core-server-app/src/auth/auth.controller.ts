@@ -30,6 +30,8 @@ import type {
   SignupData,
   AuthResponse,
   AuthenticatedRequest,
+  AuthTokens,
+  AccountOption,
 } from '@repo/shared-types';
 
 @ApiTags('Authentication')
@@ -133,12 +135,20 @@ export class AuthController {
   @ApiOperation({ summary: 'OAuth callback handler' })
   googleCallback(@Res() res: Response, @Query() query: Record<string, string>) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const { accessToken, refreshToken, error } = query;
+    const { accessToken, refreshToken, error, selectAccount, sessionId } =
+      query;
 
     if (error) {
       console.error('OAuth error:', error);
       return res.redirect(
         `${frontendUrl}/auth/error?error=${encodeURIComponent(error)}`,
+      );
+    }
+
+    // Handle account selection case
+    if (selectAccount === 'true' && sessionId) {
+      return res.redirect(
+        `${frontendUrl}/auth/select-account?sessionId=${sessionId}`,
       );
     }
 
@@ -171,8 +181,44 @@ export class AuthController {
       name: string;
       avatarUrl?: string;
     },
-  ) {
+  ): Promise<unknown> {
     return this.authService.findOrCreateOAuthUser(oauthData);
+  }
+
+  @Get('oauth/session/:sessionId')
+  @Public()
+  @ApiExcludeEndpoint()
+  async getOAuthSession(@Param('sessionId') sessionId: string): Promise<{
+    email: string;
+    provider: string;
+    providerId: string;
+    multipleAccounts: AccountOption[];
+  }> {
+    return this.authService.getOAuthSession(sessionId);
+  }
+
+  @Post('oauth/link')
+  @Public()
+  @ApiExcludeEndpoint()
+  async linkOAuthAccount(
+    @Body() linkData: { sessionId: string; userId: string },
+  ): Promise<{ tokens: AuthTokens }> {
+    return this.authService.linkOAuthAccount(linkData);
+  }
+
+  @Post('link-oauth')
+  @Public()
+  @ApiExcludeEndpoint()
+  async linkOAuthToUser(
+    @Body()
+    linkData: {
+      userId: string;
+      email: string;
+      provider: string;
+      providerId: string;
+    },
+  ) {
+    return this.authService.linkOAuthAccountToUser(linkData);
   }
 
   @Post('change-password')

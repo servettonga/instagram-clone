@@ -22,6 +22,8 @@ import type {
   ErrorResponse,
   LoginCredentials,
   SignupData,
+  AccountOption,
+  AuthTokens,
 } from '@repo/shared-types';
 
 @Injectable()
@@ -145,6 +147,56 @@ export class AuthService {
   }
 
   /**
+   * Get OAuth session data (for account selection)
+   */
+  async getOAuthSession(sessionId: string): Promise<{
+    email: string;
+    provider: string;
+    providerId: string;
+    multipleAccounts: AccountOption[];
+  }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.authServiceUrl}/internal/auth/oauth/session/${sessionId}`,
+        ),
+      );
+      return response.data as {
+        email: string;
+        provider: string;
+        providerId: string;
+        multipleAccounts: AccountOption[];
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        this.getErrorMessage(error, 'OAuth session not found or expired'),
+      );
+    }
+  }
+
+  /**
+   * Link OAuth account to selected user
+   */
+  async linkOAuthAccount(data: {
+    sessionId: string;
+    userId: string;
+  }): Promise<{ tokens: AuthTokens }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.authServiceUrl}/internal/auth/oauth/link`,
+          data,
+        ),
+      );
+      return response.data as { tokens: AuthTokens };
+    } catch (error) {
+      throw new BadRequestException(
+        this.getErrorMessage(error, 'Failed to link OAuth account'),
+      );
+    }
+  }
+
+  /**
    * Validate and return user by ID
    */
   async validateUser(userId: string) {
@@ -161,10 +213,12 @@ export class AuthService {
    * Verify user credentials (called by Auth Service)
    * This is an internal endpoint
    * Supports login with email or username
+   * Returns user data + list of other accounts if multiple exist
    */
   async verifyCredentials(credentials: {
     identifier: string;
     password: string;
+    selectedUserId?: string; // Optional: select specific account
   }) {
     // Determine if identifier is email or username
     const isEmail = credentials.identifier.includes('@');
@@ -276,8 +330,16 @@ export class AuthService {
 
     const providerEnum = oauthData.provider.toUpperCase() as AccountProvider;
 
-    // 1. Try to find existing OAuth account by provider + providerId
-    const account = await this.prisma.account.findFirst({
+    // 1. Check if multiple users exist with this email (always check first)
+    const existingAccounts = await this.prisma.account.findMany({
+      where: { email: oauthData.email },
+      include: {
+        user: true,
+      },
+    });
+
+    // 2. Try to find existing OAuth account by provider + providerId
+    const existingOAuthAccount = await this.prisma.account.findFirst({
       where: {
         provider: providerEnum,
         providerId: oauthData.providerId,
@@ -291,41 +353,59 @@ export class AuthService {
       },
     });
 
-    if (account) {
-      // OAuth account exists - update last login and return user
-      await this.prisma.account.update({
-        where: { id: account.id },
-        data: { lastLoginAt: new Date() },
-      });
+    if (existingAccounts.length > 0) {
+      // Get unique user IDs (multiple accounts might belong to same user)
+      const uniqueUserIds = Array.from(
+        new Set(existingAccounts.map((acc) => acc.userId)),
+      );
 
-      return this.usersService.findOne(account.userId);
-    }
+      if (uniqueUserIds.length > 1) {
+        // Multiple users with this email - need account selection
+        // ALWAYS show account selector, even if OAuth account already exists
 
-    // 2. Check if user exists with this email (any provider)
-    const existingUser = await this.prisma.account.findFirst({
-      where: { email: oauthData.email },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
+        // Fetch full user data for each unique user
+        const users = await this.prisma.user.findMany({
+          where: { id: { in: uniqueUserIds } },
+          include: { profile: true },
+        });
 
-    if (existingUser?.user) {
-      // User exists with this email - CREATE NEW OAUTH ACCOUNT
+        const accountOptions = users
+          .filter((user) => user.profile !== null)
+          .map((user) => ({
+            userId: user.id,
+            username: user.profile!.username,
+            displayName: user.profile!.displayName || user.profile!.username,
+            avatarUrl: user.profile!.avatarUrl || null,
+          }));
 
-      // Check if user already has this OAuth provider (prevent duplicates)
-      const existingOAuthAccount = await this.prisma.account.findFirst({
-        where: {
-          userId: existingUser.userId,
-          provider: providerEnum,
-        },
-      });
+        // If OAuth account already exists, use that user as the default
+        // Otherwise use first user
+        const firstUser = users.find((u) => u.profile !== null);
+        if (!firstUser) {
+          throw new BadRequestException('No valid users found with this email');
+        }
 
-      if (existingOAuthAccount) {
-        // User already linked this OAuth provider - just update providerId
+        const defaultUserId = existingOAuthAccount
+          ? existingOAuthAccount.userId
+          : firstUser.id;
+
+        const defaultUser = await this.usersService.findOne(defaultUserId);
+
+        return {
+          ...defaultUser,
+          multipleAccounts: accountOptions,
+        };
+      }
+
+      // Single user found - check if OAuth already linked
+      const existingAccount = existingAccounts[0];
+      if (!existingAccount) {
+        throw new BadRequestException('No account found');
+      }
+      const userId = existingAccount.userId;
+
+      // If OAuth account already exists for this user, just update and login
+      if (existingOAuthAccount && existingOAuthAccount.userId === userId) {
         await this.prisma.account.update({
           where: { id: existingOAuthAccount.id },
           data: {
@@ -333,22 +413,50 @@ export class AuthService {
             lastLoginAt: new Date(),
           },
         });
+        return this.usersService.findOne(userId);
+      }
+
+      // If OAuth account exists but linked to DIFFERENT user, don't auto-link
+      // This prevents auto-creating duplicate OAuth accounts
+      if (existingOAuthAccount && existingOAuthAccount.userId !== userId) {
+        throw new BadRequestException(
+          'This OAuth account is already linked to another user. Please contact support.',
+        );
+      }
+
+      // Check if user already has this OAuth provider (prevent duplicates)
+      const userOAuthAccount = await this.prisma.account.findFirst({
+        where: {
+          userId,
+          provider: providerEnum,
+        },
+      });
+
+      if (userOAuthAccount) {
+        // User already linked this OAuth provider - just update providerId
+        await this.prisma.account.update({
+          where: { id: userOAuthAccount.id },
+          data: {
+            providerId: oauthData.providerId,
+            lastLoginAt: new Date(),
+          },
+        });
       } else {
-        // Create new OAuth account for existing user
+        // OAuth account doesn't exist anywhere - create new for this user
         await this.prisma.account.create({
           data: {
-            userId: existingUser.userId,
+            userId,
             email: oauthData.email,
             provider: providerEnum,
             providerId: oauthData.providerId,
             passwordHash: null,
             lastLoginAt: new Date(),
-            createdBy: existingUser.userId,
+            createdBy: userId,
           },
         });
       }
 
-      return this.usersService.findOne(existingUser.userId);
+      return this.usersService.findOne(userId);
     }
 
     // 3. No user with this email - create new user with OAuth account
@@ -406,6 +514,81 @@ export class AuthService {
 
     // Refetch user with updated account information
     return this.usersService.findOne(user.id);
+  }
+
+  /**
+   * Link OAuth account to a specific user
+   * Used when user selects which account to link OAuth provider to
+   */
+  async linkOAuthAccountToUser(linkData: {
+    userId: string;
+    email: string;
+    provider: string;
+    providerId: string;
+  }) {
+    const providerEnum = linkData.provider.toUpperCase() as AccountProvider;
+
+    // Check if this OAuth account is already linked to ANY user
+    const existingOAuthAccount = await this.prisma.account.findFirst({
+      where: {
+        provider: providerEnum,
+        providerId: linkData.providerId,
+      },
+    });
+
+    // Check if target user already has this provider linked to a different OAuth account
+    const targetUserExistingProvider = await this.prisma.account.findFirst({
+      where: {
+        userId: linkData.userId,
+        provider: providerEnum,
+      },
+    });
+
+    // If target user already has this provider, delete it (will be replaced)
+    if (targetUserExistingProvider) {
+      await this.prisma.account.delete({
+        where: { id: targetUserExistingProvider.id },
+      });
+    }
+
+    if (
+      existingOAuthAccount &&
+      existingOAuthAccount.userId !== linkData.userId
+    ) {
+      // OAuth account is linked to a different user - move it to the selected user
+      await this.prisma.account.update({
+        where: { id: existingOAuthAccount.id },
+        data: {
+          userId: linkData.userId,
+          email: linkData.email,
+          lastLoginAt: new Date(),
+          updatedBy: linkData.userId,
+        },
+      });
+    } else if (existingOAuthAccount) {
+      // Already linked to this user - just update lastLogin
+      await this.prisma.account.update({
+        where: { id: existingOAuthAccount.id },
+        data: {
+          lastLoginAt: new Date(),
+        },
+      });
+    } else {
+      // OAuth account doesn't exist - create it for this user
+      await this.prisma.account.create({
+        data: {
+          userId: linkData.userId,
+          email: linkData.email,
+          provider: providerEnum,
+          providerId: linkData.providerId,
+          passwordHash: null,
+          lastLoginAt: new Date(),
+          createdBy: linkData.userId,
+        },
+      });
+    }
+
+    return { success: true, message: 'OAuth account linked successfully' };
   }
 
   /**

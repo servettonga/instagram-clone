@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -13,6 +12,7 @@ import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
 import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -28,17 +28,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     // PostgreSQL via Prisma
     PrismaModule,
 
-    // MongoDB for messages (silence for now)
-    MongooseModule.forRootAsync({
-      useFactory: () => {
-        const dbConfig = getConfig();
-        console.log('Connecting to MongoDB:', dbConfig.mongodbUrl);
-        return {
-          uri: dbConfig.mongodbUrl,
-        };
-      },
-    }),
-
     // TODO: Add Redis for caching and sessions
     // RedisModule.forRootAsync({...}),
 
@@ -49,6 +38,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CommentsModule,
     ChatsModule,
     NotificationsModule,
+    RealtimeModule,
     HealthModule,
   ],
   controllers: [],

@@ -3,6 +3,8 @@ import { HttpService } from '@nestjs/axios';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationProducerService } from '../notifications/services/notification-producer.service';
+import { FileUploadService } from '../common/services/file-upload.service';
 import { of, throwError } from 'rxjs';
 import { AxiosError, AxiosResponse } from 'axios';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
@@ -39,6 +41,19 @@ describe('AuthService', () => {
     },
   };
 
+  const mockNotificationProducerService = {
+    sendNotification: jest.fn(),
+  };
+
+  const mockNotificationsService = {
+    createDefaultPreferences: jest.fn(),
+  };
+
+  const mockFileUploadService = {
+    saveFile: jest.fn(),
+    deleteFile: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +69,18 @@ describe('AuthService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: NotificationProducerService,
+          useValue: mockNotificationProducerService,
+        },
+        {
+          provide: 'NotificationsService',
+          useValue: mockNotificationsService,
+        },
+        {
+          provide: FileUploadService,
+          useValue: mockFileUploadService,
         },
       ],
     }).compile();

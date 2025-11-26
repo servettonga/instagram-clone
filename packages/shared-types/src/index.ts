@@ -5,3 +5,5 @@ export * from './follow.types';
 export * from './comment.types';
 export * from './notification.types';
 export * from './rabbitmq.constants';
+export * from './socket-events.types';
+export * from './chat.types';

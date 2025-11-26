@@ -88,11 +88,6 @@ export class NotificationsService {
         readAt: new Date(),
       },
     });
-
-    this.logger.log(
-      `Marked notification ${notificationId} as read`,
-      this.logContext,
-    );
   }
 
   async markAllAsRead(userId: string): Promise<{ count: number }> {
@@ -107,10 +102,6 @@ export class NotificationsService {
       },
     });
 
-    this.logger.log(
-      `Marked ${result.count} notifications as read for user ${userId}`,
-      this.logContext,
-    );
     return { count: result.count };
   }
 

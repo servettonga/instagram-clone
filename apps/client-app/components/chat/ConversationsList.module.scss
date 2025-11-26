@@ -1,0 +1,283 @@
+@use '@/styles/index.scss' as *;
+
+.conversationsList {
+  width: 349px;
+  min-width: 349px;
+  border-right: 1px solid $color-border;
+  display: flex;
+  flex-direction: column;
+  background: $color-white;
+  flex-shrink: 0;
+}
+
+.conversationsHeader {
+  height: 60px;
+  padding: 0 20px;
+  border-bottom: 1px solid $color-border;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: $color-white;
+  flex-shrink: 0;
+}
+
+.userHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.username {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-text;
+  line-height: 24px;
+}
+
+.newMessageButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+.svgWrapper {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.svgWrapperInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.tabs {
+  height: 43px;
+  border-bottom: 1px solid $color-border;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  cursor: pointer;
+  color: $color-text;
+  padding: 12px 0 13px 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.tabActive {
+  border-bottom-color: $color-text;
+}
+
+.tabInactive {
+  opacity: 0.30;
+}
+
+.conversationsListItems {
+  flex: 1;
+  overflow-y: auto;
+  background: $color-white;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-border;
+    border-radius: 4px;
+  }
+}
+
+.conversationItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: $color-bg-highlight;
+  }
+}
+
+.conversationItemActive {
+  background: $color-surface;
+}
+
+.conversationItemUnread {
+  background: rgba($color-text, 0.02);
+}
+
+.conversationItemUnread:hover {
+  background: rgba($color-text, 0.05);
+}
+
+.conversationAvatar {
+  flex-shrink: 0;
+}
+
+.conversationInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversationUsername {
+  font-size: 14px;
+  font-weight: 400;
+  color: $color-text;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversationUsernameUnread {
+  font-weight: 600;
+}
+
+.conversationLastMessage {
+  font-size: 14px;
+  font-weight: 400;
+  color: $color-muted;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.imageIcon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 4px;
+  color: $color-muted;
+}
+
+.conversationLastMessageUnread {
+  color: $color-text;
+  font-weight: 500;
+}
+
+.conversationMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.conversationTimestamp {
+  font-size: 12px;
+  font-weight: 400;
+  color: $color-muted;
+  line-height: 16px;
+}
+
+.unreadBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: $color-primary;
+  color: $color-white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.emptyConversations {
+  padding: 40px 20px;
+  text-align: center;
+  color: $color-muted;
+
+  p {
+    margin: 4px 0;
+    font-size: 14px;
+
+    &:first-child {
+      font-weight: 600;
+      color: $color-text;
+    }
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .conversationsList {
+    width: 300px;
+    min-width: 300px;
+  }
+
+  .conversationsHeader {
+    padding: 0 16px;
+  }
+
+  .conversationItem {
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .conversationsList {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+  }
+
+  .username {
+    font-size: 15px;
+  }
+
+  .conversationName {
+    font-size: 13px;
+  }
+
+  .lastMessage {
+    font-size: 12px;
+  }
+
+  .conversationTimestamp {
+    font-size: 11px;
+  }
+}

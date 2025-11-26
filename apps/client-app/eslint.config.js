@@ -17,6 +17,6 @@ export default [
     },
   },
   {
-    ignores: ["eslint.config.js", ".next/**", "out/**"],
+    ignores: ["eslint.config.js", ".next/**", "out/**", "./scripts/find-unused-styles.cjs", "next-env*"],
   },
 ];

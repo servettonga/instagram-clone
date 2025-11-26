@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import type { StringValue } from 'ms';
 import { randomBytes } from 'crypto';
 import { config } from '../config/config.js';
 
@@ -30,11 +31,11 @@ export class JwtService {
     const refreshTokenId = this.generateTokenId();
 
     const accessTokenOptions: SignOptions = {
-      expiresIn: config.jwt.accessExpiresIn,
+      expiresIn: config.jwt.accessExpiresIn as StringValue,
     };
 
     const refreshTokenOptions: SignOptions = {
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn: config.jwt.refreshExpiresIn as StringValue,
     };
 
     const accessToken = jwt.sign(

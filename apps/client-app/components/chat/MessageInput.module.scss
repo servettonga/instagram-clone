@@ -1,0 +1,198 @@
+@use '@/styles/index.scss' as *;
+
+.inputContainer {
+  border-top: 1px solid $color-border;
+  background: $color-white;
+  padding: 12px 16px;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: 24px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: $color-text;
+  }
+}
+
+.emojiPickerWrapper {
+  position: relative;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: $color-text;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.emojiPicker {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: fadeIn $transition-fast;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-muted;
+    border-radius: 3px;
+  }
+}
+
+.emojiButton {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 24px;
+  border-radius: $radius-sm;
+  transition: background-color $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: rgba($color-text, 0.1);
+  }
+}
+
+.textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: $color-text;
+  max-height: 100px;
+  overflow-y: auto;
+  line-height: 1.5;
+  padding: 4px 0;
+
+  &::placeholder {
+    color: $color-muted;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-muted;
+    border-radius: 3px;
+  }
+}
+
+.sendButton {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: $color-primary;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .messageInputContainer {
+    padding: 12px;
+    min-height: 56px;
+  }
+
+  .inputWrapper {
+    padding: 8px 12px;
+  }
+
+  .messageInput {
+    font-size: 14px;
+    max-height: 80px;
+  }
+
+  .sendButton {
+    font-size: 13px;
+    padding: 4px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .messageInputContainer {
+    padding: 8px;
+    min-height: 52px;
+  }
+
+  .inputWrapper {
+    padding: 6px 10px;
+  }
+
+  .messageInput {
+    font-size: 13px;
+    max-height: 70px;
+  }
+
+  .sendButton {
+    font-size: 12px;
+  }
+}

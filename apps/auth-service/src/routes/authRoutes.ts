@@ -20,6 +20,14 @@ router.post('/reset-password', (req, res) =>
   AuthController.resetPassword(req, res),
 );
 
+// OAuth session routes (for account selection)
+router.get('/oauth/session/:sessionId', (req, res) =>
+  AuthController.getOAuthSession(req, res),
+);
+router.post('/oauth/link', (req, res) =>
+  AuthController.linkOAuthAccount(req, res),
+);
+
 // OAuth routes with Passport
 router.get(
   '/oauth/google',

@@ -36,6 +36,7 @@
         "AUTH_PORT",
         "FRONTEND_URL",
         "CORE_SERVICE_URL",
+        "REDIS_URL",
         "REDIS_PORT",
         "REDIS_PASSWORD",
         "JWT_ACCESS_SECRET",

@@ -27,8 +27,18 @@ import CreatePostModal from "@/components/modal/CreatePostModal";
 import styles from "./layout.module.scss";
 import { initFollowCacheInvalidation } from '@/lib/utils/profileCacheListener';
 import { notificationsApi } from '@/lib/api/notifications';
+import { SocketProvider } from '@/lib/hooks/useSocket';
+import { useChatStore } from '@/lib/store/chatStore';
 
 export default function AppLayout({ children }: { children: React.ReactNode; }) {
+  return (
+    <SocketProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </SocketProvider>
+  );
+}
+
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
@@ -38,13 +48,17 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const unreadCounts = useChatStore((state) => state.unreadCounts);
 
-  // Check if sidebar should be collapsed
+  // Derive hasUnreadMessages directly from store
+  const hasUnreadMessages = Object.values(unreadCounts).some(count => count > 0);
+
+  const isMessagesRoute = pathname === ROUTES.APP.MESSAGES;
   const isNavbarCollapsed =
     showSearchModal ||
     showNotificationsModal ||
-    pathname === "/app/messages";
-  const isFeedCollapsed = pathname === "/app/messages";
+    isMessagesRoute;
+  const isFeedCollapsed = isMessagesRoute;
 
   // Check for unread notifications periodically
   useEffect(() => {
@@ -230,6 +244,9 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
                   filled={pathname === "/app/messages"}
                 />
               </div>
+              {hasUnreadMessages && pathname !== "/app/messages" && (
+                <div className={styles.notificationIndicator} />
+              )}
             </div>
             {!isNavbarCollapsed && <span>Messages</span>}
           </Link>
@@ -282,7 +299,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
             <div
               className={`${styles.profileIcon} ${pathname.startsWith("/app/profile") ? styles.profileIconActive : ""}`}
             >
-              <Avatar avatarUrl={profile?.avatarUrl} username={profile?.username} size="sm" />
+              <Avatar avatarUrl={profile?.avatarUrl} username={profile?.username} size="sm" unoptimized />
             </div>
             {!isNavbarCollapsed && <span>Profile</span>}
           </Link>

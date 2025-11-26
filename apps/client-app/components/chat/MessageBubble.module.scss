@@ -1,0 +1,334 @@
+@use '@/styles/index.scss' as *;
+
+$message-max-width: min(500px, 80%);
+
+.messageRow {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0 24px;
+  margin-bottom: 16px;
+}
+
+.messageRowGrouped {
+  margin-bottom: 4px;
+}
+
+.messageRowOwn {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.avatarColumn {
+  width: 40px;
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.avatarColumnPlaceholder {
+  visibility: hidden;
+}
+
+.messageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: $message-max-width;
+}
+
+.messageContainerOwn {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.senderLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: $color-muted;
+}
+
+.messageContainerOwn .senderLine {
+  justify-content: flex-end;
+}
+
+.senderName {
+  font-weight: 600;
+  color: $color-text;
+}
+
+.messageBubble {
+  background: rgba($color-text, 0.08);
+  color: $color-text;
+  padding: 10px 14px;
+  border-radius: 18px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  box-shadow: 0 1px 0 rgba($color-black, 0.05);
+}
+
+.messageBubbleOwn {
+  background: linear-gradient(135deg, $color-primary, $color-primary-contrast);
+  color: $color-white;
+  align-self: flex-end;
+  box-shadow: none;
+}
+
+.messageBubbleSingle {
+  border-radius: 6px 18px 18px 18px;
+}
+
+.messageBubbleTop {
+  border-radius: 18px 18px 18px 6px;
+}
+
+.messageBubbleMiddle {
+  border-radius: 6px 18px 18px 6px;
+}
+
+.messageBubbleBottom {
+  border-radius: 6px 18px 18px 18px;
+}
+
+.messageBubbleOwn.messageBubbleSingle {
+  border-radius: 18px 18px 6px 18px;
+}
+
+.messageBubbleOwn.messageBubbleTop {
+  border-radius: 18px 18px 6px 18px;
+}
+
+.messageBubbleOwn.messageBubbleMiddle {
+  border-radius: 18px 6px 6px 18px;
+}
+
+.messageBubbleOwn.messageBubbleBottom {
+  border-radius: 18px 6px 18px 18px;
+}
+
+.messageContent {
+  font-size: 14px;
+}
+
+.editedLabel {
+  font-size: 11px;
+  color: $color-muted;
+  margin-left: 6px;
+  opacity: 0.75;
+  font-style: italic;
+
+  .messageBubbleOwn & {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.messageMeta {
+  font-size: 11px;
+  color: $color-muted;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.messageContainerOwn .messageMeta {
+  justify-content: flex-end;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.messageTime {
+  white-space: nowrap;
+}
+
+/* More Menu */
+.moreMenuWrapper {
+  position: absolute;
+  top: 0;
+  right: -30px;
+  display: flex;
+  align-items: center;
+}
+
+.messageRowOwn .moreMenuWrapper {
+  right: auto;
+  left: -30px;
+}
+
+.moreMenuButton {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  color: $color-muted;
+  transition: all $transition-fast;
+
+  &:hover {
+    background-color: rgba($color-text, 0.1);
+    color: $color-text;
+  }
+}
+
+.messageMoreMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  z-index: 100;
+  min-width: 120px;
+  padding: 4px;
+  animation: fadeIn $transition-fast;
+}
+
+.messageRowOwn .messageMoreMenu {
+  right: auto;
+  left: 0;
+}
+
+.messageMenuItem {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: $radius-sm;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: $font-sm;
+  color: $color-text;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: rgba($color-text, 0.1);
+  }
+}
+
+/* Edit Mode */
+.messageEditContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 360px;
+  max-width: $message-max-width;
+  background: $color-white;
+  padding: 12px;
+  border-radius: $radius-md;
+  border: 1px solid $color-border;
+  box-shadow: $shadow-sm;
+}
+
+.messageEditInput {
+  @include comment-input;
+  min-height: 120px;
+  resize: vertical;
+  width: 100%;
+  background: $color-white;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: $color-text;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+}
+
+.messageEditButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancelButton,
+.saveButton {
+  padding: 6px 16px;
+  border-radius: $radius-sm;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: none;
+}
+
+.cancelButton {
+  @include button-secondary;
+}
+
+.saveButton {
+  @include button-primary;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.messageBubble {
+  position: relative;
+}
+
+/* Message Assets */
+.messageAssets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.assetImage {
+  max-width: 300px;
+  border-radius: $radius-md;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform $transition-fast;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.assetImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: $radius-md;
+}
+
+/* Message Assets */
+.messageAssets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.assetImage {
+  width: 100%;
+  max-width: 300px;
+  border-radius: $radius-md;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform $transition-fast;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.assetImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: $radius-md;
+}

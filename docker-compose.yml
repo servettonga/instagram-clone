@@ -19,25 +19,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # MongoDB (for messages/chat features)
-  mongodb:
-    image: mongo:8
-    container_name: ${COMPOSE_PROJECT_NAME:-intern_project}_mongodb
-    restart: unless-stopped
-    env_file: .env.production
-    ports:
-      - "${MONGO_PORT:-27017}:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "pgrep", "mongod"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
   # Redis (for caching and sessions)
   redis:
     image: redis:7.4-alpine
@@ -113,7 +94,6 @@ services:
     restart: unless-stopped
     env_file: .env.production
     environment:
-      - MONGODB_URL=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/innogram_messages?authSource=admin
       - DATABASE_URL=postgresql://${APP_DB_USER:-innogram_user}:${APP_DB_PASSWORD:-innogram_app_password}@postgres:5432/${POSTGRES_DB:-innogram}?schema=public
       - AUTH_SERVICE_URL=http://auth-service:4000
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_password}@rabbitmq:5672
@@ -123,8 +103,6 @@ services:
       - uploads_data:/app/uploads
     depends_on:
       postgres:
-        condition: service_healthy
-      mongodb:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -182,8 +160,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
-  mongodb_data:
     driver: local
   redis_data:
     driver: local

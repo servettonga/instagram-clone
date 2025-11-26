@@ -8,10 +8,10 @@ import { getConfig } from './config/config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const config = getConfig();
 
   // Serve static files from uploads directory
-  const uploadDir = process.env.UPLOAD_DIR || './uploads';
-  app.useStaticAssets(join(process.cwd(), uploadDir), {
+  app.useStaticAssets(join(process.cwd(), config.uploadDir), {
     prefix: '/uploads/',
   });
 
@@ -20,7 +20,7 @@ async function bootstrap(): Promise<void> {
 
   // CORS configuration
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: config.frontendUrl,
     credentials: true, // Allow cookies (for future cookie-based auth if needed)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -37,7 +37,7 @@ async function bootstrap(): Promise<void> {
   );
 
   // Swagger documentation
-  const config = new DocumentBuilder()
+  const swaggerConfig = new DocumentBuilder()
     .setTitle('Innogram Core API')
     .setDescription('Core microservice API documentation')
     .setVersion('1.0')
@@ -56,10 +56,10 @@ async function bootstrap(): Promise<void> {
     .addTag('Users', 'User management')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = getConfig().coreServicePort;
+  const port = config.coreServicePort;
   await app.listen(port);
 
   console.log(`✓ Core Server is running on: http://localhost:${port}`);

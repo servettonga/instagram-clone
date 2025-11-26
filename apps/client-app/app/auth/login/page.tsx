@@ -36,12 +36,24 @@ export default function LoginPage() {
       // Call API and get user data + tokens
       const response: AuthResponse = await authApi.login(data);
 
+      // Verify we have valid response
+      if (!response.user) {
+        throw new Error('No user data received from server');
+      }
+
+      if (!response.tokens?.accessToken || !response.tokens?.refreshToken) {
+        throw new Error('No authentication tokens received from server');
+      }
+
       // Update global auth state
       setUser(response.user);
 
       // Redirect to feed
       router.push(ROUTES.APP.FEED);
     } catch (error: unknown) {
+      // Log the full error for debugging
+      console.error('Login error (full):', error);
+
       // Narrow the catch value to the expected axios-like shape without using `any`.
       const errResponse = error as { response?: { data?: { message?: string; error?: string } } };
 
@@ -59,10 +71,7 @@ export default function LoginPage() {
         message = error.message;
       }
 
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Login failed:', message);
-      }
+      console.error('Login failed with message:', message);
 
       setServerError(message);
     }
@@ -77,7 +86,7 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+        <div className={styles.card}>
         <h1 className={styles.title}>Innogram</h1>
         <p className={styles.subtitle}>Sign in to continue to Innogram</p>
 

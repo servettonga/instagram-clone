@@ -105,7 +105,7 @@ export default function FeedSidebar({ profile, suggestions }: FeedSidebarProps) 
       <div className={styles.sidebarUser}>
         <Link href={`/app/profile/${profile.username}`}>
             <div className={styles.sidebarAvatarWrapper}>
-            <Avatar avatarUrl={profile.avatarUrl} username={profile.displayName || profile.username} size="lg" />
+            <Avatar avatarUrl={profile.avatarUrl} username={profile.displayName || profile.username} size="lg" unoptimized />
           </div>
         </Link>
         <div className={styles.sidebarUserInfo}>

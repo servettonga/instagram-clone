@@ -51,5 +51,16 @@ export const API_ENDPOINTS = {
     UNREAD_STATUS: '/api/notifications/unread/status',
     MARK_READ: (id: string) => `/api/notifications/${id}/read`,
     MARK_ALL_READ: '/api/notifications/read-all',
-  }
+  },
+
+    // Chat endpoints
+  CHATS: {
+    BASE: '/api/chats',
+    BY_ID: (id: string) => `/api/chats/${id}`,
+    MESSAGES: (id: string) => `/api/chats/${id}/messages`,
+    PARTICIPANTS: (id: string) => `/api/chats/${id}/participants`,
+    PRIVATE: '/api/chats/private',
+    GROUP: '/api/chats/group',
+    READ: (id: string) => `/api/chats/${id}/read`,
+  },
 } as const;

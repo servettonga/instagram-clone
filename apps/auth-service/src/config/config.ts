@@ -21,9 +21,11 @@ export const config = {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   redis: {
-    url: isDevelopment
-      ? `redis://:${process.env.REDIS_PASSWORD || 'password'}@localhost:${process.env.REDIS_PORT || 6380}`
-      : `redis://:${process.env.REDIS_PASSWORD || 'password'}@redis:6379`,
+    url:
+      process.env.REDIS_URL ||
+      (isDevelopment
+        ? `redis://:${process.env.REDIS_PASSWORD || 'password'}@localhost:${process.env.REDIS_PORT || 6380}`
+        : `redis://:${process.env.REDIS_PASSWORD || 'password'}@redis:6379`),
   },
   password: {
     saltRound: 12,

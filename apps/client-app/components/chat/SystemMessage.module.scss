@@ -1,0 +1,30 @@
+@use '@/styles/index.scss' as *;
+
+.systemMessage {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px;
+  margin: 8px 0;
+}
+
+.messageContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: $color-surface;
+  border-radius: 12px;
+  padding: 6px 12px;
+  max-width: 80%;
+}
+
+.messageText {
+  font-size: 13px;
+  color: $color-muted;
+  text-align: center;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: $color-muted;
+  opacity: 0.7;
+}

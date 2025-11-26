@@ -79,7 +79,23 @@ export class UsersService {
   ): Promise<UserWithProfileAndAccount> {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        // Only hash password if provided (for LOCAL accounts)
+        // Check if a LOCAL account with this email already exists
+        const existingLocalAccount = await tx.account.findFirst({
+          where: {
+            email: createUserDto.email,
+            provider: AccountProvider.LOCAL,
+          },
+        });
+
+        // Security: Don't allow multiple LOCAL accounts with the same email
+        // Each email can only have ONE LOCAL (password-based) account
+        if (existingLocalAccount) {
+          throw new ConflictException(
+            'An account with this email already exists. Please use a different email or login to your existing account.',
+          );
+        }
+
+        // Hash password for new LOCAL account
         let passwordHash: string | null = null;
         if (createUserDto.password) {
           passwordHash = await bcrypt.hash(createUserDto.password, 6);

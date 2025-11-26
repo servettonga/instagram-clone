@@ -1,0 +1,193 @@
+name: Test PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: innogram
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup environment files and symlinks
+        run: |
+          # Copy .env.example to .env for CI
+          cp .env.example .env
+
+          # Create symlinks for .env files in apps
+          for app in apps/*/; do
+            if [ -d "$app" ]; then
+              cd "$app"
+              ln -sf ../../.env .env 2>/dev/null || true
+              ln -sf ../../.env.production .env.production 2>/dev/null || true
+              cd ../..
+            fi
+          done
+
+          # Create Prisma schema symlinks
+          mkdir -p apps/core-server-app/prisma
+          cd apps/core-server-app/prisma
+          ln -sf ../../../packages/prisma-schema/schema.prisma schema.prisma 2>/dev/null || true
+          cd ../../..
+
+          mkdir -p apps/notifications-consumer/prisma
+          cd apps/notifications-consumer/prisma
+          ln -sf ../../../packages/prisma-schema/schema.prisma schema.prisma 2>/dev/null || true
+          cd ../../..
+
+      - name: Build shared packages
+        run: |
+          npm run build:shared-types
+          npm run db:generate
+
+      - name: Build services
+        run: |
+          npm run build -w apps/auth-service
+          npm run build -w apps/core-server-app
+
+      - name: Initialize database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d innogram -f apps/core-server-app/prisma/init-db.sql
+          cd apps/core-server-app && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/innogram
+
+      - name: Run auth-service tests
+        run: |
+          set -euo pipefail
+
+          # Build core server to ensure dist artifacts exist
+          npm run build -w apps/core-server-app
+
+          # Start core server in background for integration tests
+          cd apps/core-server-app
+          npm run start:prod > ../../core-server.log 2>&1 &
+          CORE_PID=$!
+          cd ../../
+
+          cleanup() {
+            if kill -0 "$CORE_PID" 2>/dev/null; then
+              kill "$CORE_PID" || true
+              wait "$CORE_PID" || true
+            fi
+          }
+          trap cleanup EXIT
+
+          echo "Waiting for core server to become ready..."
+          for i in {1..40}; do
+            if curl -s http://localhost:8000/api/health > /dev/null; then
+              echo "Core server is ready"
+              break
+            fi
+            if [ "$i" -eq 40 ]; then
+              echo "Core server failed to start" >&2
+              cat core-server.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          npm run test -w apps/auth-service
+        env:
+          NODE_ENV: production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/innogram
+          CORE_SERVER_PORT: 8000
+          AUTH_SERVICE_URL: http://localhost:4000
+          RABBITMQ_URL: amqp://localhost:5672
+          UPLOAD_DIR: ./uploads
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ''
+          REDIS_URL: redis://localhost:6379
+          CORE_SERVICE_URL: http://localhost:8000
+          JWT_ACCESS_SECRET: test-access-secret-key-for-github-actions
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-github-actions
+          JWT_ACCESS_EXPIRES_IN: 15m
+          JWT_REFRESH_EXPIRES_IN: 7d
+          GOOGLE_CLIENT_ID: test-google-client-id
+          GOOGLE_CLIENT_SECRET: test-google-client-secret
+          GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
+          GITHUB_CLIENT_ID: test-github-client-id
+          GITHUB_CLIENT_SECRET: test-github-client-secret
+          GITHUB_CALLBACK_URL: http://localhost:4000/auth/github/callback
+
+      - name: Run core-server-app tests
+        run: npm run test -w apps/core-server-app
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/innogram
+          AUTH_SERVICE_URL: http://localhost:4000
+          RABBITMQ_URL: amqp://localhost:5672
+          UPLOAD_DIR: ./uploads
+
+      - name: Run notifications-consumer tests
+        run: npm run test -w apps/notifications-consumer
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/innogram
+          RABBITMQ_URL: amqp://localhost:5672
+          EMAIL_HOST: smtp.example.com
+          EMAIL_PORT: 587
+          EMAIL_USER: test@example.com
+          EMAIL_PASS: test-password
+          EMAIL_FROM: noreply@innogram.com
+
+      - name: Run client-app type check
+        run: npm run check-types -w apps/client-app
+        env:
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: test-nextauth-secret-key-for-github-actions
+          NEXT_PUBLIC_API_URL: http://localhost:8000/api
+
+      - name: Lint (informational only)
+        if: always()
+        continue-on-error: true
+        run: npm run lint

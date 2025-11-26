@@ -58,8 +58,6 @@ export class EmailService implements OnModuleInit {
         subject: options.subject,
         html: options.html,
       });
-
-      this.logger.log(`Email sent to ${options.to}`);
     } catch (error) {
       this.logger.error("Error sending email", error);
       throw error;

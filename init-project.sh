@@ -168,7 +168,7 @@ setup_environment() {
 
     # Create Prisma schema symlinks
     echo -e "${BLUE}Creating Prisma schema symbolic links...${NC}"
-    
+
     # Core server Prisma schema
     if [ -f "packages/prisma-schema/schema.prisma" ]; then
         mkdir -p apps/core-server-app/prisma
@@ -290,7 +290,7 @@ run_development_setup() {
     echo -e "${BLUE}Running development setup...${NC}"
 
     # Start development databases and RabbitMQ
-    echo -e "${BLUE}Starting development infrastructure (PostgreSQL, MongoDB, Redis, RabbitMQ)...${NC}"
+    echo -e "${BLUE}Starting development infrastructure (PostgreSQL, Redis, RabbitMQ)...${NC}"
     npm run docker:dev
 
     echo -e "${YELLOW}Waiting for services to be ready...${NC}"

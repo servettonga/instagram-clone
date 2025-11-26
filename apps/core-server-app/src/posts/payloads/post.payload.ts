@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { getConfig } from '../../config/config';
 
 /**
  * Select for safe post data with related entities
@@ -67,7 +68,7 @@ export type PostWithDetails = Prisma.PostGetPayload<{
  * Transform post to safe response format with computed fields
  */
 export function toPostResponse(post: PostWithDetails, currentUserId?: string) {
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = getConfig().backendUrl;
 
   return {
     id: post.id,

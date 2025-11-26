@@ -62,17 +62,12 @@ export class NotificationConsumer implements OnModuleInit {
         return;
       }
 
-      this.logger.log(
-        `Processing ${payload.type} notification for user ${payload.userId} (web: ${payload.sendWeb ?? true}, email: ${payload.sendEmail ?? false})`,
-      );
-
       // 1. Save web notification to database (if enabled in producer)
       let notification: { id: string } | null = null;
       if (payload.sendWeb !== false) {
         // Default to true if not specified (for backward compatibility)
         notification =
           await this.notificationService.createNotification(payload);
-        this.logger.log(`✓ Saved web notification ${notification.id}`);
       }
 
       // 2. Send email notification (if enabled in producer)
@@ -107,8 +102,6 @@ export class NotificationConsumer implements OnModuleInit {
               subject,
               html,
             });
-
-            this.logger.log(`✓ Sent email to ${user.email}`);
 
             // Mark notification as email sent (if web notification was created)
             if (notification) {
@@ -163,8 +156,6 @@ export class NotificationConsumer implements OnModuleInit {
         subject,
         html,
       });
-
-      this.logger.log(`✓ Password reset email sent to ${payload.email}`);
     } catch (error) {
       this.logger.error(
         `Failed to send password reset email: ${error instanceof Error ? error.message : String(error)}`,

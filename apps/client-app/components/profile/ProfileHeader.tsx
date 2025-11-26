@@ -2,12 +2,15 @@
 
 import Avatar from '@/components/ui/Avatar';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './ProfileHeader.module.scss';
 import { useState, useEffect } from 'react';
 import FollowListModal from '@/components/modal/FollowListModal';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useAuthStore } from '@/lib/store/authStore';
+import { useChatStore } from '@/lib/store/chatStore';
 import { followAPI } from '@/lib/api/follow';
+import { chatsAPI } from '@/lib/api/chats';
 import { getFollowersCountForUsername, invalidateFollowersCount } from '@/lib/utils/profileCache';
 
 interface ProfileHeaderProps {
@@ -32,10 +35,13 @@ interface ProfileHeaderProps {
 export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileHeaderProps) {
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null);
   const { user: currentUser } = useAuthStore();
+  const { chats, selectChat } = useChatStore();
+  const router = useRouter();
 
   // followState: 'loading' | 'not-following' | 'following' | 'pending'
   const [followState, setFollowState] = useState<'loading' | 'not-following' | 'following' | 'pending'>('loading');
   const [isHoveringRequested, setIsHoveringRequested] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const openModal = (type: 'followers' | 'following') => {
     setModalType(type);
@@ -79,7 +85,7 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
 
     window.addEventListener('follow:changed', handleFollowChanged as EventListener);
 
-    return () => { 
+    return () => {
       mounted = false;
       window.removeEventListener('follow:changed', handleFollowChanged as EventListener);
     };
@@ -137,7 +143,7 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
     try {
       await followAPI.unfollowUser(targetUserId);
       setFollowState('not-following');
-      
+
       try {
         window.dispatchEvent(
           new CustomEvent('follow:changed', { detail: { targetUserId, username: profile.username, action: 'cancel-request' } }),
@@ -207,6 +213,37 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
   useEffect(() => {
     setFollowersCount(stats.followers ?? 0);
   }, [stats.followers]);
+
+  const handleMessage = async () => {
+    if (!targetUserId || isCreatingChat) return;
+
+    try {
+      setIsCreatingChat(true);
+
+      // Check if a private chat already exists with this user
+      const existingChat = chats.find(
+        (chat) =>
+          chat.type === 'PRIVATE' &&
+          chat.participants?.some((p) => p.id === targetUserId)
+      );
+
+      if (existingChat) {
+        // Chat exists, navigate and select it
+        selectChat(existingChat.id);
+        router.push('/app/messages');
+      } else {
+        // Create new private chat
+        const newChat = await chatsAPI.createPrivateChat(targetUserId);
+        selectChat(newChat.id);
+        router.push('/app/messages');
+      }
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
+
   return (
     <>
       <div className={styles.profileHeader}>
@@ -275,7 +312,7 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
               <button className={styles.followButton} onClick={handleFollow}>Follow</button>
             )}
             {followState === 'pending' && (
-              <button 
+              <button
                 className={styles.requestedButton}
                 onClick={handleCancelRequest}
                 onMouseEnter={() => setIsHoveringRequested(true)}
@@ -288,7 +325,13 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
               <button className={styles.messageButton} onClick={handleUnfollow}>Following</button>
             )}
 
-            <button className={styles.messageButton}>Message</button>
+            <button
+              className={styles.messageButton}
+              onClick={handleMessage}
+              disabled={isCreatingChat}
+            >
+              {isCreatingChat ? 'Opening...' : 'Message'}
+            </button>
           </>
         )}
       </div>

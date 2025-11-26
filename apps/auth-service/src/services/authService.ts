@@ -2,7 +2,10 @@ import { JwtService } from '../utils/jwt.js';
 import { AUTH_MESSAGES } from '../constants/messages.js';
 import { coreServiceClient, CreateUserRequest } from './coreServiceClient.js';
 import { redisService, SessionData } from './redisClient.js';
-import type { UserWithProfileAndAccount } from '@repo/shared-types';
+import type {
+  UserWithProfileAndAccount,
+  AccountOption,
+} from '@repo/shared-types';
 
 export interface RegisterRequest {
   username: string;
@@ -13,6 +16,7 @@ export interface RegisterRequest {
 export interface LoginRequest {
   identifier: string; // Email or username
   password: string;
+  selectedUserId?: string; // Optional: for selecting specific account when multiple exist
 }
 
 export interface AuthResponse {
@@ -21,6 +25,7 @@ export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
   };
+  multipleAccounts?: AccountOption[];
 }
 
 export class AuthService {

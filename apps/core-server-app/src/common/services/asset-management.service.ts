@@ -8,10 +8,12 @@ import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ImageProcessingService } from './image-processing.service';
 import { ERROR_MESSAGES } from '../constants/messages';
+import { getConfig } from '../../config/config';
 
 @Injectable()
 export class AssetManagementService {
-  private maxImageSize = parseInt(process.env.MAX_IMAGE_SIZE || '10485760'); // 10MB
+  private readonly config = getConfig();
+  private maxImageSize = this.config.maxImageSize;
 
   constructor(
     private prisma: PrismaService,
@@ -175,8 +177,7 @@ export class AssetManagementService {
    * Get full URL fro an asset
    */
   getAssetUrl(filePath: string): string {
-    const backendUrl = process.env.CORE_SERVICE_URL || 'http://localhost:8000';
-    return `${backendUrl}${filePath}`;
+    return `${this.config.backendUrl}${filePath}`;
   }
 
   /**

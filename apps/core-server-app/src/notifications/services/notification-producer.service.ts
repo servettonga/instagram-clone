@@ -48,10 +48,6 @@ export class NotificationProducerService {
 
       // Skip if user has both disabled
       if (!shouldSendWeb && !shouldSendEmail) {
-        this.logger.log(
-          `Skipping notification for user ${payload.userId} (type: ${payload.type}) - disabled in preferences`,
-          this.logContext,
-        );
         return;
       }
 
@@ -66,11 +62,6 @@ export class NotificationProducerService {
         RABBITMQ_EXCHANGES.NOTIFICATIONS,
         RABBITMQ_ROUTING_KEYS.NOTIFICATION_CREATED,
         enrichedPayload,
-      );
-
-      this.logger.log(
-        `Notification queued for user ${payload.userId}, type: ${payload.type} (web: ${shouldSendWeb}, email: ${shouldSendEmail})`,
-        this.logContext,
       );
     } catch (error) {
       this.logger.error('Failed to send notification', error, this.logContext);

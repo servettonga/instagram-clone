@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileUploadService } from '../common/services/file-upload.service';
 import { NotificationProducerService } from '../notifications/services/notification-producer.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ERROR_MESSAGES } from '../common/constants/messages';
@@ -97,6 +98,10 @@ describe('UsersService', () => {
     sendNotification: jest.fn(),
   };
 
+  const mockNotificationsService = {
+    createDefaultPreferences: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -112,6 +117,10 @@ describe('UsersService', () => {
         {
           provide: NotificationProducerService,
           useValue: mockNotificationProducerService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
@@ -138,7 +147,10 @@ describe('UsersService', () => {
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
         const tx = {
           user: { create: jest.fn().mockResolvedValue(mockUser) },
-          account: { create: jest.fn().mockResolvedValue(mockAccount) },
+          account: {
+            create: jest.fn().mockResolvedValue(mockAccount),
+            findFirst: jest.fn().mockResolvedValue(null), // No existing account
+          },
           profile: { create: jest.fn().mockResolvedValue(mockProfile) },
         };
         const txResult = await callback(tx);

@@ -334,6 +334,7 @@ model ChatParticipant {
   role          ChatParticipantRole @default(MEMBER)
   joinedAt      DateTime            @default(now()) @map("joined_at")
   leftAt        DateTime?           @map("left_at")
+  lastReadAt    DateTime?           @map("last_read_at")
   createdAt     DateTime            @default(now()) @map("created_at")
   updatedAt     DateTime            @updatedAt @map("updated_at")
   createdBy     String              @map("created_by")

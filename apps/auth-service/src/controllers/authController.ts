@@ -5,6 +5,7 @@ import { AUTH_MESSAGES } from '../constants/messages.js';
 import { redisService, SessionData } from '../services/redisClient.js';
 import { JwtService } from '../utils/jwt.js';
 import { PasswordResetService } from '../services/password-reset.service.js';
+import { coreServiceClient } from '../services/coreServiceClient.js';
 import type {
   AuthResponse,
   LoginCredentials,
@@ -12,6 +13,7 @@ import type {
   UserWithProfileAndAccount,
   RefreshTokenResponse,
   TokenValidationResponse,
+  AccountOption,
 } from '@repo/shared-types';
 
 // Singleton instance for password reset service
@@ -228,15 +230,48 @@ export class AuthController {
   /**
    * GET /internal/auth/oauth/google/callback
    * Handle OAuth callback from Google (via Passport)
-   * Redirects to Core Service with tokens
+   * Redirects to Core Service with tokens OR account selection page
    */
   static async handleOAuthCallback(req: Request, res: Response): Promise<void> {
     try {
-      const user = req.user as UserWithProfileAndAccount;
+      const user = req.user as UserWithProfileAndAccount & {
+        multipleAccounts?: {
+          userId: string;
+          username: string;
+          displayName: string;
+          avatarUrl: string | null;
+        }[];
+      };
 
       if (!user) {
         res.redirect(
           `${config.coreServiceUrl}/api/auth/google/callback?error=auth_failed`,
+        );
+        return;
+      }
+
+      // Check if multiple accounts exist
+      if (user.multipleAccounts && user.multipleAccounts.length > 1) {
+        // Store OAuth data temporarily in Redis for account selection
+        const oauthSessionId = `oauth:${Date.now()}:${user.id}`;
+
+        // Store OAuth provider data along with account options
+        await redisService.getClient().setex(
+          oauthSessionId,
+          300, // 5 minutes TTL
+          JSON.stringify({
+            email: user.accounts?.[0]?.email || '',
+            provider: 'GOOGLE', // From passport strategy
+            providerId: user.accounts?.[0]?.providerId || '',
+            multipleAccounts: user.multipleAccounts,
+          }),
+        );
+
+        // Redirect to account selection page
+        res.redirect(
+          `${config.coreServiceUrl}/api/auth/google/callback?` +
+            `selectAccount=true&` +
+            `sessionId=${oauthSessionId}`,
         );
         return;
       }
@@ -364,6 +399,142 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Reset password error:', error);
+      res.status(500).json({
+        error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  }
+
+  /**
+   * GET /internal/auth/oauth/session/:sessionId
+   * Get OAuth account options from temporary session
+   */
+  static async getOAuthSession(
+    req: Request<{ sessionId: string }>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+
+      if (!sessionId) {
+        res.status(400).json({
+          error: 'Session ID is required',
+        });
+        return;
+      }
+
+      // Get session data from Redis
+      const sessionData = await redisService.getClient().get(sessionId);
+
+      if (!sessionData) {
+        res.status(404).json({
+          error: 'OAuth session not found or expired',
+        });
+        return;
+      }
+
+      const data = JSON.parse(sessionData) as {
+        email: string;
+        provider: string;
+        providerId: string;
+        multipleAccounts: AccountOption[];
+      };
+
+      res.status(200).json(data);
+    } catch (error) {
+      console.error('Get OAuth session error:', error);
+      res.status(500).json({
+        error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
+      });
+    }
+  }
+
+  /**
+   * POST /internal/auth/oauth/link
+   * Link OAuth account to selected user
+   */
+  static async linkOAuthAccount(
+    req: Request<object, object, { sessionId: string; userId: string }>,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { sessionId, userId } = req.body;
+
+      if (!sessionId || !userId) {
+        res.status(400).json({
+          error: 'Session ID and User ID are required',
+        });
+        return;
+      }
+
+      // Get session data from Redis
+      const sessionData = await redisService.getClient().get(sessionId);
+
+      if (!sessionData) {
+        res.status(404).json({
+          error: 'OAuth session not found or expired',
+        });
+        return;
+      }
+
+      const data = JSON.parse(sessionData) as {
+        email: string;
+        provider: string;
+        providerId: string;
+        multipleAccounts: AccountOption[];
+      };
+
+      const { email, provider, providerId } = data;
+
+      // Link OAuth account to selected user via Core Service
+      try {
+        await coreServiceClient.linkOAuthToUser({
+          userId,
+          email,
+          provider,
+          providerId,
+        });
+      } catch (linkError) {
+        console.error('Failed to link OAuth account:', linkError);
+        res.status(500).json({
+          error: 'Failed to link OAuth account to selected user',
+        });
+        return;
+      }
+
+      // Generate JWT tokens for the selected user
+      const tokenPair = JwtService.generateTokenPair({
+        userId,
+        email,
+      });
+
+      // Store session in Redis
+      const sessionDataNew: SessionData = {
+        userId,
+        email,
+        refreshTokenId: tokenPair.refreshTokenId,
+        createdAt: Date.now(),
+        lastActivity: Date.now(),
+      };
+
+      await redisService.storeSession(
+        userId,
+        tokenPair.refreshTokenId,
+        sessionDataNew,
+        JwtService.getRefreshTokenTTL(),
+      );
+
+      // Delete temporary OAuth session
+      await redisService.getClient().del(sessionId);
+
+      res.status(200).json({
+        tokens: {
+          accessToken: tokenPair.accessToken,
+          refreshToken: tokenPair.refreshToken,
+        },
+      });
+    } catch (error) {
+      console.error('Link OAuth account error:', error);
       res.status(500).json({
         error: AUTH_MESSAGES.ERRORS.INTERNAL_SERVER_ERROR,
       });

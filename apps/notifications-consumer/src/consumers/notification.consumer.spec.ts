@@ -23,6 +23,7 @@ describe('NotificationConsumer', () => {
     createNotification: jest.fn(),
     getUserWithProfile: jest.fn(),
     markEmailSent: jest.fn(),
+    enrichNotificationData: jest.fn(),
   };
 
   const mockEmailService = {
@@ -160,6 +161,14 @@ describe('NotificationConsumer', () => {
 
       mockNotificationService.createNotification.mockResolvedValue(mockNotification as any);
       mockNotificationService.getUserWithProfile.mockResolvedValue(mockUser as any);
+      mockNotificationService.enrichNotificationData.mockResolvedValue({
+        notificationData: {
+          type: payload.type,
+          title: payload.title,
+          message: payload.message,
+        },
+        updatedBy: '1',
+      });
 
       await handleNotification(payload);
 

@@ -17,6 +17,9 @@ describe('NotificationService', () => {
     user: {
       findUnique: jest.fn(),
     },
+    post: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -82,6 +85,11 @@ describe('NotificationService', () => {
       // Mock user.findUnique to return actor exists
       mockPrismaService.user = {
         findUnique: jest.fn().mockResolvedValue({ id: '2' }),
+      } as any;
+
+      // Mock post.findUnique to return null (no post image)
+      mockPrismaService.post = {
+        findUnique: jest.fn().mockResolvedValue(null),
       } as any;
 
       mockPrismaService.notification.create.mockResolvedValue(expectedResult as any);

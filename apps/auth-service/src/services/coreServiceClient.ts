@@ -197,6 +197,23 @@ export class CoreServiceClient {
   }
 
   /**
+   * Link OAuth account to a specific user
+   */
+  async linkOAuthToUser(data: {
+    userId: string;
+    email: string;
+    provider: string;
+    providerId: string;
+  }): Promise<void> {
+    try {
+      await this.client.post('/api/auth/link-oauth', data);
+    } catch (error) {
+      console.error('Failed to link OAuth account:', error);
+      throw new Error('Failed to link OAuth account to user');
+    }
+  }
+
+  /**
    * Health check
    */
   async healthCheck(): Promise<boolean> {

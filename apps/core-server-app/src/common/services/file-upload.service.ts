@@ -4,11 +4,13 @@ import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request } from 'express';
 import { ERROR_MESSAGES } from '../constants/messages';
+import { getConfig } from '../../config/config';
 
 @Injectable()
 export class FileUploadService {
-  private uploadPath = process.env.UPLOAD_DIR || './uploads';
-  private maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '10485760'); // 10MB
+  private readonly config = getConfig();
+  private uploadPath = this.config.uploadDir;
+  private maxFileSize = this.config.maxFileSize;
 
   constructor() {
     // Ensure upload directory exists
@@ -54,7 +56,6 @@ export class FileUploadService {
 
   getFileUrl(filename: string): string {
     // Return the full URL with the backend server
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-    return `${backendUrl}/uploads/avatars/${filename}`;
+    return `${this.config.backendUrl}/uploads/avatars/${filename}`;
   }
 }

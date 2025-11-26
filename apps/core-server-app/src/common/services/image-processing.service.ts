@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
+import { getConfig } from '../../config/config';
 
 export interface ProcessedImages {
   thumbnail: string;
@@ -12,7 +13,8 @@ export interface ProcessedImages {
 @Injectable()
 export class ImageProcessingService {
   private readonly logContext = ImageProcessingService.name;
-  private uploadPath = process.env.UPLOAD_DIR || './uploads';
+  private readonly config = getConfig();
+  private uploadPath = this.config.uploadDir;
 
   constructor(private readonly logger: Logger) {}
 
@@ -190,7 +192,6 @@ export class ImageProcessingService {
    * Get URL for uploaded image
    */
   getImageUrl(filename: string, folder: 'posts' | 'avatars' = 'posts'): string {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-    return `${backendUrl}/uploads/${folder}/${filename}`;
+    return `${this.config.backendUrl}/uploads/${folder}/${filename}`;
   }
 }

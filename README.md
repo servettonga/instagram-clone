@@ -47,7 +47,7 @@ The interactive setup will guide you through:
 
 **What it does:**
 
-- Databases run in Docker (ports 5433, 27018, 6380)
+- Databases run in Docker (PostgreSQL:5433, Redis:6380, RabbitMQ:5672)
 - Applications run locally with hot reload
 - Best for active development
 
@@ -71,7 +71,7 @@ npm run shared-types:dev  # Terminal 4 (auto-rebuild on changes)
 **What it does:**
 
 - Everything runs in Docker containers
-- Uses standard ports (5432, 27017, 6379)
+- Uses standard ports (PostgreSQL:5432, Redis:6379, RabbitMQ:5672)
 - Production-ready deployment
 
 **After setup:**
@@ -95,8 +95,8 @@ npm run docker:prod:logs    # View logs
 | Database | Development | Production |
 |----------|-------------|------------|
 | PostgreSQL | 5433 | 5432 |
-| MongoDB | 27018 | 27017 |
 | Redis | 6380 | 6379 |
+| RabbitMQ | 5672 | 5672 |
 
 ## 📋 Available Commands
 

@@ -1,4 +1,4 @@
-// Converted to SCSS
+// Messages page layout styles
 @use '@/styles/index.scss' as *;
 
 .messagesContainer {
@@ -16,148 +16,7 @@
   height: 100%;
 }
 
-/* Conversations List */
-.conversationsList {
-  width: 349px;
-  min-width: 349px;
-  border-right: 1px solid $color-border;
-  display: flex;
-  flex-direction: column;
-  background: $color-white;
-  flex-shrink: 0;
-}
-
-.conversationsHeader {
-  height: 60px;
-  padding: 0 20px;
-  border-bottom: 1px solid $color-border;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: $color-white;
-  flex-shrink: 0;
-}
-
-.userHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.username {
-  font-size: 16px;
-  font-weight: 600;
-  color: $color-text;
-  line-height: 24px;
-}
-
-.newMessageButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.svgWrapper {
-  width: 24px;
-  height: 24px;
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.svgWrapperInner {
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-
-.tabs {
-  height: 43px;
-  border-bottom: 1px solid $color-border;
-  display: flex;
-  flex-shrink: 0;
-}
-
-.tab {
-  flex: 1;
-  background: none;
-  border: none;
-  border-bottom: 1px solid transparent;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  cursor: pointer;
-  color: $color-text;
-  padding: 12px 0 13px 0;
-}
-
-.tabActive {
-  border-bottom-color: $color-text;
-}
-
-.tabInactive {
-  opacity: 0.30;
-}
-
-.conversationsListItems {
-  flex: 1;
-  overflow-y: auto;
-  background: white;
-}
-
-.conversationItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 20px;
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-}
-
-.conversationItemActive {
-  background: $color-surface;
-}
-
-.conversationAvatar {
-  flex-shrink: 0;
-}
-
-.avatar {
-  border-radius: 28px;
-  object-fit: cover;
-  border: 1px solid rgba($color-black, 0.10);
-}
-
-.conversationInfo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.conversationUsername {
-  font-size: 13px;
-  font-weight: 400;
-  color: $color-text;
-  line-height: 18px;
-}
-
-.conversationActive {
-  font-size: 14px;
-  font-weight: 400;
-  color: $color-muted;
-  line-height: 18px;
-}
-
-/* Messages View */
+/* Messages View Container */
 .messagesView {
   flex: 1;
   display: flex;
@@ -165,9 +24,21 @@
   background: $color-white;
   position: relative;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
-/* Empty State */
+/* Loading State */
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: $color-muted;
+  font-size: 14px;
+}
+
+/* Empty State - No chat selected */
 .emptyState {
   display: flex;
   flex-direction: column;
@@ -210,120 +81,37 @@
   line-height: 18px;
   cursor: pointer;
   transition: background-color 0.2s;
+
+  &:hover {
+    background: $color-primary-contrast;
+  }
 }
 
-.sendMessageButton:hover {
-  background: $color-primary-contrast;
-}
-
-/* Header when conversation selected */
-.messagesHeader {
-  height: 60px;
-  padding: 9.5px 20px;
-  border-bottom: 1px solid $color-border;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: $color-white;
-  flex-shrink: 0;
-}
-
-.recipientInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.recipientDetails {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.recipientUsername {
-  font-size: 16px;
-  font-weight: 600;
-  color: $color-text;
-  line-height: 24px;
-}
-
-.activeStatus {
-  font-size: 12px;
-  font-weight: 400;
-  color: $color-muted;
-  line-height: 16px;
-}
-
-.headerActions {
-  display: flex;
-  gap: 16px;
-}
-
-.headerButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.messagesContent {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.messageInput {
-  padding: 20px;
-  border-top: 1px solid $color-border;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 84px;
-  flex-shrink: 0;
-}
-
-.emojiButton,
-.iconButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.messageInputField {
-  flex: 1;
-  border: 1px solid $color-border;
-  border-radius: 22px;
-  padding: 10px 16px;
-  font-size: 14px;
-  color: $color-text;
-  line-height: 18px;
-}
-
-.messageInputField:focus {
-  outline: none;
-}
-
-.messageInputField::placeholder {
-  color: $color-text;
-}
-
+/* Responsive Design */
 @media (max-width: 1024px) {
   .messagesContainer {
-    flex-direction: column;
+    border: none;
+    border-radius: 0;
+    height: calc(100vh - 60px);
+  }
+}
+
+@media (max-width: 768px) {
+  .messagesLayout {
+    position: relative;
   }
 
-  .conversationsList {
-    width: 100%;
-    border-right: none;
-  border-bottom: 1px solid $color-border;
-    max-height: 50vh;
+  .emptyStateTitle {
+    font-size: 17px;
+  }
+
+  .emptyStateText {
+    font-size: 12px;
+    max-width: 280px;
+  }
+
+  .sendMessageButton {
+    font-size: 12px;
+    padding: 6px 16px;
   }
 }

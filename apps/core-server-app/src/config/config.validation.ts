@@ -3,10 +3,9 @@ import Joi from 'joi';
 export const configValidationSchema = Joi.object({
   // Database
   DATABASE_URL: Joi.string().required(),
-  MONGODB_URL: Joi.string().optional(), // for now
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
-  REDIS_PASSWORD: Joi.string().optional(),
+  REDIS_PASSWORD: Joi.string().allow('').optional(),
 
   // Server
   CORE_SERVER_PORT: Joi.string().default(8000),

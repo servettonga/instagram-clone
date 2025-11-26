@@ -12,10 +12,6 @@ const nextConfig = {
   // For monorepo setup
   outputFileTracingRoot: path.join(__dirname, '../../'),
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -46,6 +42,9 @@ const nextConfig = {
         pathname: '/uploads/**',
       },
     ],
+
+    // Disable Next.js image optimizer until avatars are hosted on a globally reachable domain.
+    unoptimized: true,
   },
 };
 

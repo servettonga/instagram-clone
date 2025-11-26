@@ -64,10 +64,6 @@ export class NotificationService {
         ? payload.entityId
         : (payload.metadata?.postId as string | undefined);
 
-    this.logger.log(
-      `Enriching notification - entityType: ${payload.entityType}, entityId: ${payload.entityId}, postId from metadata: ${payload.metadata?.postId}, resolved postId: ${postId}`,
-    );
-
     if (postId) {
       const post = await this.prisma.post.findUnique({
         where: { id: postId },
@@ -92,11 +88,6 @@ export class NotificationService {
       if (thumbnailPath) {
         // thumbnailPath is already a full URL (like avatarUrl), just use it directly
         notificationData.postImageUrl = thumbnailPath;
-        this.logger.log(
-          `Enriched notification with thumbnail: ${thumbnailPath}`,
-        );
-      } else {
-        this.logger.log(`No thumbnail found for postId: ${postId}`);
       }
     }
 
@@ -123,10 +114,6 @@ export class NotificationService {
           ...(updatedBy && { updatedBy }),
         },
       });
-
-      this.logger.log(
-        `Created notification ${notification.id} for user ${payload.userId}. Has thumbnail: ${!!notificationData.postImageUrl}`,
-      );
 
       return notification;
     } catch (error) {
