@@ -2,6 +2,8 @@
 
 Modern microservices-based social media platform built with Next.js, NestJS, and Node.js.
 
+Live Demo: http://web-dev.codes/innogram
+
 ## Features
 
 ### User Management
