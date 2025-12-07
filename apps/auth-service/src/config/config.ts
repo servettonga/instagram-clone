@@ -1,9 +1,14 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { existsSync } from 'fs';
 
-// Always load .env from project root
+// Load .env from project root if it exists
+// In CI/production, environment variables are typically provided externally
+// Don't override existing env vars
 const envPath = path.resolve(process.cwd(), '../../.env');
-dotenv.config({ path: envPath });
+if (existsSync(envPath)) {
+  dotenv.config({ path: envPath, override: false });
+}
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 

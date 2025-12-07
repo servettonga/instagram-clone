@@ -2,22 +2,80 @@
 
 Modern microservices-based social media platform built with Next.js, NestJS, and Node.js.
 
+## Features
+
+### User Management
+
+- **Authentication**: JWT-based auth with access/refresh tokens
+- **OAuth Integration**: Google and GitHub login support
+- **Profile Management**: Public/private profiles with avatars, bios, and display names
+- **Follow System**: Follow/unfollow users with follow request approval for private accounts
+- **User Discovery**: Search for users by username
+
+### Posts & Content
+
+- **Image Posts**: Upload single or multiple images (up to 10) with various aspect ratios (1:1, 4:5, 16:9)
+- **Captions**: Rich text captions with @mention support
+- **Post Management**: Edit captions, archive/unarchive, and delete posts
+- **Saved Posts**: Save posts for later viewing in your profile's Saved tab
+- **Post Interactions**: Like posts and view like counts
+
+### Comments & Engagement
+
+- **Nested Comments**: Comment on posts with unlimited reply depth
+- **Comment Likes**: Like comments to show appreciation
+- **@Mentions**: Mention users in comments and captions
+- **Real-time Updates**: Comment counts update dynamically
+
+### Messaging (Real-time)
+
+- **WebSocket Chat**: Real-time messaging using Socket.IO
+- **File Sharing**: Send images and files in chats
+- **Chat Management**: Create, delete, and manage conversations
+- **Message Status**: Read receipts and delivery status
+- **Typing Indicators**: See when someone is typing
+
+### Notifications
+
+- **Real-time Alerts**: Instant notifications for interactions
+- **Notification Types**: Follow requests, likes, comments, mentions, and more
+- **Email Notifications**: Configurable email alerts via RabbitMQ queue
+- **Notification Center**: View and manage all notifications in one place
+
+### Feed & Discovery
+
+- **Personalized Feed**: See posts from followed users
+- **User Profiles**: View user profiles with post grids
+- **Activity Tracking**: Monitor likes, comments, and interactions
+- **Archive**: Hide posts from your profile while keeping them accessible
+
 ## Project Structure
 
 ```sh
 innogram/
 ├── apps/
-│   ├── auth-service/           # Authentication microservice (Express.js)
-│   ├── core-server-app/        # Main API server (NestJS + Prisma)
+│   ├── auth-service/              # Authentication microservice (Express.js + Redis)
+│   ├── core-server-app/           # Main API Gateway + Business Logic (NestJS + Prisma)
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma   # Database schema
-│   │   │   └── init-db.sql     # Database initialization
-│   │   └── scripts/
-│   │       └── startup.sh      # Server startup script
-│   └── client-app/             # Frontend application (Next.js)
-├── init-project.sh             # Interactive setup script
-├── docker-compose.yml          # Production services
-├── docker-compose.dev.yml      # Development databases
+│   │   │   ├── schema.prisma      # Symlink to shared schema
+│   │   │   └── init-db.sql        # Database initialization
+│   │   ├── scripts/
+│   │   │   └── startup.sh         # Server startup script
+│   │   └── uploads/               # User-uploaded files (images, assets)
+│   ├── client-app/                # Frontend application (Next.js 16 + NextAuth)
+│   └── notifications-consumer/    # Async notification processor (NestJS + RabbitMQ)
+│       └── prisma/
+│           └── schema.prisma      # Symlink to shared schema
+├── packages/
+│   ├── prisma-schema/             # Shared Prisma schema (single source of truth)
+│   │   └── schema.prisma
+│   ├── shared-types/              # Shared TypeScript types across services
+│   │   └── src/
+│   ├── eslint-config/             # Shared ESLint configurations
+│   └── typescript-config/         # Shared TypeScript configurations
+├── init-project.sh                # Interactive setup script
+├── docker-compose.yml             # Production services
+├── docker-compose.dev.yml         # Development databases
 └── README.md
 ```
 
@@ -54,14 +112,21 @@ The interactive setup will guide you through:
 **After setup:**
 
 ```bash
-npm run dev          # Start all apps locally
-# OR start individually:
-npm run auth:dev     # Terminal 1
-npm run core:dev     # Terminal 2
-npm run client:dev   # Terminal 3
+npm run dev          # Start all apps locally (concurrent mode)
+
+# OR start individually in separate terminals:
+npm run auth:dev              # Terminal 1 - Auth Service
+npm run core:dev              # Terminal 2 - Core API + WebSocket
+npm run notifications:dev     # Terminal 3 - Notifications Consumer
+npm run client:dev            # Terminal 4 - Frontend
+
+# Database management:
+npm run db:studio             # Prisma Studio UI
+npm run db:push               # Apply schema changes (dev only)
+npm run db:generate           # Regenerate Prisma clients
 
 # Optional: Watch mode for shared types (if actively editing them)
-npm run shared-types:dev  # Terminal 4 (auto-rebuild on changes)
+npm run shared-types:dev      # Auto-rebuild on changes
 ```
 
 > **Note:** Shared types are automatically built during `npm install` (postinstall hook).
@@ -82,13 +147,16 @@ npm run docker:prod         # Start everything
 npm run docker:prod:logs    # View logs
 ```
 
-## URLs
+## Service URLs
 
 | Service | Development | Production |
 |---------|-------------|------------|
 | Frontend | <http://localhost:3000> | <http://localhost:3000> |
 | Core API | <http://localhost:8000> | <http://localhost:8000> |
+| Core API Docs | <http://localhost:8000/api/docs> | <http://localhost:8000/api/docs> |
 | Auth API | <http://localhost:4000> | <http://localhost:4000> |
+| RabbitMQ UI | <http://localhost:15672> | <http://localhost:15672> |
+| Prisma Studio | <http://localhost:5555> | N/A |
 
 ## Database Ports
 
@@ -103,19 +171,38 @@ npm run docker:prod:logs    # View logs
 ### Development
 
 ```bash
-npm run docker:dev     # Start databases only
-npm run dev            # Start all apps locally
-npm run db:studio      # Database management UI
-npm run db:push        # Update database schema
+# Infrastructure
+npm run docker:dev              # Start PostgreSQL, Redis, RabbitMQ
+npm run docker:dev:logs         # View infrastructure logs
+npm run docker:dev:down         # Stop infrastructure
+npm run docker:dev:clean        # Clean infrastructure volumes
+
+# Applications
+npm run dev                     # Start all apps (auth, core, notifications, client)
+npm run auth:dev                # Start auth service only
+npm run core:dev                # Start core API only
+npm run notifications:dev       # Start notifications consumer only
+npm run client:dev              # Start frontend only
+
+# Database
+npm run db:studio               # Prisma Studio UI
+npm run db:push                 # Apply schema changes (dev only)
+npm run db:generate             # Regenerate Prisma clients
+npm run db:reset                # Reset database
+
+# Shared Types
+npm run build:shared-types      # Build shared types package
+npm run shared-types:dev        # Watch mode for shared types
 ```
 
 ### Production
 
 ```bash
-npm run docker:prod         # Start everything
-npm run docker:prod:logs    # View all logs
-npm run docker:prod:down    # Stop services
-npm run docker:prod:clean   # Clean volumes
+npm run docker:prod             # Start everything in Docker
+npm run docker:prod:logs        # View all service logs
+npm run docker:prod:down        # Stop all services
+npm run docker:prod:clean       # Clean all volumes
+npm run docker:prod:restart     # Restart services
 ```
 
 ### Database Management
@@ -158,6 +245,28 @@ curl http://localhost:4000/health # Auth API
 curl http://localhost:8000/health # Core API
 ```
 
+## Architecture
+
+### Microservices
+
+- **auth-service**: JWT token generation/validation, OAuth 2.0, Redis session storage
+- **core-server-app**: API Gateway + business logic, Prisma ORM, PostgreSQL, WebSocket (Socket.IO)
+- **notifications-consumer**: RabbitMQ consumer for async email notifications
+- **client-app**: Next.js frontend with NextAuth
+
+### Communication
+
+- **HTTP**: Client → Core API → Auth API (for token validation)
+- **WebSocket**: Client ↔ Core API (for real-time chat)
+- **RabbitMQ**: Core API → Notifications Consumer (async events)
+
+### Key Patterns
+
+- **Token Validation**: Core service calls auth service's `/internal/auth/validate` endpoint
+- **Shared Schema**: Single Prisma schema (`packages/prisma-schema`) symlinked to services
+- **Shared Types**: TypeScript types package auto-built on install
+- **Guards**: `@UseGuards(AccessGuard)` for protected routes, `@Public()` to skip auth
+
 ## Security
 
 Generate secure secrets for production:
@@ -172,3 +281,4 @@ Required in `.env.production`:
 - `JWT_REFRESH_SECRET` (32+ characters)
 - `NEXTAUTH_SECRET` (32+ characters)
 - Strong database passwords
+- Email SMTP credentials (for notifications)

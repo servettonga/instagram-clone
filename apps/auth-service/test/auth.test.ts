@@ -18,13 +18,35 @@ describe('Authentication Endpoints', () => {
   };
 
   beforeAll(async () => {
-    // Connect to Redis
-    const client = redisService.getClient();
-    if (client.status !== 'ready' && client.status !== 'connecting') {
+    // Connect to Redis with timeout
+    try {
+      console.log('Setting up Redis connection for tests...');
       await redisService.connect();
+
+      // Verify connection with ping (with retry)
+      let pingSuccess = false;
+      for (let i = 0; i < 10; i++) {
+        pingSuccess = await redisService.ping();
+        if (pingSuccess) break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      if (!pingSuccess) {
+        throw new Error(
+          'Redis ping failed after 5 seconds - connection not ready',
+        );
+      }
+
+      console.log('✓ Connected to Redis');
+
+      // Clean Redis ONCE before all tests start
+      const client = redisService.getClient();
+      await client.flushdb();
+      console.log('✓ Redis flushed');
+    } catch (error) {
+      console.error('Failed to setup Redis:', error);
+      throw error;
     }
-    // Clean Redis ONCE before all tests start
-    await client.flushdb();
   });
 
   afterAll(async () => {
@@ -54,6 +76,13 @@ describe('Authentication Endpoints', () => {
       const response = await request(app)
         .post('/internal/auth/register')
         .send(testUser);
+
+      if (response.status !== 201) {
+        console.error('Registration failed:', {
+          status: response.status,
+          body: response.body,
+        });
+      }
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('user');
@@ -139,6 +168,13 @@ describe('Authentication Endpoints', () => {
         identifier: testUser.email,
         password: testUser.password,
       });
+
+      if (response.status !== 200) {
+        console.error('Login failed:', {
+          status: response.status,
+          body: response.body,
+        });
+      }
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('user');
