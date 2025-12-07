@@ -9,7 +9,11 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { QueryPostsDto } from './dto/query-posts.dto';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { Prisma } from '@prisma/client';
-import { postWithDetailsSelect, toPostResponse } from './payloads/post.payload';
+import {
+  postWithDetailsSelect,
+  toPostResponse,
+  PostWithDetails,
+} from './payloads/post.payload';
 import { AssetManagementService } from '../common/services/asset-management.service';
 import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 
@@ -176,12 +180,18 @@ export class PostsService {
   async findAll(queryDto: QueryPostsDto, currentUserId?: string) {
     const page = queryDto.page ?? 1;
     const limit = queryDto.limit ?? 10;
-    const sortBy: 'createdAt' | 'updatedAt' = queryDto.sortBy ?? 'createdAt';
+    const sortBy = queryDto.sortBy ?? 'createdAt';
     const order: 'asc' | 'desc' = queryDto.order ?? 'desc';
     const { search, profileId, includeArchived } = queryDto;
 
     const skip = (page - 1) * limit;
     const take = limit;
+
+    // Build orderBy clause - likesCount sorts by likes relation count
+    const orderBy: Prisma.PostOrderByWithRelationInput =
+      sortBy === 'likesCount'
+        ? { likes: { _count: order } }
+        : { [sortBy]: order };
 
     // If filtering by profileId, enforce privacy check
     if (profileId) {
@@ -324,7 +334,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where,
         select: postWithDetailsSelect,
-        orderBy: { [sortBy]: order },
+        orderBy,
         skip,
         take,
       }),
@@ -352,11 +362,17 @@ export class PostsService {
   async getFeed(profileId: string, queryDto: QueryPostsDto) {
     const page = queryDto.page ?? 1;
     const limit = queryDto.limit ?? 20;
-    const sortBy: 'createdAt' | 'updatedAt' = queryDto.sortBy ?? 'createdAt';
+    const sortBy = queryDto.sortBy ?? 'createdAt';
     const order: 'asc' | 'desc' = queryDto.order ?? 'desc';
 
     const skip = (page - 1) * limit;
     const take = limit;
+
+    // Build orderBy clause - likesCount sorts by likes relation count
+    const orderBy: Prisma.PostOrderByWithRelationInput =
+      sortBy === 'likesCount'
+        ? { likes: { _count: order } }
+        : { [sortBy]: order };
 
     // Get list of profiles the user follows (accepted follows only)
     const following = await this.prisma.profileFollow.findMany({
@@ -390,7 +406,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where,
         select: postWithDetailsSelect,
-        orderBy: { [sortBy]: order },
+        orderBy,
         skip,
         take,
       }),
@@ -513,6 +529,57 @@ export class PostsService {
   }
 
   /**
+   * Get archived posts for the current user
+   */
+  async getArchivedPosts(profileId: string, queryDto?: QueryPostsDto) {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = queryDto || {};
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Build orderBy clause
+    const orderBy: Prisma.PostOrderByWithRelationInput =
+      sortBy === 'likesCount'
+        ? { likes: { _count: order } }
+        : { [sortBy]: order };
+
+    const where: Prisma.PostWhereInput = {
+      profileId,
+      isArchived: true,
+      profile: {
+        deleted: false,
+      },
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        select: postWithDetailsSelect,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      data: posts.map((post) => toPostResponse(post, profileId)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + posts.length < total,
+      },
+    };
+  }
+
+  /**
    * Archive/unarchive a post
    */
   async archive(
@@ -528,7 +595,7 @@ export class PostsService {
    * Delete a post (hard delete)
    */
   async remove(id: string, userId: string, profileId: string) {
-    // Check if post exists and user owns it
+    // Check if post exists and user owns it, include assets for cleanup
     const post = await this.prisma.post.findUnique({
       where: { id },
       select: {
@@ -538,6 +605,17 @@ export class PostsService {
           select: {
             userId: true,
             deleted: true,
+          },
+        },
+        assets: {
+          select: {
+            asset: {
+              select: {
+                filePath: true,
+                thumbnailPath: true,
+                mediumPath: true,
+              },
+            },
           },
         },
       },
@@ -551,10 +629,36 @@ export class PostsService {
       throw new ForbiddenException(ERROR_MESSAGES.NOT_RESOURCE_OWNER);
     }
 
-    // Delete post (cascade will handle assets, comments, likes)
+    // Collect all file paths for cleanup
+    const filesToDelete: string[] = [];
+    for (const postAsset of post.assets) {
+      const asset = postAsset.asset;
+      if (asset.filePath) {
+        const filename = asset.filePath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.thumbnailPath) {
+        const filename = asset.thumbnailPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.mediumPath) {
+        const filename = asset.mediumPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+    }
+
+    // Delete post (cascade will handle assets, comments, likes in database)
     await this.prisma.post.delete({
       where: { id },
     });
+
+    // Clean up storage files after successful database deletion
+    if (filesToDelete.length > 0) {
+      await this.assetManagementService.deleteFilesFromStorage(
+        filesToDelete,
+        'posts',
+      );
+    }
 
     return { message: 'Post deleted successfully' };
   }
@@ -577,6 +681,12 @@ export class PostsService {
     const skip = (page - 1) * limit;
     const take = limit;
 
+    // Build orderBy clause - likesCount sorts by likes relation count
+    const orderBy: Prisma.PostOrderByWithRelationInput =
+      sortBy === 'likesCount'
+        ? { likes: { _count: order } }
+        : { [sortBy]: order };
+
     const where: Prisma.PostWhereInput = {
       AND: [
         {
@@ -598,7 +708,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where,
         select: postWithDetailsSelect,
-        orderBy: { [sortBy]: order },
+        orderBy,
         skip,
         take,
       }),
@@ -872,6 +982,130 @@ export class PostsService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Toggle save on a post (save if not saved, unsave if already saved)
+   */
+  async toggleSave(postId: string, userId: string, profileId: string) {
+    // Verify post exists
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        isArchived: true,
+      },
+    });
+
+    if (!post || post.isArchived) {
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+    }
+
+    // Verify profile exists and belongs to user
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { id: true, userId: true, deleted: true },
+    });
+
+    if (!profile || profile.deleted || profile.userId !== userId) {
+      throw new ForbiddenException(ERROR_MESSAGES.NOT_RESOURCE_OWNER);
+    }
+
+    // Check if already saved
+    const existingSave = await this.prisma.savedPost.findUnique({
+      where: {
+        postId_profileId: {
+          postId,
+          profileId,
+        },
+      },
+    });
+
+    if (existingSave) {
+      // Unsave: delete the saved post record
+      await this.prisma.savedPost.delete({
+        where: {
+          postId_profileId: {
+            postId,
+            profileId,
+          },
+        },
+      });
+
+      return {
+        saved: false,
+      };
+    } else {
+      // Save: create new saved post record
+      await this.prisma.savedPost.create({
+        data: {
+          postId,
+          profileId,
+          createdBy: userId,
+        },
+      });
+
+      return {
+        saved: true,
+      };
+    }
+  }
+
+  /**
+   * Get saved posts for the current user
+   */
+  async getSavedPosts(profileId: string, queryDto?: QueryPostsDto) {
+    const { page = 1, limit = 20, order = 'desc' } = queryDto || {};
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Get saved post IDs for the profile, ordered by when they were saved
+    const savedPosts = await this.prisma.savedPost.findMany({
+      where: {
+        profileId,
+        post: {
+          isArchived: false,
+          profile: {
+            deleted: false,
+          },
+        },
+      },
+      skip,
+      take,
+      orderBy: { createdAt: order },
+      select: {
+        postId: true,
+        post: {
+          select: postWithDetailsSelect,
+        },
+      },
+    });
+
+    const total = await this.prisma.savedPost.count({
+      where: {
+        profileId,
+        post: {
+          isArchived: false,
+          profile: {
+            deleted: false,
+          },
+        },
+      },
+    });
+
+    return {
+      data: savedPosts.map((sp) =>
+        toPostResponse(sp.post as PostWithDetails, profileId),
+      ),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + savedPosts.length < total,
+      },
     };
   }
 }

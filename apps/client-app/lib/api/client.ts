@@ -3,7 +3,11 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';;
 import Cookies from 'js-cookie';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// In development, use empty baseURL to leverage Next.js rewrites (which proxy to localhost:8000)
+// In production, use the NEXT_PUBLIC_API_URL environment variable
+const API_URL = process.env.NODE_ENV === 'development' 
+  ? '' 
+  : (process.env.NEXT_PUBLIC_API_URL || '');
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -124,7 +128,8 @@ apiClient.interceptors.response.use(
 
         // Only redirect if not already on login page
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
-          window.location.href = '/auth/login';
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+          window.location.href = `${basePath}/auth/login`;
         }
 
         return Promise.reject(refreshError);

@@ -1,22 +1,26 @@
 # Auth Service - Production Only Dockerfile
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
 WORKDIR /app
 
 # Dependencies stage
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
 COPY package*.json ./
+COPY packages/ ./packages/
 COPY apps/auth-service/package*.json ./apps/auth-service/
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Build stage
 FROM base AS builder
 COPY package*.json ./
+COPY packages/ ./packages/
 COPY apps/auth-service/package*.json ./apps/auth-service/
-RUN npm ci
+# Skip postinstall here because we don't have core-server-app yet
+RUN npm ci --ignore-scripts
 
 COPY . .
 WORKDIR /app/apps/auth-service
+# Run build:shared-types manually since we skipped postinstall
+RUN cd ../.. && npm run build:shared-types
 RUN npm run build
 
 # Production stage
@@ -37,6 +41,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy application files
 COPY --from=builder --chown=express:nodejs /app/apps/auth-service/dist ./dist
 COPY --from=builder --chown=express:nodejs /app/apps/auth-service/package*.json ./
+
+# Copy built packages (shared-types)
+COPY --from=builder --chown=express:nodejs /app/packages ./packages
 
 # Copy production dependencies only
 COPY --from=deps --chown=express:nodejs /app/node_modules ./node_modules

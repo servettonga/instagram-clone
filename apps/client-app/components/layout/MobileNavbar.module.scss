@@ -1,0 +1,28 @@
+@use '@/styles/index.scss' as *;
+
+.mobileNavbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  background: $color-white;
+  border-top: 1px solid $color-border;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.label {
+  display: none;
+}
+
+.active svg {
+  color: $color-primary;
+}

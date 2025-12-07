@@ -39,14 +39,14 @@ export class SearchPostsDto {
   @ApiPropertyOptional({
     example: 'createdAt',
     description: 'Field to sort by',
-    enum: ['createdAt', 'updatedAt'],
+    enum: ['createdAt', 'updatedAt', 'likesCount'],
     default: 'createdAt',
   })
   @IsOptional()
-  @IsIn(['createdAt', 'updatedAt'], {
-    message: 'sortBy must be either createdAt or updatedAt',
+  @IsIn(['createdAt', 'updatedAt', 'likesCount'], {
+    message: 'sortBy must be either createdAt, updatedAt, or likesCount',
   })
-  sortBy?: 'createdAt' | 'updatedAt' = 'createdAt';
+  sortBy?: 'createdAt' | 'updatedAt' | 'likesCount' = 'createdAt';
 
   @ApiPropertyOptional({
     example: 'desc',

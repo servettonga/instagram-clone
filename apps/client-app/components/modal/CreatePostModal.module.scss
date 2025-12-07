@@ -147,19 +147,20 @@
   flex-direction: row;
   overflow: hidden;
   flex: 1;
-  min-height: 600px;
+  min-height: 400px;
   max-height: calc(90vh - 60px); // Account for header
 }
 
 .cropperSection {
   flex: 2;
   min-width: 0;
-  min-height: 600px;
+  min-height: 400px;
   background: $color-black;
   position: relative;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+  overflow: hidden;
 }
 
 .detailsSection {
@@ -471,4 +472,136 @@
   font-size: $font-sm;
   text-align: center;
   margin-top: 12px;
+}
+
+/* Fullscreen mode (for mobile /create page) */
+.fullscreen {
+  .modalBackdrop {
+    background: $color-white;
+  }
+
+  .modalContent {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+  }
+
+  .createPanel {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .editContainer {
+    flex-direction: column;
+    min-height: auto;
+    max-height: none;
+    height: calc(100% - 44px); // Account for header
+  }
+
+  .cropperSection {
+    flex: 0 0 auto;
+    min-height: 0;
+    max-height: 80vh;
+    height: 60vh;
+  }
+
+  .detailsSection {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid $color-border;
+    overflow-y: auto;
+    padding-bottom: 70px; // Account for mobile navbar
+  }
+
+  .imageNav {
+    padding-bottom: 12px;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .modalBackdrop {
+    align-items: stretch;
+  }
+
+  .modalContent {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+  }
+
+  .createPanel {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+
+    &:has(.editContainer) {
+      width: 100%;
+    }
+  }
+
+  .editContainer {
+    flex-direction: column;
+    min-height: auto;
+    max-height: none;
+    height: calc(100% - 44px); // Account for header
+  }
+
+  .cropperSection {
+    flex: 0 0 auto;
+    min-height: 0;
+    max-height: 80vh;
+    height: 60vh;
+  }
+
+  .detailsSection {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid $color-border;
+    overflow-y: auto;
+    padding-bottom: 70px; // Account for mobile navbar
+  }
+
+  .uploadArea {
+    padding: 60px 20px;
+  }
+
+  .uploadText {
+    font-size: $font-lg;
+  }
+
+  .thumbnailsRow {
+    padding: 8px;
+  }
+
+  .thumbnail {
+    width: 48px;
+    height: 48px;
+  }
+
+  .aspectRatioTabs {
+    padding: 8px;
+  }
+
+  .aspectRatioTab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .imageNav {
+    padding-bottom: 12px;
+  }
 }

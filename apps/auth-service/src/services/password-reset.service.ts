@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 
 interface ResetToken {
@@ -7,7 +6,6 @@ interface ResetToken {
   expiresAt: Date;
 }
 
-@Injectable()
 export class PasswordResetService {
   // In-memory storage for reset tokens (for development/testing)
   // In production, store these in Redis or database

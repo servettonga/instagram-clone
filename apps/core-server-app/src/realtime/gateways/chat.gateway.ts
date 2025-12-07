@@ -38,7 +38,8 @@ import type {
 @WebSocketGateway({
   namespace: '/chat',
   cors: {
-    origin: getConfig().frontendUrl,
+    // In development, allow any origin for local network testing
+    origin: process.env.NODE_ENV === 'development' ? true : getConfig().frontendUrl,
     credentials: true,
   },
 })

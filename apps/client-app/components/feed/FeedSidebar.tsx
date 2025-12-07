@@ -1,11 +1,11 @@
 // Feed sidebar component with user info and suggestions
 
 import Avatar from '@/components/ui/Avatar';
+import UserHoverCard from '@/components/ui/UserHoverCard';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Footer from '@/components/ui/Footer';
 import styles from './FeedSidebar.module.scss';
-import { useAuthStore } from '@/lib/store/authStore';
 import { followAPI } from '@/lib/api/follow';
 
 interface Profile {
@@ -15,71 +15,47 @@ interface Profile {
 }
 
 interface SuggestionItem {
-  id?: string; // profile id
-  userId?: string; // user id (for follow endpoints)
+  id?: string;
+  userId?: string;
   username: string;
-  note: string;
-  avatar: string;
+  displayName?: string;
+  avatar?: string;
   followersCount?: number;
   followsYou?: boolean;
   followedBy?: string[];
+  note?: string;
 }
 
 interface FeedSidebarProps {
-  profile?: Profile;
-  // null = loading/not fetched yet; undefined treated same as empty
+  profile: Profile;
   suggestions?: SuggestionItem[] | null;
 }
 
-type FollowStatus = 'not_following' | 'pending' | 'following';
-
 export default function FeedSidebar({ profile, suggestions }: FeedSidebarProps) {
-  const { user } = useAuthStore();
-  const currentUserId = user?.id || '';
+  // Removed unused user destructure
 
   const [items, setItems] = useState<SuggestionItem[]>(suggestions ?? []);
-  const [statusMap, setStatusMap] = useState<Record<string, FollowStatus>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, 'not_following' | 'pending' | 'following'>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
 
-  // Initialize items when suggestions prop changes
   useEffect(() => {
     setItems(suggestions ?? []);
   }, [suggestions]);
 
-  // Check follow status for each suggestion (to detect pending/following)
-  useEffect(() => {
-    if (!user || !suggestions) return;
-
-    suggestions.forEach(async (s) => {
-      if (!s.userId) return; // need userId to check
-      try {
-        const res = await followAPI.isFollowing(currentUserId, s.userId);
-        const st: FollowStatus = res.isFollowing ? 'following' : res.isPending ? 'pending' : 'not_following';
-        setStatusMap((m) => ({ ...m, [s.userId || s.username]: st }));
-      } catch {
-        // ignore transient errors
-      }
-    });
-  }, [suggestions, user, currentUserId]);
-
-  if (!profile) return null;
-
   const handleFollowToggle = async (item: SuggestionItem) => {
     const key = item.userId || item.username;
+    if (!key) return;
     const current = statusMap[key] || 'not_following';
-    // optimistic UI
     setLoadingMap((m) => ({ ...m, [key]: true }));
-
     try {
-      if (current === 'not_following') {
-        // send follow request
-        const res = await followAPI.followUser(item.userId || '');
-        const newStatus: FollowStatus = res.accepted === true ? 'following' : 'pending';
-        setStatusMap((m) => ({ ...m, [key]: newStatus }));
-      } else {
-        // unfollow / cancel request
+      if (current === 'following' || current === 'pending') {
+        // If already following or pending (request sent), allow cancel/unfollow
         await followAPI.unfollowUser(item.userId || '');
         setStatusMap((m) => ({ ...m, [key]: 'not_following' }));
+      } else {
+        const res = await followAPI.followUser(item.userId || '');
+        const newStatus: 'following' | 'pending' = res.accepted === true ? 'following' : 'pending';
+        setStatusMap((m) => ({ ...m, [key]: newStatus }));
       }
     } catch (err) {
       console.error('Follow toggle failed', err);
@@ -91,12 +67,11 @@ export default function FeedSidebar({ profile, suggestions }: FeedSidebarProps) 
   const renderNote = (item: SuggestionItem) => {
     if (item.followsYou) return 'Follows you';
     if (item.followedBy && item.followedBy.length > 0) {
-      // show up to 2 names then 'and N others'
       const names = item.followedBy.slice(0, 2);
       const others = item.followedBy.length - names.length;
       return others > 0 ? `Followed by ${names.join(', ')} and ${others} others` : `Followed by ${names.join(', ')}`;
     }
-    return item.followersCount ? `${item.followersCount} followers` : item.note;
+    return item.followersCount ? `${item.followersCount} followers` : item.note || '';
   };
 
   return (
@@ -140,9 +115,11 @@ export default function FeedSidebar({ profile, suggestions }: FeedSidebarProps) 
                     unoptimized
                   />
                 <div className={styles.suggestionInfo}>
-                  <Link href={`/app/profile/${suggestion.username}`} className={styles.suggestionUsername}>
-                    {suggestion.username}
-                  </Link>
+                  <UserHoverCard username={suggestion.username}>
+                    <Link href={`/app/profile/${suggestion.username}`} className={styles.suggestionUsername}>
+                      {suggestion.username}
+                    </Link>
+                  </UserHoverCard>
                   <div className={styles.suggestionNote}>{renderNote(suggestion)}</div>
                 </div>
                 <button

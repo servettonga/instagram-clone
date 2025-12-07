@@ -19,8 +19,10 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api');
 
   // CORS configuration
+  // In development, allow any origin for local network testing
+  const isDevelopment = process.env.NODE_ENV === 'development';
   app.enableCors({
-    origin: config.frontendUrl,
+    origin: isDevelopment ? true : config.frontendUrl,
     credentials: true, // Allow cookies (for future cookie-based auth if needed)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -37,7 +39,8 @@ async function bootstrap(): Promise<void> {
   );
 
   // Swagger documentation
-  const swaggerConfig = new DocumentBuilder()
+  const isProduction = process.env.NODE_ENV === 'production';
+  const swaggerBuilder = new DocumentBuilder()
     .setTitle('Innogram Core API')
     .setDescription('Core microservice API documentation')
     .setVersion('1.0')
@@ -53,16 +56,24 @@ async function bootstrap(): Promise<void> {
       'JWT-auth', // This name is used in @ApiBearerAuth() decorator
     )
     .addTag('Authentication', 'User authentication and authorization')
-    .addTag('Users', 'User management')
-    .build();
+    .addTag('Users', 'User management');
+
+  // Add server URL for production to handle /innogram base path
+  if (isProduction && process.env.BACKEND_URL) {
+    swaggerBuilder.addServer(process.env.BACKEND_URL, 'Production server');
+  }
+
+  const swaggerConfig = swaggerBuilder.build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
   const port = config.coreServicePort;
-  await app.listen(port);
+  // Listen on all interfaces (0.0.0.0) to allow local network access in development
+  await app.listen(port, '0.0.0.0');
 
   console.log(`✓ Core Server is running on: http://localhost:${port}`);
+  console.log(`✓ Network access: http://0.0.0.0:${port}`);
   console.log(`✓ Swagger documentation: http://localhost:${port}/api/docs`);
   console.log(`✓ Health check: http://localhost:${port}/api/health`);
 }

@@ -5,6 +5,7 @@ import Avatar from '@/components/ui/Avatar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CloseIcon } from '@/components/ui/icons';
+import { normalizeImageUrl } from '@/lib/utils/image';
 import styles from './NotificationsModal.module.scss';
 import { notificationsApi, type Notification } from '@/lib/api/notifications';
 import { followAPI } from '@/lib/api/follow';
@@ -17,11 +18,100 @@ interface NotificationsModalProps {
   isCollapsed?: boolean;
 }
 
-function groupNotifications(notifications: Notification[]): {
-  today: Notification[];
-  yesterday: Notification[];
-  thisWeek: Notification[];
-  earlier: Notification[];
+// Types that can be grouped by post
+const GROUPABLE_TYPES = [
+  NotificationType.POST_LIKE,
+  NotificationType.POST_COMMENT,
+  NotificationType.COMMENT_LIKE,
+  NotificationType.COMMENT_REPLY,
+];
+
+interface GroupedNotification {
+  id: string;
+  type: NotificationType;
+  notifications: Notification[];
+  postId: string | null;
+  postImageUrl: string | null;
+  latestCreatedAt: string;
+  isRead: boolean;
+}
+
+function groupNotificationsByPost(notifications: Notification[]): (Notification | GroupedNotification)[] {
+  const result: (Notification | GroupedNotification)[] = [];
+  const postGroups = new Map<string, Map<NotificationType, Notification[]>>();
+
+  notifications.forEach((notif) => {
+    // Get post ID from notification
+    const entityType = notif.data?.entityType as string | undefined;
+    const entityId = notif.data?.entityId as string | undefined;
+    const metadataPostId = notif.data?.postId as string | undefined;
+
+    let postId: string | null = null;
+    if (entityType === 'post' && entityId) {
+      postId = entityId;
+    } else if (metadataPostId) {
+      postId = metadataPostId;
+    }
+
+    // Check if this notification type can be grouped
+    if (postId && GROUPABLE_TYPES.includes(notif.type)) {
+      if (!postGroups.has(postId)) {
+        postGroups.set(postId, new Map());
+      }
+      const typeMap = postGroups.get(postId)!;
+      if (!typeMap.has(notif.type)) {
+        typeMap.set(notif.type, []);
+      }
+      typeMap.get(notif.type)!.push(notif);
+    } else {
+      // Non-groupable notification, add as-is
+      result.push(notif);
+    }
+  });
+
+  // Convert groups to GroupedNotification objects
+  postGroups.forEach((typeMap, postId) => {
+    typeMap.forEach((notifs, type) => {
+      if (notifs.length === 0) {
+        // No notifications, skip
+        return;
+      }
+      if (notifs.length === 1) {
+        // Single notification, don't group
+        result.push(notifs[0]!);
+      } else {
+        // Multiple notifications, create a group
+        const latestNotif = notifs[0]!; // Already sorted by date, guaranteed to exist
+        // Find postImageUrl from any notification in the group (some might not have it)
+        const postImageUrl = notifs.find((n) => n.data?.postImageUrl)?.data?.postImageUrl as string | null;
+        result.push({
+          id: `group-${postId}-${type}`,
+          type,
+          notifications: notifs,
+          postId,
+          postImageUrl,
+          latestCreatedAt: latestNotif.createdAt,
+          isRead: notifs.every((n) => n.isRead),
+        });
+      }
+    });
+  });
+
+  // Sort by latest created date
+  result.sort((a, b) => {
+    const dateA = 'latestCreatedAt' in a ? a.latestCreatedAt : a.createdAt;
+    const dateB = 'latestCreatedAt' in b ? b.latestCreatedAt : b.createdAt;
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
+  });
+
+  return result;
+}
+
+function groupNotificationsByTime(items: (Notification | GroupedNotification)[]): {
+  today: (Notification | GroupedNotification)[];
+  yesterday: (Notification | GroupedNotification)[];
+  thisWeek: (Notification | GroupedNotification)[];
+  earlier: (Notification | GroupedNotification)[];
 } {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -31,22 +121,23 @@ function groupNotifications(notifications: Notification[]): {
   weekStart.setDate(weekStart.getDate() - 7);
 
   const groups = {
-    today: [] as Notification[],
-    yesterday: [] as Notification[],
-    thisWeek: [] as Notification[],
-    earlier: [] as Notification[],
+    today: [] as (Notification | GroupedNotification)[],
+    yesterday: [] as (Notification | GroupedNotification)[],
+    thisWeek: [] as (Notification | GroupedNotification)[],
+    earlier: [] as (Notification | GroupedNotification)[],
   };
 
-  notifications.forEach((notif) => {
-    const notifDate = new Date(notif.createdAt);
-    if (notifDate >= todayStart) {
-      groups.today.push(notif);
-    } else if (notifDate >= yesterdayStart) {
-      groups.yesterday.push(notif);
-    } else if (notifDate >= weekStart) {
-      groups.thisWeek.push(notif);
+  items.forEach((item) => {
+    const dateStr = 'latestCreatedAt' in item ? item.latestCreatedAt : item.createdAt;
+    const itemDate = new Date(dateStr);
+    if (itemDate >= todayStart) {
+      groups.today.push(item);
+    } else if (itemDate >= yesterdayStart) {
+      groups.yesterday.push(item);
+    } else if (itemDate >= weekStart) {
+      groups.thisWeek.push(item);
     } else {
-      groups.earlier.push(notif);
+      groups.earlier.push(item);
     }
   });
 
@@ -195,10 +286,144 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
 
   if (!isOpen) return null;
 
-  const grouped = groupNotifications(notifications);
+  const groupedByPost = groupNotificationsByPost(notifications);
+  const grouped = groupNotificationsByTime(groupedByPost);
   const hasUnread = notifications.some((n) => !n.isRead);
 
-  const renderNotification = (notif: Notification) => {
+  // Helper to generate grouped message like "x, y and 3 others liked your post"
+  const generateGroupedMessage = (group: GroupedNotification): string => {
+    const actors = group.notifications
+      .map((n) => n.data?.actorUsername as string)
+      .filter(Boolean);
+    const uniqueActors = [...new Set(actors)];
+
+    let actionText = '';
+    switch (group.type) {
+      case NotificationType.POST_LIKE:
+        actionText = 'liked your post';
+        break;
+      case NotificationType.POST_COMMENT:
+        actionText = 'commented on your post';
+        break;
+      case NotificationType.COMMENT_LIKE:
+        actionText = 'liked your comment';
+        break;
+      case NotificationType.COMMENT_REPLY:
+        actionText = 'replied to your comment';
+        break;
+      default:
+        actionText = 'interacted with your post';
+    }
+
+    if (uniqueActors.length === 1) {
+      return `<strong>${uniqueActors[0]}</strong> ${actionText}`;
+    } else if (uniqueActors.length === 2) {
+      return `<strong>${uniqueActors[0]}</strong> and <strong>${uniqueActors[1]}</strong> ${actionText}`;
+    } else {
+      const othersCount = uniqueActors.length - 1;
+      return `<strong>${uniqueActors[0]}</strong> and ${othersCount} others ${actionText}`;
+    }
+  };
+
+  const renderNotificationItem = (item: Notification | GroupedNotification) => {
+    // Check if it's a grouped notification
+    if ('notifications' in item) {
+      return renderGroupedNotification(item);
+    }
+    return renderSingleNotification(item);
+  };
+
+  const renderGroupedNotification = (group: GroupedNotification) => {
+    const latestNotif = group.notifications[0];
+    if (!latestNotif) return null; // Safety check
+
+    const actorAvatar = latestNotif.data?.actorAvatarUrl as string | undefined;
+    const actorUsername = latestNotif.data?.actorUsername as string | undefined;
+    const time = getTimeAgo(group.latestCreatedAt);
+    const linkTo = group.postId ? `/app/post/${group.postId}` : undefined;
+
+    const message = generateGroupedMessage(group);
+
+    // For grouped notifications with multiple users, show max 2 stacked avatars
+    const uniqueAvatars = [...new Map(
+      group.notifications
+        .filter((n) => n.data?.actorUsername)
+        .map((n) => [n.data?.actorUsername, { username: n.data?.actorUsername as string, avatar: n.data?.actorAvatarUrl as string | undefined }])
+    ).values()].slice(0, 2);
+
+    const avatarComponent = (
+      <div
+        className={uniqueAvatars.length > 1 ? styles.stackedAvatars : styles.avatarWrapper}
+        onClick={(e) => {
+          if (linkTo && actorUsername) {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+            window.location.href = `/app/profile/${actorUsername}`;
+          }
+        }}
+      >
+        {uniqueAvatars.length > 1 ? (
+          uniqueAvatars.map((actor, idx) => (
+            <div key={actor.username} className={styles.stackedAvatar} style={{ zIndex: uniqueAvatars.length - idx }}>
+              <Avatar avatarUrl={actor.avatar} username={actor.username} size="sm" unoptimized />
+            </div>
+          ))
+        ) : (
+          <Avatar avatarUrl={actorAvatar} username={actorUsername || ''} size="md" unoptimized />
+        )}
+      </div>
+    );
+
+    const notificationContent = (
+      <>
+        {avatarComponent}
+        <div className={styles.notifContent}>
+          <span dangerouslySetInnerHTML={{ __html: message }} />
+          <span className={styles.time}> {time}</span>
+        </div>
+        {group.postImageUrl && (
+          <div className={styles.postThumbnail}>
+            <Image
+              src={normalizeImageUrl(group.postImageUrl)}
+              alt="Post"
+              width={44}
+              height={44}
+              className={styles.thumbnailImage}
+              unoptimized
+            />
+          </div>
+        )}
+      </>
+    );
+
+    if (linkTo) {
+      return (
+        <Link
+          key={group.id}
+          href={linkTo}
+          className={`${styles.notificationItem} ${!group.isRead ? styles.unread : ''}`}
+          onClick={() => {
+            // Mark all notifications in the group as read
+            group.notifications.forEach((n) => {
+              if (!n.isRead) handleNotificationClick(n.id);
+            });
+            onClose();
+          }}
+        >
+          {notificationContent}
+        </Link>
+      );
+    }
+
+    return (
+      <div key={group.id} className={`${styles.notificationItem} ${!group.isRead ? styles.unread : ''}`}>
+        {notificationContent}
+      </div>
+    );
+  };
+
+  const renderSingleNotification = (notif: Notification) => {
     const actorUsername = notif.data?.actorUsername as string | undefined;
     const actorAvatar = notif.data?.actorAvatarUrl as string | undefined;
     const actorId = notif.data?.actorId as string | undefined;
@@ -209,12 +434,17 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
 
     const time = getTimeAgo(notif.createdAt);
     const isFollowRequest = notif.type === NotificationType.FOLLOW_REQUEST;
+    const isFollowAccepted = notif.type === NotificationType.FOLLOW_ACCEPTED;
 
     // Determine the link destination based on notification type
     let linkTo: string | undefined;
 
+    // For follow accepted notifications, link to the user's profile
+    if (isFollowAccepted && actorUsername) {
+      linkTo = `/app/profile/${actorUsername}`;
+    }
     // Check if notification is related to a post
-    if (entityType === 'post' && entityId) {
+    else if (entityType === 'post' && entityId) {
       // For POST_LIKE, entityId is the postId
       linkTo = `/app/post/${entityId}`;
     } else if (metadataPostId) {
@@ -229,10 +459,11 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
     }
 
     // Avatar component - make it a link only if the notification itself is not already a link
+    // For follow accepted notifications, the whole item links to profile, so don't add separate profile link
     const avatarComponent = actorUsername && (
       <div onClick={(e) => {
-        if (linkTo) {
-          // If notification is wrapped in a link, prevent navigation and manually navigate to profile
+        if (linkTo && !isFollowAccepted) {
+          // If notification is wrapped in a link (to a post), prevent navigation and manually navigate to profile
           e.preventDefault();
           e.stopPropagation();
           onClose();
@@ -291,7 +522,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
         {postImageUrl && (
           <div className={styles.postThumbnail}>
             <Image
-              src={postImageUrl}
+              src={normalizeImageUrl(postImageUrl)}
               alt="Post"
               width={44}
               height={44}
@@ -373,7 +604,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
               {grouped.today.length > 0 && (
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>Today</h3>
-                  {grouped.today.map(renderNotification)}
+                  {grouped.today.map(renderNotificationItem)}
                 </div>
               )}
 
@@ -381,7 +612,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
               {grouped.yesterday.length > 0 && (
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>Yesterday</h3>
-                  {grouped.yesterday.map(renderNotification)}
+                  {grouped.yesterday.map(renderNotificationItem)}
                 </div>
               )}
 
@@ -389,7 +620,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
               {grouped.thisWeek.length > 0 && (
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>This Week</h3>
-                  {grouped.thisWeek.map(renderNotification)}
+                  {grouped.thisWeek.map(renderNotificationItem)}
                 </div>
               )}
 
@@ -397,7 +628,7 @@ export default function NotificationsModal({ isOpen, onClose, isCollapsed = fals
               {grouped.earlier.length > 0 && (
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>Earlier</h3>
-                  {grouped.earlier.map(renderNotification)}
+                  {grouped.earlier.map(renderNotificationItem)}
                 </div>
               )}
             </>

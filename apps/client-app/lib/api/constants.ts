@@ -32,6 +32,8 @@ export const API_ENDPOINTS = {
     BY_USER: (username: string) => `/api/posts/user/${username}`,
     LIKE: (id: string) => `/api/posts/${id}/like`,
     LIKES: (id: string) => `/api/posts/${id}/likes`,
+    SAVE: (id: string) => `/api/posts/${id}/save`,
+    SAVED: '/api/posts/saved',
     COMMENTS: (id: string) => `/api/posts/${id}/comments`,
   },
 

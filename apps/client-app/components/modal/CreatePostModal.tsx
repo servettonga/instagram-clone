@@ -13,6 +13,7 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPostCreated?: () => void;
+  fullscreen?: boolean;
 }
 
 type ModalStep = 'upload' | 'edit';
@@ -23,7 +24,7 @@ interface ImageData {
   croppedBlob: Blob | null;
 }
 
-export default function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
+export default function CreatePostModal({ isOpen, onClose, onPostCreated, fullscreen = false }: CreatePostModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFileInputRef = useRef<HTMLInputElement>(null);
@@ -230,23 +231,24 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
     const allCropped = images.every(img => img.croppedBlob);
 
     return (
-      <div className={styles.modalBackdrop} onClick={handleClose}>
-        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.createPanel} ref={modalRef}>
-            {/* Header */}
-            <div className={styles.header}>
-              <button
-                className={styles.backButton}
-                onClick={() => {
-                  images.forEach(img => {
-                    if (img.preview) {
-                      URL.revokeObjectURL(img.preview);
-                    }
-                  });
-                  setStep('upload');
-                  setImages([]);
-                  setCurrentImageIndex(0);
-                  setContent('');
+      <div className={fullscreen ? styles.fullscreen : undefined}>
+        <div className={styles.modalBackdrop} onClick={handleClose}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.createPanel} ref={modalRef}>
+              {/* Header */}
+              <div className={styles.header}>
+                <button
+                  className={styles.backButton}
+                  onClick={() => {
+                    images.forEach(img => {
+                      if (img.preview) {
+                        URL.revokeObjectURL(img.preview);
+                      }
+                    });
+                    setStep('upload');
+                    setImages([]);
+                    setCurrentImageIndex(0);
+                    setContent('');
                 }}
                 disabled={isCreating}
                 aria-label="Cancel"
@@ -385,18 +387,29 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
           </div>
         </div>
       </div>
+      </div>
     );
   }
 
   // Upload step - simple file selection
   return (
-    <div className={styles.modalBackdrop} onClick={handleClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.createPanel} ref={modalRef}>
-          {/* Header */}
-          <div className={styles.header}>
-            <h2 className={styles.title}>Create new post</h2>
-          </div>
+    <div className={fullscreen ? styles.fullscreen : undefined}>
+      <div className={styles.modalBackdrop} onClick={handleClose}>
+        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.createPanel} ref={modalRef}>
+            {/* Header */}
+            <div className={styles.header}>
+              {fullscreen && (
+                <button
+                  className={styles.backButton}
+                  onClick={handleClose}
+                  aria-label="Close"
+                >
+                  Cancel
+                </button>
+              )}
+              <h2 className={styles.title}>Create new post</h2>
+            </div>
 
           {/* Upload area */}
           <div
@@ -421,13 +434,14 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
               onClick={() => fileInputRef.current?.click()}
               disabled={isCreating}
             >
-              Select from computer
+              Select from your device
             </button>
 
             {error && <div className={styles.error}>{error}</div>}
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

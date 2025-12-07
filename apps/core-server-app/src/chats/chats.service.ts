@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatEventsService } from '../realtime/services/chat-events.service';
+import { AssetManagementService } from '../common/services/asset-management.service';
 
 @Injectable()
 export class ChatsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatEventsService: ChatEventsService,
+    private readonly assetManagementService: AssetManagementService,
   ) {}
 
   /**
@@ -693,7 +695,41 @@ export class ChatsService {
       throw new Error('Only admins can delete group chats');
     }
 
-    // Delete all messages in the chat
+    // Collect all message assets file paths before deletion for cleanup
+    const messageAssets = await this.prisma.messageAsset.findMany({
+      where: {
+        message: { chatId },
+      },
+      select: {
+        asset: {
+          select: {
+            filePath: true,
+            thumbnailPath: true,
+            mediumPath: true,
+          },
+        },
+      },
+    });
+
+    // Extract filenames for storage cleanup
+    const filesToDelete: string[] = [];
+    for (const messageAsset of messageAssets) {
+      const asset = messageAsset.asset;
+      if (asset.filePath) {
+        const filename = asset.filePath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.thumbnailPath) {
+        const filename = asset.thumbnailPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.mediumPath) {
+        const filename = asset.mediumPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+    }
+
+    // Delete all messages in the chat (cascades to message assets)
     await this.prisma.message.deleteMany({
       where: { chatId },
     });
@@ -707,6 +743,14 @@ export class ChatsService {
     await this.prisma.chat.delete({
       where: { id: chatId },
     });
+
+    // Clean up storage files after successful database deletion
+    if (filesToDelete.length > 0) {
+      await this.assetManagementService.deleteFilesFromStorage(
+        filesToDelete,
+        'messages',
+      );
+    }
 
     return { success: true };
   }

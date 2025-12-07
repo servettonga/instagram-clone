@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { AssetManagementService } from '../common/services/asset-management.service';
 import { ImageProcessingService } from '../common/services/image-processing.service';
+import { StorageService } from '../common/services/storage.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -19,7 +20,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
       useFactory: (prisma: PrismaService) => {
         // Create temporary instances for multer configuration
         const mockLogger = new Logger('MulterConfig');
-        const imageProcessing = new ImageProcessingService(mockLogger);
+        const storageService = new StorageService();
+        const imageProcessing = new ImageProcessingService(
+          mockLogger,
+          storageService,
+        );
         const assetService = new AssetManagementService(
           prisma,
           imageProcessing,
@@ -34,8 +39,14 @@ import { NotificationsModule } from '../notifications/notifications.module';
     PostsService,
     AssetManagementService,
     ImageProcessingService,
+    StorageService,
     Logger,
   ],
-  exports: [PostsService, AssetManagementService, ImageProcessingService],
+  exports: [
+    PostsService,
+    AssetManagementService,
+    ImageProcessingService,
+    StorageService,
+  ],
 })
 export class PostsModule {}

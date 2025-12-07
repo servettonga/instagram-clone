@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
 import { usersApi } from '@/lib/api/users';
@@ -10,26 +10,38 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileGrid from '@/components/profile/ProfileGrid';
 import Footer from '@/components/ui/Footer';
 import PostViewModal from '@/components/modal/PostViewModal';
+import MobileHeader from '@/components/layout/MobileHeader';
 import styles from './profile.module.scss';
 import { transformPostForModal } from '@/lib/utils';
+
+type TabType = 'posts' | 'reels' | 'saved' | 'tagged' | 'archive';
 
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const username = params.username as string;
   const { user: currentUser } = useAuthStore();
 
   const isOwnProfile = username === 'me' || username === currentUser?.profile?.username;
   const profile = isOwnProfile ? currentUser?.profile : null;
 
+  // Get initial tab from URL query parameter
+  const initialTab = searchParams.get('tab') as TabType | null;
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab && ['posts', 'reels', 'saved', 'tagged', 'archive'].includes(initialTab) ? initialTab : 'posts');
   const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [archivedPosts, setArchivedPosts] = useState<Post[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isLoadingArchived, setIsLoadingArchived] = useState(false);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
   const [otherUserData, setOtherUserData] = useState<UserWithProfileAndAccount | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedPostIndex, setSelectedPostIndex] = useState<number>(0);
   const [showPostModal, setShowPostModal] = useState(false);
   const [userNotFound, setUserNotFound] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const initialSavedLoadedRef = useRef(false);
 
   // Get profile ID based on profile type
   const getProfileId = useCallback(() => isOwnProfile ? profile?.id : otherUserData?.profile?.id, [isOwnProfile, profile?.id, otherUserData?.profile?.id]);
@@ -62,6 +74,42 @@ export default function ProfilePage() {
     }
   }, [getProfileId]);
 
+  // Load archived posts
+  const loadArchivedPosts = useCallback(async () => {
+    if (!isOwnProfile) return;
+
+    setIsLoadingArchived(true);
+    try {
+      const response = await postsAPI.getArchivedPosts({
+        page: 1,
+        limit: 50,
+      });
+      setArchivedPosts(response.data);
+    } catch (error) {
+      console.error('Failed to load archived posts:', error);
+    } finally {
+      setIsLoadingArchived(false);
+    }
+  }, [isOwnProfile]);
+
+  // Load saved posts
+  const loadSavedPosts = useCallback(async () => {
+    if (!isOwnProfile) return;
+
+    setIsLoadingSaved(true);
+    try {
+      const response = await postsAPI.getSavedPosts({
+        page: 1,
+        limit: 50,
+      });
+      setSavedPosts(response.data);
+    } catch (error) {
+      console.error('Failed to load saved posts:', error);
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  }, [isOwnProfile]);
+
   // Load other user's data (for non-own profiles)
   useEffect(() => {
     if (isOwnProfile || !username) return;
@@ -92,8 +140,17 @@ export default function ProfilePage() {
     loadUserPostsData(false);
   }, [loadUserPostsData]);
 
-  // Transform posts for ProfileGrid
-  const gridPosts = userPosts.map(post => ({
+  // Load saved posts if initial tab is 'saved'
+  useEffect(() => {
+    if (initialTab === 'saved' && isOwnProfile && !initialSavedLoadedRef.current) {
+      initialSavedLoadedRef.current = true;
+      loadSavedPosts();
+    }
+  }, [initialTab, isOwnProfile, loadSavedPosts]);
+
+  // Transform posts for ProfileGrid based on active tab
+  const currentPosts = activeTab === 'archive' ? archivedPosts : activeTab === 'saved' ? savedPosts : userPosts;
+  const gridPosts = currentPosts.map(post => ({
     id: post.id,
     imageUrl: post.assets[0]?.url || null,
     likes: post.likesCount,
@@ -103,9 +160,9 @@ export default function ProfilePage() {
   }));
 
   const handlePostClick = (post: { id: string; imageUrl: string | null; likes: number; comments: number; hasMultipleImages?: boolean; isLiked?: boolean; }) => {
-    // Find the full post data and its index
-    const postIndex = userPosts.findIndex(p => p.id === post.id);
-    const fullPost = userPosts[postIndex];
+    // Find the full post data and its index from the current tab's posts
+    const postIndex = currentPosts.findIndex(p => p.id === post.id);
+    const fullPost = currentPosts[postIndex];
     if (fullPost) {
       setSelectedPost(fullPost);
       setSelectedPostIndex(postIndex);
@@ -114,8 +171,8 @@ export default function ProfilePage() {
   };
 
   const handleNextPost = () => {
-    const nextIndex = (selectedPostIndex + 1) % userPosts.length;
-    const nextPost = userPosts[nextIndex];
+    const nextIndex = (selectedPostIndex + 1) % currentPosts.length;
+    const nextPost = currentPosts[nextIndex];
     if (nextPost) {
       setSelectedPostIndex(nextIndex);
       setSelectedPost(nextPost);
@@ -123,11 +180,22 @@ export default function ProfilePage() {
   };
 
   const handlePrevPost = () => {
-    const prevIndex = selectedPostIndex === 0 ? userPosts.length - 1 : selectedPostIndex - 1;
-    const prevPost = userPosts[prevIndex];
+    const prevIndex = selectedPostIndex === 0 ? currentPosts.length - 1 : selectedPostIndex - 1;
+    const prevPost = currentPosts[prevIndex];
     if (prevPost) {
       setSelectedPostIndex(prevIndex);
       setSelectedPost(prevPost);
+    }
+  };
+
+  // Handle tab change
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    if (tab === 'archive' && archivedPosts.length === 0 && !isLoadingArchived) {
+      loadArchivedPosts();
+    }
+    if (tab === 'saved' && savedPosts.length === 0 && !isLoadingSaved) {
+      loadSavedPosts();
     }
   };
 
@@ -232,12 +300,14 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.profileContainer}>
+      <MobileHeader variant="profile" title={displayProfile.username} />
       <div className={styles.profileWrapper}>
         {/* Profile Header Component */}
         <ProfileHeader
           profile={displayProfile}
           isOwnProfile={isOwnProfile}
           stats={{ ...profileStatsState, posts: userPosts.length }}
+          onViewArchive={() => handleTabChange('archive')}
         />
 
         {/* Private Profile Message */}
@@ -249,14 +319,79 @@ export default function ProfilePage() {
         ) : (
           <>
             {/* Profile Grid Component */}
-            {isLoadingPosts ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p>Loading posts...</p>
-              </div>
+            {(activeTab === 'posts' && isLoadingPosts) || (activeTab === 'archive' && isLoadingArchived) || (activeTab === 'saved' && isLoadingSaved) ? (
+              <ProfileGrid
+                posts={[]}
+                onPostClick={handlePostClick}
+                isOwnProfile={isOwnProfile}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+              />
+            ) : activeTab === 'reels' || activeTab === 'tagged' ? (
+              <>
+                <ProfileGrid
+                  posts={[]}
+                  onPostClick={handlePostClick}
+                  isOwnProfile={isOwnProfile}
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                />
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyStateIcon}>
+                    {activeTab === 'reels' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                        <polygon points="10,8 16,12 10,16" fill="currentColor" />
+                      </svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    )}
+                  </div>
+                  <h3>{activeTab === 'reels' ? 'No reels yet' : 'Photos of you'}</h3>
+                  <p>{activeTab === 'reels' ? 'No reels to show.' : 'When people tag you in photos, they\'ll appear here.'}</p>
+                </div>
+              </>
+            ) : gridPosts.length === 0 ? (
+              <>
+                <ProfileGrid
+                  posts={[]}
+                  onPostClick={handlePostClick}
+                  isOwnProfile={isOwnProfile}
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
+                />
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyStateIcon}>
+                    {activeTab === 'archive' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+                      </svg>
+                    ) : activeTab === 'saved' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21,15 16,10 5,21" />
+                      </svg>
+                    )}
+                  </div>
+                  <h3>{activeTab === 'archive' ? 'No archived posts' : activeTab === 'saved' ? 'Save' : 'No posts yet'}</h3>
+                  <p>{activeTab === 'archive' ? 'When you archive posts, they\'ll appear here.' : activeTab === 'saved' ? 'Save photos and videos that you want to see again.' : 'Start sharing photos to see them here.'}</p>
+                </div>
+              </>
             ) : (
               <ProfileGrid
                 posts={gridPosts}
                 onPostClick={handlePostClick}
+                isOwnProfile={isOwnProfile}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
               />
             )}
           </>
@@ -278,9 +413,37 @@ export default function ProfilePage() {
             setSelectedPost(null);
           }}
           onPostUpdated={() => loadUserPostsData(true, selectedPost)}
+          onPostArchived={(archived) => {
+            if (archived) {
+              // Post was archived - remove from posts, add to archived
+              setUserPosts(prev => prev.filter(p => p.id !== selectedPost.id));
+              // Refresh archived posts if we've loaded them before
+              if (archivedPosts.length > 0) {
+                loadArchivedPosts();
+              }
+            } else {
+              // Post was unarchived - remove from archived, refresh posts
+              setArchivedPosts(prev => prev.filter(p => p.id !== selectedPost.id));
+              loadUserPostsData();
+            }
+            setShowPostModal(false);
+            setSelectedPost(null);
+          }}
+          onPostSaved={(saved) => {
+            // Refresh saved posts list if we're on the saved tab
+            if (activeTab === 'saved') {
+              if (saved) {
+                // Post was saved - refresh the list to include it
+                loadSavedPosts();
+              } else {
+                // Post was unsaved - remove from list
+                setSavedPosts(prev => prev.filter(p => p.id !== selectedPost.id));
+              }
+            }
+          }}
           post={transformPostForModal(selectedPost)}
-          onNextPost={userPosts.length > 1 ? handleNextPost : undefined}
-          onPrevPost={userPosts.length > 1 ? handlePrevPost : undefined}
+          onNextPost={currentPosts.length > 1 ? handleNextPost : undefined}
+          onPrevPost={currentPosts.length > 1 ? handlePrevPost : undefined}
         />
       )}
     </div>

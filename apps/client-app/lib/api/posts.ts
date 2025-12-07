@@ -131,6 +131,22 @@ class PostsAPI {
     });
     return data;
   }
+
+  /**
+   * Toggle save on a post (save/unsave)
+   */
+  async toggleSave(postId: string): Promise<{ saved: boolean }> {
+    const { data } = await apiClient.post<{ saved: boolean }>(API_ENDPOINTS.POSTS.SAVE(postId));
+    return data;
+  }
+
+  /**
+   * Get saved posts
+   */
+  async getSavedPosts(params?: QueryPostsDto): Promise<PostsPaginationResponse> {
+    const { data } = await apiClient.get<PostsPaginationResponse>(API_ENDPOINTS.POSTS.SAVED, { params });
+    return data;
+  }
 }
 
 export const postsAPI = new PostsAPI();

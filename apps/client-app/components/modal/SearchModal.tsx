@@ -8,6 +8,8 @@ import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usersApi } from '@/lib/api/users';
 import { postsAPI } from '@/lib/api/posts';
+import { MentionText } from '@/lib/utils/mentions';
+import { normalizeImageUrl } from '@/lib/utils/image';
 import type { UserWithProfileAndAccount } from '@/types/auth';
 import type { Post } from '@repo/shared-types';
 import {
@@ -298,7 +300,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                           <>
                             <div className={styles.postThumbnail}>
                               <Image
-                                src={item.postImageUrl || ''}
+                                src={normalizeImageUrl(item.postImageUrl)}
                                 alt="Post"
                                 width={64}
                                 height={64}
@@ -401,7 +403,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                         >
                           <div className={styles.postThumbnail}>
                             <Image
-                              src={post.assets[0]?.url || ''}
+                              src={normalizeImageUrl(post.assets[0]?.url)}
                               alt="Post"
                               width={64}
                               height={64}
@@ -412,7 +414,7 @@ export default function SearchModal({ isOpen, onClose, isCollapsed = false }: Se
                           <div className={styles.postInfo}>
                             <div className={styles.postUsername}>{post.profile?.username || 'Unknown'}</div>
                             <div className={styles.postCaption}>
-                              {post.content || 'No caption'}
+                              <MentionText text={post.content || 'No caption'} />
                             </div>
                             <div className={styles.postStats}>
                               {post.likesCount} likes • {post.commentsCount} comments

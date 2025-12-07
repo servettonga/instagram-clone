@@ -8,6 +8,7 @@ import {
   PhoneIcon,
   VideoCallIcon,
   InfoIcon,
+  ChevronLeftIcon,
 } from '@/components/ui/icons';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useChatStore } from '@/lib/store/chatStore';
@@ -23,9 +24,10 @@ import styles from './MessagesView.module.scss';
 
 interface MessagesViewProps {
   chat: Chat;
+  onBack?: () => void;
 }
 
-export default function MessagesView({ chat }: MessagesViewProps) {
+export default function MessagesView({ chat, onBack }: MessagesViewProps) {
   const { user } = useAuthStore();
   const { socket, isConnected } = useSocket();
   const router = useRouter();
@@ -305,6 +307,11 @@ export default function MessagesView({ chat }: MessagesViewProps) {
   return (
     <>
       <div className={styles.messagesHeader}>
+        {onBack && (
+          <button className={styles.backButton} onClick={onBack} aria-label="Back to conversations">
+            <ChevronLeftIcon width={24} height={24} />
+          </button>
+        )}
         <div className={styles.recipientInfo}>
           <Avatar
             avatarUrl={avatarUrl}
@@ -329,29 +336,18 @@ export default function MessagesView({ chat }: MessagesViewProps) {
           </div>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.headerButton} disabled>
-            <div className={styles.svgWrapper}>
-              <div className={styles.svgWrapperInner}>
-                <PhoneIcon />
-              </div>
-            </div>
+          <button className={styles.headerButton} disabled aria-label="Voice call">
+            <PhoneIcon width={24} height={24} />
           </button>
-          <button className={styles.headerButton} disabled>
-            <div className={styles.svgWrapper}>
-              <div className={styles.svgWrapperInner}>
-                <VideoCallIcon />
-              </div>
-            </div>
+          <button className={styles.headerButton} disabled aria-label="Video call">
+            <VideoCallIcon width={24} height={24} />
           </button>
           <button
             className={styles.headerButton}
             onClick={() => setIsInfoPanelOpen(true)}
+            aria-label="Chat info"
           >
-            <div className={styles.svgWrapper}>
-              <div className={styles.svgWrapperInner}>
-                <InfoIcon />
-              </div>
-            </div>
+            <InfoIcon width={24} height={24} />
           </button>
         </div>
       </div>

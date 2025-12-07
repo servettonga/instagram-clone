@@ -12,6 +12,7 @@ import { Prisma, AccountProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ERROR_MESSAGES } from '../common/constants/messages';
 import { FileUploadService } from '../common/services/file-upload.service';
+import { ImageProcessingService } from '../common/services/image-processing.service';
 import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -29,6 +30,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private fileUploadService: FileUploadService,
+    private imageProcessingService: ImageProcessingService,
     private notificationProducer: NotificationProducerService,
     private notificationsService: NotificationsService,
   ) {}
@@ -294,7 +296,7 @@ export class UsersService {
         }),
         this.prisma.profile.updateMany({
           where: { userId: id },
-          data: { deleted: true, updatedBy: id },
+          data: { deleted: true, deletedAt: new Date(), updatedBy: id },
         }),
       ]);
     } catch (error: unknown) {
@@ -360,6 +362,8 @@ export class UsersService {
 
   /**
    * Upload and update user avatar
+   * Processes the image (resize, convert to webp) and uploads to storage
+   * Deletes the old avatar from storage if it exists
    */
   async uploadAvatar(
     userId: string,
@@ -369,11 +373,30 @@ export class UsersService {
       throw new BadRequestException(ERROR_MESSAGES.NO_FILE_UPLOADED);
     }
 
-    // Get the file URL
-    const avatarUrl = this.fileUploadService.getFileUrl(file.filename);
+    // Get the current avatar URL before updating (for cleanup)
+    const currentProfile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true },
+    });
+    const oldAvatarUrl = currentProfile?.avatarUrl;
+
+    // Process avatar image (resize to 150x150, convert to webp)
+    const filename = await this.imageProcessingService.processAvatar(file);
+
+    // Get the full URL for the processed avatar
+    const avatarUrl = this.fileUploadService.getFileUrl(filename);
 
     // Update user's avatar URL in database
     await this.update(userId, { avatarUrl });
+
+    // Delete old avatar from storage after successful update
+    if (oldAvatarUrl) {
+      // Extract filename from URL (e.g., "/uploads/avatars/avatar-123.webp" -> "avatar-123.webp")
+      const oldFilename = oldAvatarUrl.split('/').pop();
+      if (oldFilename) {
+        await this.imageProcessingService.deleteImages([oldFilename], 'avatars');
+      }
+    }
 
     return { avatarUrl };
   }

@@ -19,6 +19,7 @@ import {
   NavNextIcon,
 } from '@/components/ui/icons';
 import Avatar from '@/components/ui/Avatar';
+import UserHoverCard from '@/components/ui/UserHoverCard';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import styles from './FeedPost.module.scss';
 
@@ -38,6 +39,7 @@ interface FeedPostProps {
     aspectRatio?: string;
     profileId?: string;
     isLikedByUser?: boolean;
+    isSavedByUser?: boolean;
   };
   onCommentClick: () => void;
   onPostDeleted?: () => void;
@@ -59,6 +61,10 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
   const [isLiked, setIsLiked] = useState(post.isLikedByUser || false);
   const [likesCount, setLikesCount] = useState(post.likes);
   const [isLiking, setIsLiking] = useState(false);
+
+  // Save state
+  const [isSaved, setIsSaved] = useState(post.isSavedByUser || false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Get assets array (use imageUrl as fallback for single image)
   const images = post.assets && post.assets.length > 0 ? post.assets : [{ url: post.imageUrl }];
@@ -117,6 +123,26 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
     }
   };
 
+  const handleToggleSave = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
+    // Optimistic update
+    const previousSaved = isSaved;
+    setIsSaved(!isSaved);
+
+    try {
+      const result = await postsAPI.toggleSave(post.id);
+      setIsSaved(result.saved);
+    } catch (error) {
+      console.error('Failed to toggle save:', error);
+      // Revert optimistic update on error
+      setIsSaved(previousSaved);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <article className={styles.post}>
       {/* Post Header */}
@@ -128,9 +154,11 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
           </div>
           <div className={styles.userInfo}>
             <div className={styles.usernameRow}>
-              <Link href={`/app/profile/${post.username}`} className={styles.username}>
-                {post.username}
-              </Link>
+              <UserHoverCard username={post.username}>
+                <Link href={`/app/profile/${post.username}`} className={styles.username}>
+                  {post.username}
+                </Link>
+              </UserHoverCard>
               {post.isVerified && <VerifiedBadge className={styles.verifiedBadge} />}
             </div>
             <span className={styles.timeAgo}>{post.timeAgo}</span>
@@ -161,8 +189,8 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
                 </>
               ) : (
                 <>
-                  <button className={styles.menuItem} onClick={() => setShowMenu(false)}>
-                    Save
+                  <button className={styles.menuItem} onClick={() => { setShowMenu(false); handleToggleSave(); }} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : isSaved ? 'Unsave' : 'Save'}
                   </button>
                   <button className={styles.menuItem} onClick={() => setShowMenu(false)}>
                     Flag
@@ -261,8 +289,8 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
             <ShareIcon />
           </button>
         </div>
-        <button className={styles.actionButton}>
-          <BookmarkIcon />
+        <button className={styles.actionButton} onClick={handleToggleSave} disabled={isSaving}>
+          <BookmarkIcon filled={isSaved} />
         </button>
       </div>
 
@@ -273,9 +301,11 @@ export default function FeedPost({ post, onCommentClick, onPostDeleted, onEditCl
         </div>
         {post.caption && (
           <div className={styles.caption}>
-            <Link href={`/app/profile/${post.username}`} className={styles.captionUsername}>
-              {post.username}
-            </Link>
+            <UserHoverCard username={post.username}>
+              <Link href={`/app/profile/${post.username}`} className={styles.captionUsername}>
+                {post.username}
+              </Link>
+            </UserHoverCard>
             <span className={styles.captionText}>
               {' '}
               <MentionText text={displayCaption || ''} />

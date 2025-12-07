@@ -21,11 +21,11 @@ export const getConfig = () => {
 
     // Email Configuration
     mailConfig: {
-      host: process.env.MAIL_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.MAIL_PORT || "587", 10),
+      host: process.env.MAIL_HOST || "smtp.eu.mailgun.org",
+      port: parseInt(process.env.MAIL_PORT || "2525", 10),
       user: process.env.MAIL_USER || "",
       password: process.env.MAIL_PASSWORD || "",
-      from: process.env.MAIL_FROM || "noreply@innogram.com",
+      from: process.env.MAIL_FROM || "notifications@mg.web-dev.codes",
     },
 
     // Frontend URL

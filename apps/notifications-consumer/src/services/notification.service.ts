@@ -86,8 +86,13 @@ export class NotificationService {
 
       const thumbnailPath = post?.assets[0]?.asset?.thumbnailPath;
       if (thumbnailPath) {
-        // thumbnailPath is already a full URL (like avatarUrl), just use it directly
-        notificationData.postImageUrl = thumbnailPath;
+        // Only prepend base path for relative URLs (not absolute URLs like R2 storage)
+        if (thumbnailPath.startsWith("http")) {
+          notificationData.postImageUrl = thumbnailPath;
+        } else {
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+          notificationData.postImageUrl = `${basePath}${thumbnailPath}`;
+        }
       }
     }
 

@@ -7,6 +7,44 @@
   margin: 0 auto;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: $color-text;
+}
+
+.sortTabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.sortTab {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $color-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  &.active {
+    color: $color-text;
+  }
+}
+
 .loading {
   display: flex;
   justify-content: center;

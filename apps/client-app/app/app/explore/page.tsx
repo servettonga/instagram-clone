@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { postsAPI } from '@/lib/api/posts';
 import { transformPostForModal } from '@/lib/utils';
@@ -12,43 +12,64 @@ import { HeartIcon, CommentIcon, MultiImageIcon } from '@/components/ui/icons';
 import type { Post } from '@repo/shared-types';
 import styles from './explore.module.scss';
 
+type SortOption = 'recent' | 'popular';
+
 export default function ExplorePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await postsAPI.getAllPosts({ limit: 30 });
+      const response = await postsAPI.getAllPosts({
+        limit: 30,
+        sortBy: sortBy === 'popular' ? 'likesCount' : 'createdAt',
+        order: 'desc',
+      });
       setPosts(response.data);
     } catch (error) {
       console.error('Failed to load explore posts:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortBy]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
   const handlePostClick = (post: Post) => {
     setSelectedPost(post);
     setShowPostModal(true);
   };
 
-  if (loading) {
-    return (
-      <div className={styles.exploreContainer}>
-        <div className={styles.loading}>Loading explore posts...</div>
-      </div>
-    );
-  }
   return (
     <div className={styles.exploreContainer}>
-      <div className={styles.exploreGrid}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Explore</h1>
+        <div className={styles.sortTabs}>
+          <button
+            className={`${styles.sortTab} ${sortBy === 'recent' ? styles.active : ''}`}
+            onClick={() => setSortBy('recent')}
+          >
+            Most Recent
+          </button>
+          <button
+            className={`${styles.sortTab} ${sortBy === 'popular' ? styles.active : ''}`}
+            onClick={() => setSortBy('popular')}
+          >
+            Most Popular
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className={styles.loading}>Loading explore posts...</div>
+      ) : (
+        <div className={styles.exploreGrid}>
         {posts.map((post) => (
           <div
             key={post.id}
@@ -89,7 +110,8 @@ export default function ExplorePage() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {selectedPost && (
         <PostViewModal

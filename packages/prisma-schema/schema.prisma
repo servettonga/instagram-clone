@@ -43,6 +43,8 @@ model User {
   updatedPostAssets       PostAsset[]                     @relation("PostAssetUpdatedBy")
   createdPostLikes        PostLike[]                      @relation("PostLikeCreatedBy")
   updatedPostLikes        PostLike[]                      @relation("PostLikeUpdatedBy")
+  createdSavedPosts       SavedPost[]                     @relation("SavedPostCreatedBy")
+  updatedSavedPosts       SavedPost[]                     @relation("SavedPostUpdatedBy")
   createdProfileConfigs   ProfileConfiguration[]          @relation("ProfileConfigCreatedBy")
   updatedProfileConfigs   ProfileConfiguration[]          @relation("ProfileConfigUpdatedBy")
   createdProfiles         Profile[]                       @relation("ProfileCreatedBy")
@@ -92,6 +94,7 @@ model Profile {
   avatarUrl             String?                         @map("avatar_url")
   isPublic              Boolean                         @default(true) @map("is_public")
   deleted               Boolean                         @default(false)
+  deletedAt             DateTime?                       @map("deleted_at")
   createdAt             DateTime                        @default(now()) @map("created_at")
   updatedAt             DateTime                        @updatedAt @map("updated_at")
   createdBy             String                          @map("created_by")
@@ -102,6 +105,7 @@ model Profile {
   messages              Message[]
   posts                 Post[]
   postLikes             PostLike[]
+  savedPosts            SavedPost[]
   createdByUser         User                            @relation("ProfileCreatedBy", fields: [createdBy], references: [id])
   updatedByUser         User?                           @relation("ProfileUpdatedBy", fields: [updatedBy], references: [id])
   user                  User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,6 +132,7 @@ model Post {
   updatedByUser User?       @relation("PostUpdatedBy", fields: [updatedBy], references: [id])
   assets        PostAsset[]
   likes         PostLike[]
+  savedBy       SavedPost[]
 
   @@map("posts")
 }
@@ -243,11 +248,11 @@ model NotificationPreferences {
   replyWeb     Boolean  @default(true) @map("reply_web")
   mentionWeb   Boolean  @default(true) @map("mention_web")
   // Email notifications
-  followEmail  Boolean  @default(true) @map("follow_email")
-  likeEmail    Boolean  @default(true) @map("like_email")
-  commentEmail Boolean  @default(true) @map("comment_email")
-  replyEmail   Boolean  @default(true) @map("reply_email")
-  mentionEmail Boolean  @default(true) @map("mention_email")
+  followEmail  Boolean  @default(false) @map("follow_email")
+  likeEmail    Boolean  @default(false) @map("like_email")
+  commentEmail Boolean  @default(false) @map("comment_email")
+  replyEmail   Boolean  @default(false) @map("reply_email")
+  mentionEmail Boolean  @default(false) @map("mention_email")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -381,6 +386,23 @@ model PostLike {
 
   @@unique([postId, profileId])
   @@map("posts_likes")
+}
+
+model SavedPost {
+  id            String   @id @default(uuid())
+  postId        String   @map("post_id")
+  profileId     String   @map("profile_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdBy     String   @map("created_by")
+  updatedBy     String?  @map("updated_by")
+  createdByUser User     @relation("SavedPostCreatedBy", fields: [createdBy], references: [id])
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("SavedPostUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([postId, profileId])
+  @@map("saved_posts")
 }
 
 model CommentLike {

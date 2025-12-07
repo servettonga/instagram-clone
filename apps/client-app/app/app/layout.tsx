@@ -29,6 +29,9 @@ import { initFollowCacheInvalidation } from '@/lib/utils/profileCacheListener';
 import { notificationsApi } from '@/lib/api/notifications';
 import { SocketProvider } from '@/lib/hooks/useSocket';
 import { useChatStore } from '@/lib/store/chatStore';
+import dynamic from 'next/dynamic';
+
+const MobileNavbar = dynamic(() => import('@/components/layout/MobileNavbar'), { ssr: false });
 
 export default function AppLayout({ children }: { children: React.ReactNode; }) {
   return (
@@ -360,6 +363,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
+
+      {/* Mobile Bottom Navbar */}
+      <MobileNavbar />
 
       {/* Modals */}
       <SearchModal

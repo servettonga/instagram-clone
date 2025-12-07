@@ -1,0 +1,118 @@
+@use '@/styles/index.scss' as *;
+
+.mobileHeader {
+  display: none;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  background: $color-white;
+  border-bottom: 1px solid $color-border;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+}
+
+.logoSection {
+  display: flex;
+  align-items: center;
+
+  svg {
+    width: 96px;
+    height: auto;
+  }
+}
+
+.titleSection {
+  flex: 1;
+}
+
+.pageTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-text;
+  margin: 0;
+}
+
+.iconButton {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-text;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba($color-black, 0.05);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.unreadDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: $color-error;
+  border-radius: 50%;
+  border: 2px solid $color-white;
+}
+
+.moreSection {
+  position: relative;
+}
+
+.moreMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: $color-white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba($color-black, 0.15);
+  min-width: 200px;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: $color-text;
+  text-decoration: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba($color-black, 0.05);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}

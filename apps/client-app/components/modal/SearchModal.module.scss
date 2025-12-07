@@ -385,3 +385,19 @@
     left: 72px;
   }
 }
+
+/* Mobile: fullscreen search modal */
+@media (max-width: 768px) {
+  .modalOverlay,
+  .modalOverlayCollapsed {
+    left: 0;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border-right: none;
+  }
+
+  .closeButton {
+    display: flex;
+  }
+}

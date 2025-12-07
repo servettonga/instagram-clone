@@ -8,6 +8,7 @@ import { postsAPI } from '@/lib/api/posts';
 import { commentsAPI } from '@/lib/api/comments';
 import { useAuthStore } from '@/lib/store/authStore';
 import { ROUTES } from '@/lib/routes';
+import { MentionText } from '@/lib/utils/mentions';
 import {
   MoreIcon,
   HeartIcon,
@@ -361,7 +362,7 @@ export default function PostPage() {
                       <Link href={ROUTES.APP.PROFILE.USER(post.profile.username)} className={styles.commentUsernameLink}>
                         {post.profile.username}
                       </Link>{' '}
-                      {post.content}
+                      <MentionText text={post.content || ''} />
                     </p>
                   )}
                 </div>

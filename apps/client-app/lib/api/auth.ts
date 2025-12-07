@@ -97,7 +97,12 @@ export const authApi = {
 
   // OAuth login URLs
   getGoogleAuthUrl: (): string => {
-    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/login/google`;
+    // In development, use relative URL (works via Next.js rewrites on local network)
+    // In production, use full URL from env
+    if (process.env.NODE_ENV === 'development') {
+      return '/api/auth/login/google';
+    }
+    return `${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/login/google`;
   },
 
   // OAuth account selection

@@ -24,6 +24,8 @@ export interface FeedPost {
   aspectRatio: string;
   profileId?: string;
   isLikedByUser?: boolean;
+  isSavedByUser?: boolean;
+  isArchived?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export function transformPostToFeedPost(post: Post): FeedPost {
     aspectRatio: (post.aspectRatio || '4:5').replace(':', '/'),
     profileId: post.profileId,
     isLikedByUser: post.isLikedByCurrentUser,
+    isSavedByUser: post.isSavedByCurrentUser,
   };
 }
 
@@ -90,6 +93,8 @@ export function transformPostForModal(post: Post | FeedPost) {
       profileId: post.profileId,
       aspectRatio: post.aspectRatio,
       isLikedByUser: post.isLikedByUser,
+      isSavedByUser: post.isSavedByUser,
+      isArchived: post.isArchived ?? false,
     };
   }
 
@@ -107,5 +112,7 @@ export function transformPostForModal(post: Post | FeedPost) {
     createdAt: post.createdAt,
     aspectRatio: (post.aspectRatio || '4:5').replace(':', '/'),
     isLikedByUser: post.isLikedByCurrentUser,
+    isSavedByUser: post.isSavedByCurrentUser,
+    isArchived: post.isArchived,
   };
 }

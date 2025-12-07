@@ -33,6 +33,7 @@
       "env": [
         "NODE_ENV",
         "DATABASE_URL",
+        "AUTH_PUBLIC_URL",
         "AUTH_PORT",
         "FRONTEND_URL",
         "CORE_SERVICE_URL",

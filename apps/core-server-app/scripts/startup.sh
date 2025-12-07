@@ -71,7 +71,7 @@ echo "Core Server is ready to start!"
 # Start the application based on environment
 if [ "$NODE_ENV" = "production" ]; then
     echo "Starting production server..."
-    exec node dist/main.js
+    exec node dist/src/main.js
 else
     echo "Starting development server..."
     exec npm run start:dev

@@ -317,6 +317,7 @@ export class ChatsController {
       file,
       userId,
       '1:1',
+      'messages',
     );
 
     const url = this.assetManagementService.getAssetUrl(asset.filePath);

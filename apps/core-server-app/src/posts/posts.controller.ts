@@ -225,6 +225,53 @@ export class PostsController {
   }
 
   /**
+   * Get archived posts for current user
+   * GET /api/posts/archived
+   */
+  @Get('archived')
+  @ApiOperation({
+    summary: 'Get archived posts',
+    description:
+      'Retrieve all archived posts for the current authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Archived posts retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getArchivedPosts(
+    @Query() queryDto: QueryPostsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const profileId = req.user?.profile?.id || '';
+
+    return this.postsService.getArchivedPosts(profileId, queryDto);
+  }
+
+  /**
+   * Get saved posts for current user
+   * GET /api/posts/saved
+   */
+  @Get('saved')
+  @ApiOperation({
+    summary: 'Get saved posts',
+    description: 'Retrieve all saved posts for the current authenticated user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Saved posts retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getSavedPosts(
+    @Query() queryDto: QueryPostsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const profileId = req.user?.profile?.id || '';
+
+    return this.postsService.getSavedPosts(profileId, queryDto);
+  }
+
+  /**
    * Search posts
    * GET /api/posts/search
    */
@@ -510,5 +557,45 @@ export class PostsController {
     @Query('limit') limit?: number,
   ) {
     return this.postsService.getPostLikes(id, { page, limit });
+  }
+
+  /**
+   * Toggle save on a post
+   * POST /api/posts/:id/save
+   */
+  @Post(':id/save')
+  @ApiOperation({
+    summary: 'Toggle save on a post',
+    description:
+      'Save a post if not already saved, or unsave if already saved. Returns the new save state.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Post ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Save toggled successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        saved: {
+          type: 'boolean',
+          description: 'Whether the post is now saved',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Post not found' })
+  async toggleSave(
+    @Param('id', UuidValidationPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user?.id || '';
+    const profileId = req.user?.profile?.id || '';
+
+    return this.postsService.toggleSave(id, userId, profileId);
   }
 }

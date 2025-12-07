@@ -30,9 +30,10 @@ interface ProfileHeaderProps {
     followers: number;
     following: number;
   };
+  onViewArchive?: () => void;
 }
 
-export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, isOwnProfile, stats, onViewArchive }: ProfileHeaderProps) {
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null);
   const { user: currentUser } = useAuthStore();
   const { chats, selectChat } = useChatStore();
@@ -301,7 +302,7 @@ export default function ProfileHeader({ profile, isOwnProfile, stats }: ProfileH
             <Link href="/app/settings/account" className={styles.buttonLink}>
               <button className={styles.editButton}>Edit profile</button>
             </Link>
-            <button className={styles.archiveButton}>View archive</button>
+            <button className={styles.archiveButton} onClick={onViewArchive}>View archive</button>
           </>
         ) : (
           <>

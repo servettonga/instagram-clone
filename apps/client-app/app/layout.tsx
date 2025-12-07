@@ -7,6 +7,9 @@ import './global.scss'
 export const metadata: Metadata = {
   title: "Innogram Social Media App",
   description: "Connect with friends and share moments",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

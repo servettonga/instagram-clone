@@ -334,7 +334,11 @@ export class AuthService {
     const existingAccounts = await this.prisma.account.findMany({
       where: { email: oauthData.email },
       include: {
-        user: true,
+        user: {
+          include: {
+            profile: true,
+          },
+        },
       },
     });
 
@@ -358,6 +362,34 @@ export class AuthService {
       const uniqueUserIds = Array.from(
         new Set(existingAccounts.map((acc) => acc.userId)),
       );
+
+      // Check if any users are soft-deleted and restore them (if within 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      for (const account of existingAccounts) {
+        const user = account.user;
+        if (user.disabled || user.profile?.deleted) {
+          // Check if deleted within last 30 days
+          if (user.profile?.deletedAt && user.profile.deletedAt < thirtyDaysAgo) {
+            throw new BadRequestException(
+              'This account was deleted more than 30 days ago and cannot be restored. Please contact support or create a new account.',
+            );
+          }
+
+          // Restore soft-deleted user and profile
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { disabled: false },
+          });
+          if (user.profile) {
+            await this.prisma.profile.update({
+              where: { userId: user.id },
+              data: { deleted: false, deletedAt: null },
+            });
+          }
+        }
+      }
 
       if (uniqueUserIds.length > 1) {
         // Multiple users with this email - need account selection

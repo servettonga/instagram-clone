@@ -12,6 +12,20 @@ export const getConfig = () => {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
     maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10), // 10MB
 
+    // Storage Configuration
+    storage: {
+      // 'local' for development, 'r2' for production with Cloudflare R2
+      type: isDevelopment ? 'local' : process.env.STORAGE_TYPE || 'r2',
+      r2: {
+        endpoint: process.env.CLOUDFLARE_ENDPOINT_S3_CLIENT || '',
+        accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || '',
+        bucket: process.env.CLOUDFLARE_BUCKET || 'innogram-uploads',
+        // Public URL for accessing files (R2 public bucket or custom domain)
+        publicUrl: process.env.CLOUDFLARE_PUBLIC_URL || '',
+      },
+    },
+
     // PostgreSQL
     databaseUrl: isDevelopment
       ? process.env.DATABASE_URL ||
@@ -31,9 +45,13 @@ export const getConfig = () => {
       : process.env.RABBITMQ_URL ||
         'amqp://admin:rabbitmq_password@rabbitmq:5672',
 
-    // Auth Service
+    // Auth Service (internal)
     authServiceUrl: isDevelopment
       ? process.env.AUTH_SERVICE_URL || 'http://localhost:4000'
       : process.env.AUTH_SERVICE_URL || 'http://auth-service:4000',
+
+    // Auth Service (public - for OAuth redirects from browser)
+    authServicePublicUrl:
+      process.env.AUTH_PUBLIC_URL || 'http://localhost:4000',
   };
 };

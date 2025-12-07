@@ -49,8 +49,23 @@
 }
 
 // Suggestions section
+
 .suggestions {
   margin-top: $spacing-sm;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  .sidebarUser {
+    display: none !important;
+  }
+
+  .suggestions {
+    display: none !important;
+  }
 }
 
 .suggestionsHeader {

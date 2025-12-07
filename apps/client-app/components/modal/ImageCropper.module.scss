@@ -16,6 +16,24 @@
   min-width: 400px;
 }
 
+/* Mobile responsive - remove min constraints */
+@media (max-width: 768px) {
+  .cropperWrapper {
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .cropperArea {
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .controls {
+    padding: 12px 16px;
+  }
+}
+
 /* Indicators overlayed on the image area, above the zoom controls */
 .imageIndicators {
   position: absolute;

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import React from 'react';
 import styles from './Avatar.module.scss';
+import { normalizeImageUrl } from '@/lib/utils/image';
 
 interface AvatarProps {
   avatarUrl?: string | null;
@@ -12,6 +13,9 @@ interface AvatarProps {
   unoptimized?: boolean;
 }
 export default function Avatar({ avatarUrl, username, size = 'md', alt = '', unoptimized = false }: AvatarProps) {
+  // Normalize URL for local network compatibility
+  const normalizedAvatarUrl = normalizeImageUrl(avatarUrl);
+
   // compute initials: always use first letters of first two words when possible
   const computeInitials = (name?: string) => {
     const count = 2;
@@ -37,10 +41,10 @@ export default function Avatar({ avatarUrl, username, size = 'md', alt = '', uno
   const stylesMap = styles as unknown as Record<string, string>;
   const sizeClass = stylesMap[size] || styles.md;
 
-  if (avatarUrl && avatarUrl.trim().length > 0) {
+  if (normalizedAvatarUrl && normalizedAvatarUrl.trim().length > 0) {
     return (
       <Image
-          src={avatarUrl}
+          src={normalizedAvatarUrl}
           alt={alt || username || 'Avatar'}
           width={px}
           height={px}

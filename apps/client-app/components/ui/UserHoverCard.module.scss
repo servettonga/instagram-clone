@@ -1,0 +1,210 @@
+@use '@/styles/index.scss' as *;
+
+.hoverCardTrigger {
+  position: relative;
+  display: inline;
+}
+
+.hoverCard {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  min-width: 320px;
+  max-width: 360px;
+  background: $color-white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba($color-black, 0.15);
+  padding: 16px;
+  margin-top: 8px;
+  animation: fadeIn 0.15s ease-out;
+
+  // Arrow pointer
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 24px;
+    width: 12px;
+    height: 12px;
+    background: $color-white;
+    transform: rotate(45deg);
+    box-shadow: -2px -2px 4px rgba($color-black, 0.05);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  text-align: center;
+  padding: 16px;
+  color: $color-error;
+  font-size: $font-sm;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.avatarLink {
+  display: block;
+  text-decoration: none;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.followAction {
+  display: flex;
+  gap: 8px;
+}
+
+.followButton {
+  padding: 7px 16px;
+  background: $color-primary;
+  color: $color-white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-contrast;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.requestedButton,
+.followingButton {
+  padding: 7px 16px;
+  background: $color-surface;
+  color: $color-text;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: $color-muted-alt;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.usernameLink {
+  text-decoration: none;
+
+  &:hover .username {
+    opacity: 0.7;
+  }
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text;
+  transition: opacity 0.2s;
+}
+
+.displayName {
+  font-size: 14px;
+  color: $color-muted;
+}
+
+.cardStats {
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid $color-border;
+  border-bottom: 1px solid $color-border;
+  margin-bottom: 12px;
+}
+
+.statItem {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.statCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: $color-text;
+}
+
+.cardBio {
+  font-size: 14px;
+  color: $color-text;
+  line-height: 1.4;
+  margin: 0;
+  // Limit to 3 lines
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Mobile: hide hover cards entirely (touch devices don't have hover)
+@media (max-width: 768px) {
+  .hoverCard {
+    display: none;
+  }
+}

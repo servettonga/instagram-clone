@@ -9,6 +9,7 @@ import FeedTabs from '@/components/feed/FeedTabs';
 import FeedPost from '@/components/feed/FeedPost';
 import FeedSidebar from '@/components/feed/FeedSidebar';
 import PostViewModal from '@/components/modal/PostViewModal';
+import MobileHeader from '@/components/layout/MobileHeader';
 import styles from './feed.module.scss';
 import { transformPostsToFeedPosts, transformPostToFeedPost, transformPostForModal } from '@/lib/utils';
 import { usersApi } from '@/lib/api/users';
@@ -169,6 +170,7 @@ export default function FeedPage() {
 
   return (
     <div className={styles.feedContainer}>
+      <MobileHeader variant="feed" />
       <div className={styles.feedContent}>
         {/* Feed Posts */}
         <div className={styles.postsColumn}>

@@ -52,6 +52,12 @@ export const postWithDetailsSelect = {
       id: true,
     },
   },
+  savedBy: {
+    select: {
+      id: true,
+      profileId: true,
+    },
+  },
   _count: {
     select: {
       likes: true,
@@ -100,6 +106,9 @@ export function toPostResponse(post: PostWithDetails, currentUserId?: string) {
     commentsCount: post._count.comments,
     isLikedByCurrentUser: currentUserId
       ? post.likes.some((like) => like.profileId === currentUserId)
+      : false,
+    isSavedByCurrentUser: currentUserId
+      ? post.savedBy.some((save) => save.profileId === currentUserId)
       : false,
   };
 }

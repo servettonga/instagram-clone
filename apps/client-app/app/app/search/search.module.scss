@@ -10,10 +10,182 @@
 .searchHeader {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid $color-border;
+}
+
+.searchForm {
+  flex: 1;
+}
+
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInputIcon {
+  position: absolute;
+  left: 12px;
+  color: $color-muted;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  background: $color-surface;
+  border: none;
+  border-radius: 8px;
+  font-size: $font-md;
+  color: $color-text;
+
+  &::placeholder {
+    color: $color-muted;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.clearInputButton {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: $color-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: $color-text;
+  }
+}
+
+.resultsLabel {
+  font-size: $font-md;
+  color: $color-muted;
+  margin-bottom: 16px;
+  padding: 0 16px;
+
+  .query {
+    font-weight: $font-medium;
+    color: $color-text;
+  }
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid $color-border;
+  margin-bottom: 16px;
+}
+
+.tab {
+  flex: 1;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $color-muted;
+  cursor: pointer;
+  position: relative;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-text;
+  }
+}
+
+.tabActive {
+  color: $color-text;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: $color-text;
+  }
+}
+
+/* Sort tabs for posts */
+.sortTabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.sortTab {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: $font-sm;
+  font-weight: $font-bold;
+  color: $color-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  &.active {
+    color: $color-text;
+  }
+}
+
+/* Users list */
+.usersList {
+  display: flex;
+  flex-direction: column;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  text-decoration: none;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba($color-black, 0.02);
+  }
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.username {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $color-text;
+}
+
+.displayName {
+  font-size: $font-sm;
+  color: $color-muted;
 }
 
 .backButton {
@@ -30,17 +202,6 @@
   &:hover {
     opacity: 0.6;
   }
-}
-
-.searchTitle {
-  font-size: $font-xl;
-  font-weight: $font-regular;
-  color: $color-text;
-  margin: 0;
-}
-
-.query {
-  font-weight: $font-medium;
 }
 
 .loading,

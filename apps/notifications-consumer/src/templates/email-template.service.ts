@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { NotificationType } from "@repo/shared-types";
+import { getConfig } from "../config/app.config";
 
 interface EmailTemplateData {
   actorUsername: string;
@@ -27,6 +28,7 @@ interface EmailTemplateData {
  */
 @Injectable()
 export class EmailTemplateService {
+  private readonly config = getConfig();
   /**
    * Generate HTML email content based on notification type
    */
@@ -140,9 +142,15 @@ export class EmailTemplateService {
          </div>`
       : "";
 
-    const thumbnailBlock = postImageUrl
+    // Prepend frontend URL to image path if it's relative
+    const absoluteImageUrl =
+      postImageUrl && !postImageUrl.startsWith("http")
+        ? `${this.config.frontendUrl}${postImageUrl}`
+        : postImageUrl;
+
+    const thumbnailBlock = absoluteImageUrl
       ? `<div style="margin: 16px 0;">
-           <img src="${postImageUrl}"
+           <img src="${absoluteImageUrl}"
                 alt="Post thumbnail"
                 style="max-width: 200px; height: auto; border-radius: 8px; display: block;" />
          </div>`

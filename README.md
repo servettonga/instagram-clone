@@ -1,8 +1,8 @@
-# 📸 Innogram - Social Media Platform
+# Innogram - Social Media Platform
 
 Modern microservices-based social media platform built with Next.js, NestJS, and Node.js.
 
-## 📂 Project Structure
+## Project Structure
 
 ```sh
 innogram/
@@ -21,7 +21,7 @@ innogram/
 └── README.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -43,7 +43,7 @@ The interactive setup will guide you through:
 1. **Development Mode** - Apps locally + databases in Docker
 2. **Production Mode** - Everything in Docker containers
 
-## 🔧 Development Mode
+## Development Mode
 
 **What it does:**
 
@@ -66,7 +66,7 @@ npm run shared-types:dev  # Terminal 4 (auto-rebuild on changes)
 
 > **Note:** Shared types are automatically built during `npm install` (postinstall hook).
 
-## 🏭 Production Mode
+## Production Mode
 
 **What it does:**
 
@@ -82,7 +82,7 @@ npm run docker:prod         # Start everything
 npm run docker:prod:logs    # View logs
 ```
 
-## 🌐 URLs
+## URLs
 
 | Service | Development | Production |
 |---------|-------------|------------|
@@ -90,7 +90,7 @@ npm run docker:prod:logs    # View logs
 | Core API | <http://localhost:8000> | <http://localhost:8000> |
 | Auth API | <http://localhost:4000> | <http://localhost:4000> |
 
-## 🗄️ Database Ports
+## Database Ports
 
 | Database | Development | Production |
 |----------|-------------|------------|
@@ -98,7 +98,7 @@ npm run docker:prod:logs    # View logs
 | Redis | 6380 | 6379 |
 | RabbitMQ | 5672 | 5672 |
 
-## 📋 Available Commands
+## Available Commands
 
 ### Development
 
@@ -123,10 +123,10 @@ npm run docker:prod:clean   # Clean volumes
 ```bash
 npm run db:studio      # Visual database editor
 npm run db:generate    # Generate Prisma client
-npm run db:reset       # Reset database ⚠️
+npm run db:reset       # Reset database
 ```
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Port Conflicts
 
@@ -158,7 +158,7 @@ curl http://localhost:4000/health # Auth API
 curl http://localhost:8000/health # Core API
 ```
 
-## 🔐 Security
+## Security
 
 Generate secure secrets for production:
 

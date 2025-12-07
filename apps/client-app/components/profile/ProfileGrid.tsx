@@ -1,7 +1,7 @@
 // Profile posts grid component with tabs
 
 import Image from 'next/image';
-import { GridIcon, ReelsIcon, BookmarkSimpleIcon, UserTagIcon, HeartIcon, CommentIcon, MultiImageIcon } from '@/components/ui/icons';
+import { GridIcon, ReelsIcon, BookmarkSimpleIcon, UserTagIcon, HeartIcon, CommentIcon, MultiImageIcon, ArchiveIcon } from '@/components/ui/icons';
 import { getImageSize } from '@/lib/utils/image';
 import styles from './ProfileGrid.module.scss';
 
@@ -14,33 +14,66 @@ interface Post {
   isLiked?: boolean;
 }
 
+type TabType = 'posts' | 'reels' | 'saved' | 'tagged' | 'archive';
+
 interface ProfileGridProps {
   posts: Post[];
   onPostClick: (post: Post) => void;
+  isOwnProfile?: boolean;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
-export default function ProfileGrid({ posts, onPostClick }: ProfileGridProps) {
+export default function ProfileGrid({ posts, onPostClick, isOwnProfile = false, activeTab = 'posts', onTabChange }: ProfileGridProps) {
   // Split posts into rows of 4
   const postsInRows: Post[][] = [];
   for (let i = 0; i < posts.length; i += 4) {
     postsInRows.push(posts.slice(i, i + 4));
   }
 
+  const handleTabClick = (tab: TabType) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
+
   return (
     <div className={styles.postsSection}>
       <div className={styles.postsTabs}>
-        <button className={`${styles.tab} ${styles.tabActive}`}>
+        <button
+          className={`${styles.tab} ${activeTab === 'posts' ? styles.tabActive : ''}`}
+          onClick={() => handleTabClick('posts')}
+        >
           <GridIcon />
         </button>
-        <button className={styles.tab}>
+        <button
+          className={`${styles.tab} ${activeTab === 'reels' ? styles.tabActive : ''}`}
+          onClick={() => handleTabClick('reels')}
+        >
           <ReelsIcon />
         </button>
-        <button className={styles.tab}>
-          <BookmarkSimpleIcon />
-        </button>
-        <button className={styles.tab}>
+        {isOwnProfile && (
+          <button
+            className={`${styles.tab} ${activeTab === 'saved' ? styles.tabActive : ''}`}
+            onClick={() => handleTabClick('saved')}
+          >
+            <BookmarkSimpleIcon />
+          </button>
+        )}
+        <button
+          className={`${styles.tab} ${activeTab === 'tagged' ? styles.tabActive : ''}`}
+          onClick={() => handleTabClick('tagged')}
+        >
           <UserTagIcon />
         </button>
+        {isOwnProfile && (
+          <button
+            className={`${styles.tab} ${activeTab === 'archive' ? styles.tabActive : ''}`}
+            onClick={() => handleTabClick('archive')}
+          >
+            <ArchiveIcon />
+          </button>
+        )}
       </div>
 
       <div className={styles.postsGrid}>

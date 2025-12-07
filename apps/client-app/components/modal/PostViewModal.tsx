@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore';
 import { postsAPI } from '@/lib/api/posts';
 import { getFollowersCountForUsername } from '@/lib/utils/profileCache';
 import { commentsAPI } from '@/lib/api/comments';
+import { normalizeImageUrl } from '@/lib/utils/image';
 import {
   CloseIcon,
   HeartIcon,
@@ -21,6 +22,7 @@ import {
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import CommentsList from '@/components/feed/CommentsList';
 import MentionPicker from '@/components/ui/MentionPicker';
+import UserHoverCard from '@/components/ui/UserHoverCard';
 import { MentionText } from '@/lib/utils/mentions';
 import styles from './PostViewModal.module.scss';
 
@@ -41,9 +43,13 @@ interface PostViewModalProps {
     profileId?: string;
     aspectRatio?: string;
     isLikedByUser?: boolean;
+    isSavedByUser?: boolean;
+    isArchived?: boolean;
   };
   onPostDeleted?: () => void;
   onPostUpdated?: () => void;
+  onPostArchived?: (archived: boolean) => void;
+  onPostSaved?: (saved: boolean) => void;
   initialEditMode?: boolean;
   onNextPost?: () => void;
   onPrevPost?: () => void;
@@ -55,12 +61,15 @@ export default function PostViewModal({
   post,
   onPostDeleted,
   onPostUpdated,
+  onPostArchived,
+  onPostSaved,
   initialEditMode = false,
   onNextPost,
   onPrevPost
 }: PostViewModalProps) {
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -94,6 +103,10 @@ export default function PostViewModal({
   const previousUrlRef = useRef<string | null>(null);
   const [followersCount, setFollowersCount] = useState<number | null>(null);
 
+  // Post save state
+  const [isSaved, setIsSaved] = useState(post.isSavedByUser || false);
+  const [isSavingPost, setIsSavingPost] = useState(false);
+
 
 
   // Reset states when post changes (when navigating between posts)
@@ -109,10 +122,11 @@ export default function PostViewModal({
     setSaveSuccess(false);
     setIsLiked(post.isLikedByUser || false);
     setLikesCount(post.likes);
+    setIsSaved(post.isSavedByUser || false);
     initialLikeStateRef.current = post.isLikedByUser || false;
     likeStateChangedRef.current = false;
     setFollowersCount(null);
-  }, [post.id, post.caption, initialEditMode, post.isLikedByUser, post.likes]);
+  }, [post.id, post.caption, initialEditMode, post.isLikedByUser, post.likes, post.isSavedByUser]);
 
 
 
@@ -143,9 +157,9 @@ export default function PostViewModal({
         previousUrlRef.current = window.location.pathname + window.location.search;
       }
       // Update URL to the post URL
-      window.history.replaceState(null, '', `/app/post/${post.id}`);
+      window.history.replaceState(null, '', `${basePath}/app/post/${post.id}`);
     }
-  }, [isOpen, post.id]);
+  }, [isOpen, post.id, basePath]);
 
   // Get all images from post
   const images = post.assets || (post.imageUrl ? [{ url: post.imageUrl }] : []);
@@ -159,9 +173,11 @@ export default function PostViewModal({
     const ratio = post.aspectRatio || '4/5';
     if (ratio === '1/1') {
       return `${styles.imageWrapper} ${styles.imageWrapperSquare}`;
-    } else if (ratio === '16/9') {
+    }
+    if (ratio === '16/9') {
       return `${styles.imageWrapper} ${styles.imageWrapperWide}`;
-    } else if (ratio === '4/5') {
+    }
+    if (ratio === '4/5') {
       return `${styles.imageWrapper} ${styles.imageWrapperTall}`;
     }
     return styles.imageWrapper;
@@ -169,18 +185,20 @@ export default function PostViewModal({
 
   // Determine container class based on aspect ratio
   const getContainerClass = () => {
-    const ratio = post.aspectRatio || '4/5';
-    if (ratio === '4/5') {
-      return `${styles.imageContainer} ${styles.imageContainerRightAlign}`;
-    }
     return styles.imageContainer;
   };
 
   // Determine section class based on aspect ratio
   const getSectionClass = () => {
     const ratio = post.aspectRatio || '4/5';
+    if (ratio === '1/1') {
+      return `${styles.imageSection} ${styles.imageSectionSquare}`;
+    }
+    if (ratio === '16/9') {
+      return `${styles.imageSection} ${styles.imageSectionWide}`;
+    }
     if (ratio === '4/5') {
-      return `${styles.imageSection} ${styles.imageSectionNoBackground}`;
+      return `${styles.imageSection} ${styles.imageSectionTall}`;
     }
     return styles.imageSection;
   };
@@ -226,6 +244,26 @@ export default function PostViewModal({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, handleClose, onNextPost, onPrevPost]);
+
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const handleArchivePost = async () => {
+    setIsArchiving(true);
+    try {
+      if (post.isArchived) {
+        await postsAPI.unarchivePost(post.id);
+        onPostArchived?.(false);
+      } else {
+        await postsAPI.archivePost(post.id);
+        onPostArchived?.(true);
+      }
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Failed to archive/unarchive post:', error);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
 
   const handleDeletePost = async () => {
     setIsDeleting(true);
@@ -372,6 +410,27 @@ export default function PostViewModal({
     }
   };
 
+  const handleTogglePostSave = async () => {
+    if (isSavingPost) return;
+
+    setIsSavingPost(true);
+    // Optimistic update
+    const previousSaved = isSaved;
+    setIsSaved(!isSaved);
+
+    try {
+      const result = await postsAPI.toggleSave(post.id);
+      setIsSaved(result.saved);
+      onPostSaved?.(result.saved);
+    } catch (error) {
+      console.error('Failed to toggle post save:', error);
+      // Revert optimistic update on error
+      setIsSaved(previousSaved);
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
   const formatTimeAgo = (date: Date | string) => {
     const now = new Date();
     const createdAt = new Date(date);
@@ -421,7 +480,7 @@ export default function PostViewModal({
                 {currentImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={currentImage.url}
+                    src={normalizeImageUrl(currentImage.url)}
                     alt="Post"
                     className={styles.postImage}
                   />
@@ -475,15 +534,19 @@ export default function PostViewModal({
                 </Link>
                 <div className={styles.userDetails}>
                   <div className={styles.usernameRow}>
-                    <Link href={`/app/profile/${post.username}`} className={styles.usernameLink} onClick={onClose}>
-                      {post.username}
-                    </Link>
-                    {post.collaborators && (
+                    <UserHoverCard username={post.username} onNavigate={onClose}>
+                      <Link href={`/app/profile/${post.username}`} className={styles.usernameLink} onClick={onClose}>
+                        {post.username}
+                      </Link>
+                    </UserHoverCard>
+                    {post.collaborators && post.collaborators[0] && (
                       <>
                         <span className={styles.and}> and </span>
-                        <Link href={`/app/profile/${post.collaborators[0]}`} className={styles.usernameLink} onClick={onClose}>
-                          {post.collaborators[0]}
-                        </Link>
+                        <UserHoverCard username={post.collaborators[0]} onNavigate={onClose}>
+                          <Link href={`/app/profile/${post.collaborators[0]}`} className={styles.usernameLink} onClick={onClose}>
+                            {post.collaborators[0]}
+                          </Link>
+                        </UserHoverCard>
                       </>
                     )}
                   </div>
@@ -501,7 +564,7 @@ export default function PostViewModal({
               {/* More Menu */}
               {showMenu && (
                 <div className={styles.moreMenu}>
-                  <button className={styles.menuItem} onClick={() => { setShowMenu(false); router.push(`/app/post/${post.id}`); }}>
+                  <button className={styles.menuItem} onClick={() => { setShowMenu(false); router.push(`${basePath}/app/post/${post.id}`); }}>
                     Go to post
                   </button>
                   {isOwnPost ? (
@@ -509,8 +572,8 @@ export default function PostViewModal({
                       <button className={styles.menuItem} onClick={() => { setShowMenu(false); setIsEditMode(true); }}>
                         Edit
                       </button>
-                      <button className={styles.menuItem} onClick={() => { setShowMenu(false); /* TODO: implement archive */ }}>
-                        Archive
+                      <button className={styles.menuItem} onClick={handleArchivePost} disabled={isArchiving}>
+                        {isArchiving ? 'Processing...' : post.isArchived ? 'Unarchive' : 'Archive'}
                       </button>
                       <button className={styles.menuItem} style={{ color: 'var(--color-error)' }} onClick={() => { setShowMenu(false); setShowDeleteConfirm(true); }} disabled={isDeleting}>
                         Delete
@@ -518,8 +581,8 @@ export default function PostViewModal({
                     </>
                   ) : (
                     <>
-                      <button className={styles.menuItem} onClick={() => setShowMenu(false)}>
-                        Save
+                      <button className={styles.menuItem} onClick={() => { setShowMenu(false); handleTogglePostSave(); }} disabled={isSavingPost}>
+                        {isSavingPost ? 'Saving...' : isSaved ? 'Unsave' : 'Save'}
                       </button>
                       <button className={styles.menuItem} onClick={() => setShowMenu(false)}>
                         Flag
@@ -581,9 +644,11 @@ export default function PostViewModal({
                     </Link>
                     <div className={styles.commentContent}>
                       <div className={styles.commentText}>
-                        <Link href={`/app/profile/${post.username}`} className={styles.commentUsernameLink} onClick={onClose}>
-                          {post.username}
-                        </Link>
+                        <UserHoverCard username={post.username} onNavigate={onClose}>
+                          <Link href={`/app/profile/${post.username}`} className={styles.commentUsernameLink} onClick={onClose}>
+                            {post.username}
+                          </Link>
+                        </UserHoverCard>
                         {' '}
                         <MentionText text={displayCaption || ''} />
                         {shouldTruncateCaption && (
@@ -636,10 +701,14 @@ export default function PostViewModal({
                     </div>
                   </div>
                 </button>
-                <button className={styles.actionButton}>
+                <button
+                  className={styles.actionButton}
+                  onClick={handleTogglePostSave}
+                  disabled={isSavingPost}
+                >
                   <div className={styles.svgWrapper}>
                     <div className={styles.svgWrapperInner}>
-                      <BookmarkIcon width={25} height={25} />
+                      <BookmarkIcon width={25} height={25} filled={isSaved} />
                     </div>
                   </div>
                 </button>

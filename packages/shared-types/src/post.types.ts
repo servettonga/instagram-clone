@@ -31,6 +31,7 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   isLikedByCurrentUser: boolean;
+  isSavedByCurrentUser: boolean;
 }
 
 export interface CreatePostDto {
@@ -49,7 +50,7 @@ export interface UpdatePostDto {
 export interface QueryPostsDto {
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'updatedAt';
+  sortBy?: 'createdAt' | 'updatedAt' | 'likesCount';
   order?: 'asc' | 'desc';
   search?: string;
   profileId?: string;

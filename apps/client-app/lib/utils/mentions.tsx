@@ -1,45 +1,65 @@
 import Link from 'next/link';
+import UserHoverCard from '@/components/ui/UserHoverCard';
 
-interface MentionLinkProps {
+interface RichTextProps {
   text: string;
   className?: string;
 }
 
 /**
- * Component that renders text with clickable @username mentions
+ * Component that renders text with clickable @username mentions and #hashtags
  * @example
- * <MentionText text="Hello @john this is @jane!" />
- * // Renders: Hello <Link>@john</Link> this is <Link>@jane</Link>!
+ * <MentionText text="Hello @john check out #birds!" />
+ * // Renders: Hello <Link>@john</Link> check out <Link>#birds</Link>!
  */
-export function MentionText({ text, className }: MentionLinkProps) {
-  // Regex to match @username (alphanumeric, underscore, period)
-  const mentionRegex = /@([\w.]+)/g;
+export function MentionText({ text, className }: RichTextProps) {
+  // Regex to match @username or #hashtag (alphanumeric, underscore)
+  const mentionHashtagRegex = /(@[\w.]+|#[\w]+)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
+  let keyIndex = 0;
 
-  while ((match = mentionRegex.exec(text)) !== null) {
-    const username = match[1];
+  while ((match = mentionHashtagRegex.exec(text)) !== null) {
+    const matchedText = match[0];
     const matchIndex = match.index;
 
-    // Add text before the mention
+    // Add text before the match
     if (matchIndex > lastIndex) {
       parts.push(text.substring(lastIndex, matchIndex));
     }
 
-    // Add the mention as a link
-    parts.push(
-      <Link
-        key={matchIndex}
-        href={`/app/profile/${username}`}
-        className="mention-link"
-        onClick={(e) => e.stopPropagation()}
-      >
-        @{username}
-      </Link>
-    );
+    // Check if it's a mention or hashtag
+    if (matchedText.startsWith('@')) {
+      const username = matchedText.substring(1);
+      // Add the mention as a link to profile with hover card
+      parts.push(
+        <UserHoverCard key={`mention-${keyIndex++}`} username={username}>
+          <Link
+            href={`/app/profile/${username}`}
+            className="mention-link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {matchedText}
+          </Link>
+        </UserHoverCard>
+      );
+    } else if (matchedText.startsWith('#')) {
+      const hashtag = matchedText.substring(1);
+      // Add the hashtag as a link to search with posts tab
+      parts.push(
+        <Link
+          key={`hashtag-${keyIndex++}`}
+          href={`/app/search?q=${encodeURIComponent(hashtag)}&type=posts`}
+          className="hashtag-link"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {matchedText}
+        </Link>
+      );
+    }
 
-    lastIndex = matchIndex + match[0].length;
+    lastIndex = matchIndex + matchedText.length;
   }
 
   // Add remaining text

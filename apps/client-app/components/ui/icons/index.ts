@@ -39,3 +39,4 @@ export { default as LogoutIcon } from './LogoutIcon';
 export { default as ActivityIcon } from './ActivityIcon';
 export { default as GoogleIcon } from './GoogleIcon';
 export { InnogramLogoIcon } from './InnogramLogoIcon';
+export { default as ArchiveIcon } from './ArchiveIcon';

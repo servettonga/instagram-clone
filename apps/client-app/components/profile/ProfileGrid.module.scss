@@ -153,3 +153,102 @@
     flex-shrink: 0;
   }
 }
+
+// Mobile responsive styles
+@media (max-width: 768px) {
+  .postsSection {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .postsTabs {
+    gap: 0;
+    width: 100%;
+    border-top: 1px solid $color-border;
+    justify-content: space-around;
+    margin-top: 8px;
+  }
+
+  .tab {
+    flex: 1;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 0;
+    font-size: 12px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .postsGrid {
+    gap: 2px;
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .postsRow {
+    gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gridItem {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .overlay {
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .stats {
+    gap: 12px;
+
+    span {
+      gap: 4px;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .postsTabs {
+    height: 44px;
+  }
+
+  .tab {
+    font-size: 11px;
+    padding: 10px 0;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .postsGrid {
+    gap: 1px;
+  }
+
+  .postsRow {
+    gap: 1px;
+  }
+
+  .stats {
+    gap: 8px;
+    font-size: 12px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}

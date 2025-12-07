@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
-import { join } from 'path';
 import { getConfig } from '../../config/config';
+import { StorageService } from './storage.service';
 
 export interface ProcessedImages {
   thumbnail: string;
@@ -14,40 +13,40 @@ export interface ProcessedImages {
 export class ImageProcessingService {
   private readonly logContext = ImageProcessingService.name;
   private readonly config = getConfig();
-  private uploadPath = this.config.uploadDir;
 
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly storageService: StorageService,
+  ) {}
 
   /**
    * Process uploaded image and generate three optimized versions
    * - Thumbnail: 150×150 for profile grids
    * - Medium: 640×640 for feed display
    * - Full: 1080×1080 max for post page/modal
+   *
+   * In development: saves to local filesystem
+   * In production: uploads to Cloudflare R2
    */
   async processPostImage(
     file: Express.Multer.File,
     aspectRatio: string = '1:1',
+    folder: 'posts' | 'messages' = 'posts',
   ): Promise<ProcessedImages> {
-    const outputPath = join(this.uploadPath, 'posts');
-
-    // Ensure output directory exists
-    if (!existsSync(outputPath)) {
-      mkdirSync(outputPath, { recursive: true });
-    }
-
-    const baseFilename = `post-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const prefix = folder === 'messages' ? 'msg' : 'post';
+    const baseFilename = `${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
 
     try {
       // Calculate dimensions based on aspect ratio
       const dimensions = this.getAspectDimensions(aspectRatio);
 
-      // Process image in parallel for better performance
-      await Promise.all([
+      // Process images in parallel with Sharp (in-memory)
+      const [thumbBuffer, mediumBuffer, fullBuffer] = await Promise.all([
         // Thumbnail: Always square 150×150 for grids
         sharp(file.buffer)
           .resize(150, 150, { fit: 'cover', position: 'center' })
           .webp({ quality: 80 })
-          .toFile(join(outputPath, `${baseFilename}-thumb.webp`)),
+          .toBuffer(),
 
         // Medium: Sized for aspect ratio, max 640px width
         sharp(file.buffer)
@@ -56,21 +55,38 @@ export class ImageProcessingService {
             position: 'center',
           })
           .webp({ quality: 85 })
-          .toFile(join(outputPath, `${baseFilename}-medium.webp`)),
+          .toBuffer(),
 
         // Full: Sized for aspect ratio, max 1080px width
         sharp(file.buffer)
-          .resize(
-            dimensions.full.width,
-            dimensions.full.height,
-            { fit: 'inside' }, // Preserve aspect ratio
-          )
+          .resize(dimensions.full.width, dimensions.full.height, {
+            fit: 'inside', // Preserve aspect ratio
+          })
           .webp({ quality: 90 })
-          .toFile(join(outputPath, `${baseFilename}-full.webp`)),
+          .toBuffer(),
+      ]);
+
+      // Upload all versions to storage (local or R2)
+      await Promise.all([
+        this.storageService.upload(
+          thumbBuffer,
+          `${folder}/${baseFilename}-thumb.webp`,
+          'image/webp',
+        ),
+        this.storageService.upload(
+          mediumBuffer,
+          `${folder}/${baseFilename}-medium.webp`,
+          'image/webp',
+        ),
+        this.storageService.upload(
+          fullBuffer,
+          `${folder}/${baseFilename}-full.webp`,
+          'image/webp',
+        ),
       ]);
 
       this.logger.log(
-        `Successfully processed image: ${baseFilename}`,
+        `Successfully processed and uploaded image: ${baseFilename}`,
         this.logContext,
       );
 
@@ -93,26 +109,28 @@ export class ImageProcessingService {
   }
 
   /**
-   * Process avatar image - always square
+   * Process avatar image - always square 150×150
+   * Returns the filename for database storage
    */
   async processAvatar(file: Express.Multer.File): Promise<string> {
-    const outputPath = join(this.uploadPath, 'avatars');
-
-    if (!existsSync(outputPath)) {
-      mkdirSync(outputPath, { recursive: true });
-    }
-
     const filename = `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`;
 
     try {
       // Generate 150×150 avatar
-      await sharp(file.buffer)
+      const avatarBuffer = await sharp(file.buffer)
         .resize(150, 150, { fit: 'cover', position: 'center' })
         .webp({ quality: 85 })
-        .toFile(join(outputPath, filename));
+        .toBuffer();
+
+      // Upload to storage (local or R2)
+      await this.storageService.upload(
+        avatarBuffer,
+        `avatars/${filename}`,
+        'image/webp',
+      );
 
       this.logger.log(
-        `Successfully processed avatar: ${filename}`,
+        `Successfully processed and uploaded avatar: ${filename}`,
         this.logContext,
       );
 
@@ -164,18 +182,16 @@ export class ImageProcessingService {
   }
 
   /**
-   * Delete processed images
+   * Delete processed images from storage
    */
-  deleteImages(filenames: string[]): void {
-    const outputPath = join(this.uploadPath, 'posts');
-
+  async deleteImages(
+    filenames: string[],
+    folder: 'posts' | 'avatars' | 'messages' = 'posts',
+  ): Promise<void> {
     for (const filename of filenames) {
       try {
-        const filePath = join(outputPath, filename);
-        if (existsSync(filePath)) {
-          unlinkSync(filePath);
-          this.logger.log(`Deleted image: ${filename}`, this.logContext);
-        }
+        await this.storageService.delete(`${folder}/${filename}`);
+        this.logger.log(`Deleted image: ${filename}`, this.logContext);
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -190,8 +206,9 @@ export class ImageProcessingService {
 
   /**
    * Get URL for uploaded image
+   * Uses storage service to return correct URL based on environment
    */
-  getImageUrl(filename: string, folder: 'posts' | 'avatars' = 'posts'): string {
-    return `${this.config.backendUrl}/uploads/${folder}/${filename}`;
+  getImageUrl(filename: string, folder: 'posts' | 'avatars' | 'messages' = 'posts'): string {
+    return this.storageService.getPublicUrl(`${folder}/${filename}`);
   }
 }

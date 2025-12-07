@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Avatar from '@/components/ui/Avatar';
+import UserHoverCard from '@/components/ui/UserHoverCard';
 import { HeartIcon, MoreIcon } from '@/components/ui/icons';
 import { MentionText } from '@/lib/utils/mentions';
 import type { Comment } from '@repo/shared-types';
@@ -113,13 +114,15 @@ export default function CommentItem({
           ) : (
             <>
               <div className={styles.commentText}>
-                <Link
-                  href={`/app/profile/${comment.profile.username}`}
-                  className={styles.commentUsernameLink}
-                  onClick={onCloseModal}
-                >
-                  {comment.profile.username}
-                </Link>{' '}
+                <UserHoverCard username={comment.profile.username} onNavigate={onCloseModal}>
+                  <Link
+                    href={`/app/profile/${comment.profile.username}`}
+                    className={styles.commentUsernameLink}
+                    onClick={onCloseModal}
+                  >
+                    {comment.profile.username}
+                  </Link>
+                </UserHoverCard>{' '}
                 <MentionText text={comment.content} />
               </div>
               <div className={styles.commentMeta}>

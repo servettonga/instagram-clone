@@ -98,7 +98,19 @@ a {
   color: var(--color-primary);
   font-weight: 500;
   cursor: pointer;
-  
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Hashtag links styling
+// Similar to mentions, hashtags navigate to search results
+.hashtag-link {
+  color: var(--color-primary);
+  font-weight: 500;
+  cursor: pointer;
+
   &:hover {
     text-decoration: underline;
   }

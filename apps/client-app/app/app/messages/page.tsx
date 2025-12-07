@@ -12,9 +12,10 @@ import { MessagePlaneIcon } from '@/components/ui/icons';
 import styles from './messages.module.scss';
 
 export default function MessagesPage() {
-  const { chats, selectedChatId, setChats, setMessagesViewActive } = useChatStore();
+  const { chats, selectedChatId, setChats, setMessagesViewActive, selectChat } = useChatStore();
   const [isLoading, setIsLoading] = useState(true);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   // Load user's chats on mount
   useEffect(() => {
@@ -40,17 +41,36 @@ export default function MessagesPage() {
     };
   }, [setMessagesViewActive]);
 
+  // When a chat is selected, show the chat view on mobile
+  useEffect(() => {
+    if (selectedChatId) {
+      setShowMobileChat(true);
+    }
+  }, [selectedChatId]);
+
   const selectedChat = chats.find((c) => c.id === selectedChatId);
 
   const handleNewMessage = () => {
     setShowNewChatModal(true);
   };
 
+  const handleBackToList = () => {
+    setShowMobileChat(false);
+    selectChat(null);
+  };
+
+  const handleSelectChat = (chatId: string) => {
+    selectChat(chatId);
+    setShowMobileChat(true);
+  };
+
   return (
     <div className={styles.messagesContainer}>
-      <div className={styles.messagesLayout}>
+      <div className={`${styles.messagesLayout} ${showMobileChat ? styles.showChat : ''}`}>
         {/* Conversations List */}
-        <ConversationsList onNewMessage={handleNewMessage} />
+        <div className={styles.conversationsWrapper}>
+          <ConversationsList onNewMessage={handleNewMessage} onSelectChat={handleSelectChat} />
+        </div>
 
         {/* Messages View */}
         <div className={styles.messagesView}>
@@ -77,7 +97,7 @@ export default function MessagesPage() {
             </div>
           ) : (
             /* Selected Chat Messages View */
-            <MessagesView chat={selectedChat} />
+            <MessagesView chat={selectedChat} onBack={handleBackToList} />
           )}
         </div>
       </div>

@@ -57,6 +57,7 @@ export class AssetManagementService {
     file: Express.Multer.File,
     userId: string | undefined,
     aspectRatio: string = '1:1',
+    folder: 'posts' | 'messages' = 'posts',
   ): Promise<{
     id: string;
     fileName: string;
@@ -76,20 +77,21 @@ export class AssetManagementService {
     const processedImages = await this.imageProcessing.processPostImage(
       file,
       aspectRatio,
+      folder,
     );
 
     // Get URLs for all versions
     const fullUrl = this.imageProcessing.getImageUrl(
       processedImages.full,
-      'posts',
+      folder,
     );
     const thumbnailUrl = this.imageProcessing.getImageUrl(
       processedImages.thumbnail,
-      'posts',
+      folder,
     );
     const mediumUrl = this.imageProcessing.getImageUrl(
       processedImages.medium,
-      'posts',
+      folder,
     );
 
     // Save to database
@@ -174,7 +176,20 @@ export class AssetManagementService {
   }
 
   /**
-   * Get full URL fro an asset
+   * Delete files from storage by their filenames
+   * Used for cleanup after post/message deletion
+   */
+  async deleteFilesFromStorage(
+    filenames: string[],
+    folder: 'posts' | 'avatars' | 'messages' = 'posts',
+  ): Promise<void> {
+    if (filenames.length > 0) {
+      await this.imageProcessing.deleteImages(filenames, folder);
+    }
+  }
+
+  /**
+   * Get full URL for an asset
    */
   getAssetUrl(filePath: string): string {
     return `${this.config.backendUrl}${filePath}`;

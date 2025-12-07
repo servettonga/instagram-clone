@@ -42,14 +42,14 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => {
     const authenticator = passport.authenticate('google', {
       session: false,
-      failureRedirect: `${config.coreServiceUrl}/api/auth/google/callback?error=auth_failed`,
+      failureRedirect: `${config.coreServicePublicUrl}/api/auth/google/callback?error=auth_failed`,
     }) as (req: Request, res: Response, next: (err?: Error) => void) => void;
 
     authenticator(req, res, (err?: Error) => {
       if (err) {
         console.error('OAuth authentication error:', err);
         return res.redirect(
-          `${config.coreServiceUrl}/api/auth/google/callback?error=auth_failed`,
+          `${config.coreServicePublicUrl}/api/auth/google/callback?error=auth_failed`,
         );
       }
       next();

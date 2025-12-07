@@ -13,9 +13,10 @@ import styles from './ConversationsList.module.scss';
 
 interface ConversationsListProps {
   onNewMessage?: () => void;
+  onSelectChat?: (chatId: string) => void;
 }
 
-export default function ConversationsList({ onNewMessage }: ConversationsListProps) {
+export default function ConversationsList({ onNewMessage, onSelectChat }: ConversationsListProps) {
   const { user } = useAuthStore();
   const { chats, selectedChatId, selectChat, unreadCounts, clearUnreadCount } = useChatStore();
   const profile = user?.profile;
@@ -127,6 +128,7 @@ export default function ConversationsList({ onNewMessage }: ConversationsListPro
                 onClick={() => {
                   clearUnreadCount(chat.id);
                   selectChat(chat.id);
+                  onSelectChat?.(chat.id);
                   void chatsAPI
                     .markChatRead(chat.id)
                     .catch((error: unknown) =>

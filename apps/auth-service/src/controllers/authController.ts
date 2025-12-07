@@ -245,7 +245,7 @@ export class AuthController {
 
       if (!user) {
         res.redirect(
-          `${config.coreServiceUrl}/api/auth/google/callback?error=auth_failed`,
+          `${config.coreServicePublicUrl}/api/auth/google/callback?error=auth_failed`,
         );
         return;
       }
@@ -269,7 +269,7 @@ export class AuthController {
 
         // Redirect to account selection page
         res.redirect(
-          `${config.coreServiceUrl}/api/auth/google/callback?` +
+          `${config.coreServicePublicUrl}/api/auth/google/callback?` +
             `selectAccount=true&` +
             `sessionId=${oauthSessionId}`,
         );
@@ -303,14 +303,14 @@ export class AuthController {
 
       // Redirect to Core Service callback with tokens
       res.redirect(
-        `${config.coreServiceUrl}/api/auth/google/callback?` +
+        `${config.coreServicePublicUrl}/api/auth/google/callback?` +
           `accessToken=${tokenPair.accessToken}&` +
           `refreshToken=${tokenPair.refreshToken}`,
       );
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(
-        `${config.coreServiceUrl}/api/auth/google/callback?error=internal_error`,
+        `${config.coreServicePublicUrl}/api/auth/google/callback?error=internal_error`,
       );
     }
   }

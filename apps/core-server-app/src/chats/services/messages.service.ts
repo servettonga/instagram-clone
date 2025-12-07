@@ -4,10 +4,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AssetManagementService } from '../../common/services/asset-management.service';
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assetManagementService: AssetManagementService,
+  ) {}
 
   /**
    * Create a new message in a chat
@@ -202,7 +206,7 @@ export class MessagesService {
   }
 
   /**
-   * Delete a message (soft delete)
+   * Delete a message (soft delete) and clean up any attached files
    */
   async deleteMessage(messageId: string, userId: string) {
     // Get user's profile
@@ -214,9 +218,22 @@ export class MessagesService {
       throw new NotFoundException('User profile not found');
     }
 
-    // Get message and verify ownership
+    // Get message with assets and verify ownership
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
+      include: {
+        assets: {
+          include: {
+            asset: {
+              select: {
+                filePath: true,
+                thumbnailPath: true,
+                mediumPath: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!message || message.deleted) {
@@ -227,7 +244,25 @@ export class MessagesService {
       throw new ForbiddenException('Can only delete your own messages');
     }
 
-    // Soft delete
+    // Collect files to delete from storage
+    const filesToDelete: string[] = [];
+    for (const messageAsset of message.assets) {
+      const asset = messageAsset.asset;
+      if (asset.filePath) {
+        const filename = asset.filePath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.thumbnailPath) {
+        const filename = asset.thumbnailPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+      if (asset.mediumPath) {
+        const filename = asset.mediumPath.split('/').pop();
+        if (filename) filesToDelete.push(filename);
+      }
+    }
+
+    // Soft delete the message
     await this.prisma.message.update({
       where: { id: messageId },
       data: {
@@ -235,6 +270,14 @@ export class MessagesService {
         updatedBy: userId,
       },
     });
+
+    // Clean up storage files (do this after DB update succeeds)
+    if (filesToDelete.length > 0) {
+      await this.assetManagementService.deleteFilesFromStorage(
+        filesToDelete,
+        'messages',
+      );
+    }
 
     return { id: messageId, chatId: message.chatId };
   }

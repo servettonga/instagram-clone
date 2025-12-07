@@ -20,7 +20,32 @@ import { useChatStore } from '../store/chatStore';
 import type { Message } from '@repo/shared-types';
 import { chatsAPI } from '../api/chats';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Socket.IO connects to core server
+// WebSockets can't be proxied through Next.js rewrites, so we need to connect directly
+// In development: connect to backend on port 8000 (same hostname as frontend)
+// In production: use NEXT_PUBLIC_API_URL
+const getSocketConfig = () => {
+  const isServer = typeof window === 'undefined';
+  const isDev = process.env.NODE_ENV === 'development';
+  const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+  if (isDev && !isServer) {
+    // In development, connect directly to backend on port 8000
+    // Use same hostname as current page (works on localhost and local network)
+    const backendUrl = `${window.location.protocol}//${window.location.hostname}:8000`;
+    return {
+      url: backendUrl,
+      path: '/socket.io',
+    };
+  }
+
+  // Production: use env variable
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  return {
+    url: API_URL.replace(BASE_PATH, ''),
+    path: BASE_PATH ? `${BASE_PATH}/socket.io` : '/socket.io',
+  };
+};
 
 type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -48,7 +73,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    const newSocket = io(`${SOCKET_URL}/chat`, {
+    const socketConfig = getSocketConfig();
+    const newSocket = io(`${socketConfig.url}/chat`, {
+      path: socketConfig.path,
       auth: {
         token: `Bearer ${token}`,
       },

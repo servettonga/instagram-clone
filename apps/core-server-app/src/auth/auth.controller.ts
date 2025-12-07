@@ -126,8 +126,9 @@ export class AuthController {
       throw new BadRequestException(ERROR_MESSAGES.PROVIDER_REQUIRED);
     }
 
-    const authServiceUrl = getConfig().authServiceUrl;
-    res.redirect(`${authServiceUrl}/internal/auth/oauth/google`);
+    // Use public URL so browser can access it
+    const authServicePublicUrl = getConfig().authServicePublicUrl;
+    res.redirect(`${authServicePublicUrl}/internal/auth/oauth/google`);
   }
 
   @Get('google/callback')

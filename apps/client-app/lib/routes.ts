@@ -40,7 +40,7 @@ export const ROUTES = {
     },
 
     // Other routes
-    SAVED: '/app/saved',
+    SAVED: '/app/profile/me?tab=saved',
     ACTIVITY: '/app/activity',
   },
 } as const;

@@ -1,41 +1,24 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import { ERROR_MESSAGES } from '../constants/messages';
 import { getConfig } from '../../config/config';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class FileUploadService {
   private readonly config = getConfig();
-  private uploadPath = this.config.uploadDir;
   private maxFileSize = this.config.maxFileSize;
 
-  constructor() {
-    // Ensure upload directory exists
-    if (!existsSync(this.uploadPath)) {
-      mkdirSync(this.uploadPath, { recursive: true });
-    }
-  }
+  constructor(private readonly storageService: StorageService) {}
 
+  /**
+   * Get Multer options for avatar uploads
+   * Uses memory storage - files are processed and uploaded via StorageService
+   */
   getMulterOptions() {
     return {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const uploadPath = `${this.uploadPath}/avatars`;
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-          // Generate unique filename: timestamp-randomstring.ext
-          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          const ext = extname(file.originalname);
-          cb(null, `avatar-${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: this.maxFileSize,
       },
@@ -54,8 +37,11 @@ export class FileUploadService {
     };
   }
 
+  /**
+   * Get public URL for an avatar file
+   * Delegates to StorageService for correct URL based on environment
+   */
   getFileUrl(filename: string): string {
-    // Return the full URL with the backend server
-    return `${this.config.backendUrl}/uploads/avatars/${filename}`;
+    return this.storageService.getFullUrl(`avatars/${filename}`);
   }
 }

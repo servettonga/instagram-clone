@@ -4,6 +4,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileUploadService } from '../common/services/file-upload.service';
+import { ImageProcessingService } from '../common/services/image-processing.service';
 import { NotificationProducerService } from '../notifications/services/notification-producer.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -92,6 +93,14 @@ describe('UsersService', () => {
     saveFile: jest.fn(),
     deleteFile: jest.fn(),
     getFilePath: jest.fn(),
+    getFileUrl: jest.fn(),
+  };
+
+  const mockImageProcessingService = {
+    processAvatar: jest.fn(),
+    processPostImage: jest.fn(),
+    deleteImages: jest.fn(),
+    getImageUrl: jest.fn(),
   };
 
   const mockNotificationProducerService = {
@@ -113,6 +122,10 @@ describe('UsersService', () => {
         {
           provide: FileUploadService,
           useValue: mockFileUploadService,
+        },
+        {
+          provide: ImageProcessingService,
+          useValue: mockImageProcessingService,
         },
         {
           provide: NotificationProducerService,
